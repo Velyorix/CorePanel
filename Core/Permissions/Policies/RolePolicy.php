@@ -31,4 +31,9 @@ class RolePolicy extends BasePolicy
     {
         return $this->allowsAny($user, 'roles.manage') && ! $role->is_system;
     }
+
+    public function duplicate(User $user, Role $role): bool
+    {
+        return $this->allowsAny($user, 'roles.manage');
+    }
 }

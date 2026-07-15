@@ -1,83 +1,113 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Roles — {{ config('corepanel.name') }}</title>
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100">
-        <main class="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-12">
-            <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">Roles</h1>
-                    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                        Manage roles, inheritance, and assigned permissions.
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{{ route('admin.permissions.index') }}" class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">
-                        Permissions
-                    </a>
-                    @can('create', Core\Permissions\Models\Role::class)
-                        <a href="{{ route('admin.roles.create') }}" class="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white">
-                            Create role
-                        </a>
-                    @endcan
-                </div>
-            </div>
+<x-layout.admin
+    :title="__('Roles')"
+    :page-heading="__('Roles')"
+>
+    <x-slot:subtitle>
+        {{ __('Manage roles, inheritance, and assigned permissions.') }}
+    </x-slot:subtitle>
 
-            @if (session('status'))
-                <p class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-                    {{ session('status') }}
-                </p>
-            @endif
+    <x-slot:sidebar>
+        <nav class="space-y-1" aria-label="{{ __('Admin navigation') }}">
+            <a
+                href="{{ route('admin.roles.index') }}"
+                class="block rounded-md bg-muted px-3 py-2 text-body-sm font-medium text-foreground"
+                aria-current="page"
+            >
+                {{ __('Roles') }}
+            </a>
+            <a
+                href="{{ route('admin.permissions.index') }}"
+                class="block rounded-md px-3 py-2 text-body-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+                {{ __('Permissions') }}
+            </a>
+        </nav>
+    </x-slot:sidebar>
 
-            @if ($errors->any())
-                <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                    <ul class="list-disc ps-4">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+    <x-slot:topbar>
+        <div class="ml-auto flex items-center gap-3">
+            <x-ui.theme-toggle />
+            @auth
+                <span class="hidden text-body-sm text-muted-foreground sm:inline">
+                    {{ auth()->user()->email }}
+                </span>
+            @endauth
+        </div>
+    </x-slot:topbar>
 
-            <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                    <thead class="bg-zinc-50 text-left text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Name</th>
-                            <th class="px-4 py-3 font-medium">Parent</th>
-                            <th class="px-4 py-3 font-medium">Permissions</th>
-                            <th class="px-4 py-3 font-medium">Users</th>
-                            <th class="px-4 py-3 font-medium"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        @forelse ($roles as $role)
-                            <tr>
-                                <td class="px-4 py-3">
-                                    <div class="font-medium">{{ $role->name }}</div>
-                                    @if ($role->is_system)
-                                        <div class="text-xs text-zinc-500">System</div>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 text-zinc-500">{{ $role->parent?->name ?? '—' }}</td>
-                                <td class="px-4 py-3 text-zinc-500">{{ $role->permissions->count() }}</td>
-                                <td class="px-4 py-3 text-zinc-500">{{ $role->users_count }}</td>
-                                <td class="px-4 py-3 text-end">
-                                    <a href="{{ route('admin.roles.show', $role) }}" class="font-medium text-zinc-700 hover:underline dark:text-zinc-300">View</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-zinc-500">No roles found.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </main>
-    </body>
-</html>
+    <x-slot:breadcrumbs>
+        <x-ui.breadcrumb :items="[
+            ['label' => __('Admin'), 'url' => route('admin.roles.index')],
+            ['label' => __('Roles')],
+        ]" />
+    </x-slot:breadcrumbs>
+
+    <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        <x-ui.button :href="route('admin.permissions.index')" variant="secondary" size="sm">
+            {{ __('Permissions') }}
+        </x-ui.button>
+        @can('create', Core\Permissions\Models\Role::class)
+            <x-ui.button :href="route('admin.roles.create')" variant="primary" size="sm">
+                {{ __('Create role') }}
+            </x-ui.button>
+        @endcan
+    </div>
+
+    @if (session('status'))
+        <div class="mb-6">
+            <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="mb-6">
+            <x-ui.alert variant="danger" :title="__('Unable to continue')">
+                <ul class="list-disc ps-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </x-ui.alert>
+        </div>
+    @endif
+
+    <x-ui.table>
+        <x-slot:head>
+            <tr>
+                <th class="px-4 py-3 font-medium">{{ __('Name') }}</th>
+                <th class="px-4 py-3 font-medium">{{ __('Parent') }}</th>
+                <th class="px-4 py-3 font-medium">{{ __('Permissions') }}</th>
+                <th class="px-4 py-3 font-medium">{{ __('Users') }}</th>
+                <th class="px-4 py-3 font-medium"></th>
+            </tr>
+        </x-slot:head>
+
+        @forelse ($roles as $role)
+            <tr class="hover:bg-muted/40">
+                <td class="px-4 py-3">
+                    <div class="font-medium">{{ $role->name }}</div>
+                    @if ($role->is_system)
+                        <div class="text-small text-muted-foreground">{{ __('System') }}</div>
+                    @endif
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">{{ $role->parent?->name ?? '—' }}</td>
+                <td class="px-4 py-3 text-muted-foreground">{{ $role->permissions->count() }}</td>
+                <td class="px-4 py-3 text-muted-foreground">{{ $role->users_count }}</td>
+                <td class="px-4 py-3 text-end">
+                    <x-ui.button :href="route('admin.roles.show', $role)" variant="ghost" size="sm">
+                        {{ __('View') }}
+                    </x-ui.button>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5" class="p-4">
+                    <x-ui.empty
+                        :title="__('No roles found')"
+                        :description="__('Create a role to get started.')"
+                    />
+                </td>
+            </tr>
+        @endforelse
+    </x-ui.table>
+</x-layout.admin>

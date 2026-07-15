@@ -88,4 +88,16 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Password policy (CDC Tome 4 §3.3)
+    |--------------------------------------------------------------------------
+    */
+
+    'password' => [
+        'min_length' => (int) env('COREPANEL_PASSWORD_MIN_LENGTH', 12),
+        'require_special_character' => (bool) env('COREPANEL_PASSWORD_REQUIRE_SPECIAL', true),
+        'check_compromised' => (bool) env('COREPANEL_PASSWORD_CHECK_COMPROMISED', true),
+    ],
+
 ];

@@ -1,0 +1,61 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use Core\Auth\Actions\LoginAction;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+class LoginController extends Controller
+{
+    /**
+     * Show the login form.
+     */
+    public function create(): View
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Handle a login request.
+     */
+    public function store(LoginRequest $request, LoginAction $loginAction): RedirectResponse
+    {
+        $result = $loginAction->execute($request->credentials());
+
+        if (! $result->successful) {
+            return back()
+                ->withInput($request->only('email', 'remember'))
+                ->withErrors([
+                    'email' => $this->failureMessage($result->failureReason),
+                ]);
+        }
+
+        return redirect()->intended('/');
+    }
+
+    /**
+     * Log the user out.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+
+    private function failureMessage(?string $reason): string
+    {
+        return match ($reason) {
+            'account_inactive' => __('This account is not active. Please contact support.'),
+            default => __('These credentials do not match our records.'),
+        };
+    }
+}

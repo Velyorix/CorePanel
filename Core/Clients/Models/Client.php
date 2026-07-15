@@ -3,6 +3,8 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Database\Factories\ClientFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
+    /** @use HasFactory<ClientFactory> */
+    use HasFactory;
     use SoftDeletes;
 
     /**
@@ -51,5 +55,10 @@ class Client extends Model
     {
         return $this->belongsToMany(User::class, 'client_users')
             ->withPivot(['role', 'permissions', 'created_at']);
+    }
+
+    protected static function newFactory(): ClientFactory
+    {
+        return ClientFactory::new();
     }
 }

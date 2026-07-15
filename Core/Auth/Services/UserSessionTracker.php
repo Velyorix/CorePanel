@@ -9,6 +9,10 @@ use Illuminate\Support\Carbon;
 
 class UserSessionTracker
 {
+    public function __construct(
+        private readonly UserSessionManager $userSessionManager,
+    ) {
+    }
     public function record(User $user, string $sessionId, string $ipAddress, ?string $userAgent): UserSession
     {
         $now = now();
@@ -80,19 +84,36 @@ class UserSessionTracker
         ?string $ipAddress = null,
         ?string $userAgent = null,
     ): void {
-        $deleted = UserSession::query()
+        $userSession = UserSession::query()
             ->where('session_id', $sessionId)
-            ->delete();
+            ->first();
 
-        if ($deleted > 0 || $userId === null) {
+        if ($userSession !== null) {
+            $this->userSessionManager->revoke($userSession);
+
             return;
         }
 
-        UserSession::query()
+        if ($userId === null) {
+            $this->userSessionManager->destroyDriverSession($sessionId);
+
+            return;
+        }
+
+        $fallbackSession = UserSession::query()
             ->where('user_id', $userId)
             ->where('ip_address', $ipAddress)
             ->when($userAgent !== null, fn ($query) => $query->where('user_agent', $userAgent))
-            ->delete();
+            ->orderByDesc('last_activity_at')
+            ->first();
+
+        if ($fallbackSession !== null) {
+            $this->userSessionManager->revoke($fallbackSession);
+
+            return;
+        }
+
+        $this->userSessionManager->destroyDriverSession($sessionId);
     }
 
     private function expiresAt(Carbon $from): Carbon

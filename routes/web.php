@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\UserSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -14,6 +15,12 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('welcome');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->group(function (): void {
+    Route::get('sessions', [UserSessionController::class, 'index'])->name('sessions.index');
+    Route::delete('sessions/{userSession}', [UserSessionController::class, 'destroy'])->name('sessions.destroy');
+    Route::post('sessions/revoke-others', [UserSessionController::class, 'destroyOthers'])->name('sessions.revoke-others');
+});
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');

@@ -49,8 +49,6 @@ class LoginAction
 
         $this->loginRateLimiter->clear($credentials->email, $ipAddress);
 
-        request()->session()->regenerate();
-
         return LoginResult::success($authenticatedUser);
     }
 }

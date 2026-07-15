@@ -13,5 +13,4 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::post('logout', [LoginController::class, 'destroy'])
-    ->middleware('auth')
     ->name('logout');

@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use Core\Auth\Models\User;
+use App\Models\User;
 use Core\Permissions\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;

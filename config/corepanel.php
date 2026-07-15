@@ -111,6 +111,21 @@ return [
             'max_attempts' => (int) env('COREPANEL_LOGIN_MAX_ATTEMPTS', 5),
             'decay_seconds' => (int) env('COREPANEL_LOGIN_DECAY_SECONDS', 60),
         ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Session tracking (CDC Tome 4 §4.2)
+        |----------------------------------------------------------------------
+        |
+        | Laravel sessions are stored via SESSION_DRIVER (redis recommended).
+        | user_sessions mirrors active sessions for multi-device management.
+        |
+        */
+
+        'session' => [
+            'track_activity' => (bool) env('COREPANEL_SESSION_TRACK_ACTIVITY', true),
+            'activity_touch_interval_seconds' => (int) env('COREPANEL_SESSION_ACTIVITY_INTERVAL', 60),
+        ],
     ],
 
 ];

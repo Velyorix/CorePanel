@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('web')
+Route::middleware(['web', 'auth', 'permission:client.access'])
     ->prefix('client')
     ->name('client.')
     ->group(function (): void {

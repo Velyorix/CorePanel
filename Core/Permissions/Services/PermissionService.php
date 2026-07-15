@@ -3,6 +3,8 @@
 namespace Core\Permissions\Services;
 
 use Core\Auth\Models\User;
+use Core\Permissions\Enums\PermissionOverrideEffect;
+use Core\Permissions\Models\Permission;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Support\PermissionScopeParser;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -169,7 +171,7 @@ class PermissionService
      */
     private function loadAccessForUser(User $user): array
     {
-        $user->loadMissing('roles.permissions');
+        $user->loadMissing(['roles.permissions', 'permissionOverrides']);
 
         $roles = $user->roles
             ->pluck('name')
@@ -180,13 +182,34 @@ class PermissionService
         $permissions = $user->roles
             ->flatMap(fn (Role $role) => $this->roleInheritanceService->permissionsForRole($role))
             ->unique()
-            ->values()
-            ->all();
+            ->values();
+
+        if ($this->userOverridesEnabled()) {
+            $grants = $user->permissionOverrides
+                ->filter(fn (Permission $permission): bool => $permission->pivot->effect === PermissionOverrideEffect::Grant->value)
+                ->pluck('name');
+
+            $denies = $user->permissionOverrides
+                ->filter(fn (Permission $permission): bool => $permission->pivot->effect === PermissionOverrideEffect::Deny->value)
+                ->pluck('name')
+                ->all();
+
+            $permissions = $permissions
+                ->merge($grants)
+                ->unique()
+                ->reject(fn (string $permission): bool => in_array($permission, $denies, true))
+                ->values();
+        }
 
         return [
             'roles' => $roles,
-            'permissions' => $permissions,
+            'permissions' => $permissions->all(),
         ];
+    }
+
+    private function userOverridesEnabled(): bool
+    {
+        return (bool) config('corepanel.rbac.user_overrides.enabled', true);
     }
 
     private function cache(): CacheRepository

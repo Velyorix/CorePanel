@@ -217,6 +217,10 @@ return [
         'inheritance' => [
             'enabled' => (bool) env('COREPANEL_RBAC_INHERITANCE_ENABLED', true),
         ],
+
+        'user_overrides' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_USER_OVERRIDES_ENABLED', true),
+        ],
     ],
 
 ];

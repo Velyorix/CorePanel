@@ -28,6 +28,7 @@ class FoundationSchemaTest extends TestCase
             'permissions',
             'role_permissions',
             'user_roles',
+            'user_permissions',
             'clients',
             'client_users',
             'settings',

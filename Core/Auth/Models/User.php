@@ -2,11 +2,12 @@
 
 namespace Core\Auth\Models;
 
-use Core\Clients\Models\Client;
-use Core\Clients\Models\ClientUser;
-use Core\Permissions\Models\Role;
 use Core\Auth\Notifications\ResetPasswordNotification;
 use Core\Auth\Notifications\VerifyEmailNotification;
+use Core\Clients\Models\Client;
+use Core\Clients\Models\ClientUser;
+use Core\Permissions\Models\Permission;
+use Core\Permissions\Models\Role;
 use Core\Support\Models\AuditLog;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
@@ -68,6 +69,17 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    /**
+     * Direct permission overrides (grant / deny) applied on top of role permissions.
+     *
+     * @return BelongsToMany<Permission, $this>
+     */
+    public function permissionOverrides(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permissions')
+            ->withPivot('effect');
     }
 
     /**

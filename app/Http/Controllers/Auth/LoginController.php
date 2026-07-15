@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Core\Auth\Actions\LoginAction;
+use Core\Auth\Services\AuthenticationAuditLogger;
 use Core\Auth\Services\EmailVerificationGate;
 use Core\Auth\Services\UserSessionTracker;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ class LoginController extends Controller
     public function __construct(
         private readonly UserSessionTracker $userSessionTracker,
         private readonly EmailVerificationGate $emailVerificationGate,
+        private readonly AuthenticationAuditLogger $authenticationAuditLogger,
     ) {
     }
     /**
@@ -32,7 +34,7 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request, LoginAction $loginAction): RedirectResponse
     {
-        $result = $loginAction->execute($request->credentials(), $request->ip());
+        $result = $loginAction->execute($request->credentials(), $request->ip(), $request->userAgent());
 
         if (! $result->successful) {
             return back()
@@ -73,6 +75,12 @@ class LoginController extends Controller
         }
 
         if ($user !== null) {
+            $this->authenticationAuditLogger->logLogout(
+                $user,
+                $request->ip(),
+                $request->userAgent(),
+            );
+
             Auth::logout();
         }
 

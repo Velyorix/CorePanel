@@ -195,4 +195,19 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | RBAC (CDC Tome 4 §8, Tome 5)
+    |--------------------------------------------------------------------------
+    */
+
+    'rbac' => [
+        'cache' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_CACHE_ENABLED', true),
+            'store' => env('COREPANEL_RBAC_CACHE_STORE', 'redis'),
+            'prefix' => env('COREPANEL_RBAC_CACHE_PREFIX', 'corepanel.rbac'),
+            'ttl_seconds' => (int) env('COREPANEL_RBAC_CACHE_TTL', 3600),
+        ],
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 namespace Core\Support\Providers;
 
+use Core\Permissions\Services\PermissionService;
 use Illuminate\Support\ServiceProvider;
 
 class CoreServiceProvider extends ServiceProvider
@@ -11,7 +12,7 @@ class CoreServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PermissionService::class);
     }
 
     /**

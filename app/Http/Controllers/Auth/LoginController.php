@@ -25,7 +25,7 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request, LoginAction $loginAction): RedirectResponse
     {
-        $result = $loginAction->execute($request->credentials());
+        $result = $loginAction->execute($request->credentials(), $request->ip());
 
         if (! $result->successful) {
             return back()

@@ -9,7 +9,7 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');
-    Route::post('login', [LoginController::class, 'store']);
+    Route::post('login', [LoginController::class, 'store'])->middleware('login.ratelimit');
 });
 
 Route::post('logout', [LoginController::class, 'destroy'])

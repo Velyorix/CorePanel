@@ -100,4 +100,17 @@ return [
         'check_compromised' => (bool) env('COREPANEL_PASSWORD_CHECK_COMPROMISED', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication (CDC Tome 4 §10)
+    |--------------------------------------------------------------------------
+    */
+
+    'auth' => [
+        'login' => [
+            'max_attempts' => (int) env('COREPANEL_LOGIN_MAX_ATTEMPTS', 5),
+            'decay_seconds' => (int) env('COREPANEL_LOGIN_DECAY_SECONDS', 60),
+        ],
+    ],
+
 ];

@@ -61,11 +61,9 @@
         </div>
 
         <x-ui.alert variant="info" title="{{ __('Design system') }}">
-            {{ __('Container components are available via') }}
-            <code class="text-small">&lt;x-ui.card&gt;</code>,
-            <code class="text-small">&lt;x-ui.modal&gt;</code>,
-            <code class="text-small">&lt;x-ui.dropdown&gt;</code>,
-            <code class="text-small">&lt;x-ui.tabs&gt;</code>.
+            {{ __('Data tables are available via') }}
+            <code class="text-small">&lt;x-ui.table&gt;</code>
+            {{ __('with filter, sort, and pagination slots.') }}
         </x-ui.alert>
 
         <x-ui.card :title="__('Quick links')">
@@ -89,22 +87,55 @@
             </div>
         </x-ui.card>
 
-        <x-ui.card :title="__('Overview')" :padding="false">
-            <div class="px-5 py-4">
-                <x-ui.tabs
-                    :items="[
-                        ['name' => 'overview', 'label' => __('Overview')],
-                        ['name' => 'activity', 'label' => __('Activity')],
-                    ]"
-                    active="overview"
-                >
-                    <x-slot:overview>
-                        <p>{{ __('Your workspace is ready. Use the sidebar to navigate.') }}</p>
-                    </x-slot:overview>
-                    <x-slot:activity>
-                        <p>{{ __('Recent activity will appear here.') }}</p>
-                    </x-slot:activity>
-                </x-ui.tabs>
+        <x-ui.card :title="__('Sample table')" :padding="false">
+            <div class="p-5">
+                <x-ui.table :paginator="$demoRows">
+                    <x-slot:filters>
+                        <form method="GET" action="{{ route('dashboard') }}" class="flex w-full flex-wrap items-end gap-3">
+                            <div class="min-w-56 flex-1">
+                                <x-ui.input
+                                    name="q"
+                                    label="{{ __('Search') }}"
+                                    :value="request('q')"
+                                    placeholder="{{ __('Filter demo rows…') }}"
+                                />
+                            </div>
+                            <x-ui.button type="submit" variant="secondary" size="sm">
+                                {{ __('Apply') }}
+                            </x-ui.button>
+                        </form>
+                    </x-slot:filters>
+
+                    <x-slot:actions>
+                        <x-ui.badge variant="primary">{{ __('Bulk actions slot') }}</x-ui.badge>
+                    </x-slot:actions>
+
+                    <x-slot:head>
+                        <tr>
+                            <x-ui.table-heading sort="name">{{ __('Name') }}</x-ui.table-heading>
+                            <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
+                        </tr>
+                    </x-slot:head>
+
+                    @foreach ($demoRows as $row)
+                        <tr class="hover:bg-muted/40">
+                            <td class="px-4 py-3 font-medium">{{ $row['name'] }}</td>
+                            <td class="px-4 py-3">
+                                <x-ui.badge :variant="$row['status'] === 'active' ? 'success' : 'warning'">
+                                    {{ __(ucfirst($row['status'])) }}
+                                </x-ui.badge>
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    <x-slot:empty>
+                        <tr>
+                            <td colspan="2" class="px-4 py-8 text-center text-muted-foreground">
+                                {{ __('No demo rows found.') }}
+                            </td>
+                        </tr>
+                    </x-slot:empty>
+                </x-ui.table>
             </div>
         </x-ui.card>
     </div>

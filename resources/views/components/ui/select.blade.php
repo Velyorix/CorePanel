@@ -8,7 +8,8 @@
 
 @php
     $selectId = $id ?? $name;
-    $errorMessage = $error ?? (filled($name) ? $errors->first($name) : null);
+    $errorBag = $errors ?? new \Illuminate\Support\ViewErrorBag;
+    $errorMessage = $error ?? (filled($name) ? $errorBag->first($name) : null);
     $describedBy = collect([
         filled($hint) && filled($selectId) ? $selectId.'-hint' : null,
         filled($errorMessage) && filled($selectId) ? $selectId.'-error' : null,

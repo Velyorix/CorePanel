@@ -9,7 +9,8 @@
 
 @php
     $inputId = $id ?? $name;
-    $errorMessage = $error ?? (filled($name) ? $errors->first($name) : null);
+    $errorBag = $errors ?? new \Illuminate\Support\ViewErrorBag;
+    $errorMessage = $error ?? (filled($name) ? $errorBag->first($name) : null);
     $describedBy = collect([
         filled($hint) && filled($inputId) ? $inputId.'-hint' : null,
         filled($errorMessage) && filled($inputId) ? $inputId.'-error' : null,

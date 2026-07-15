@@ -130,14 +130,47 @@
 
                     <x-slot:empty>
                         <tr>
-                            <td colspan="2" class="px-4 py-8 text-center text-muted-foreground">
-                                {{ __('No demo rows found.') }}
+                            <td colspan="2" class="p-4">
+                                <x-ui.empty
+                                    :title="__('No demo rows found')"
+                                    :description="__('Try clearing the search filter or adjusting your query.')"
+                                />
                             </td>
                         </tr>
                     </x-slot:empty>
                 </x-ui.table>
             </div>
         </x-ui.card>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <x-ui.card :title="__('Loading state')">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3">
+                        <x-ui.skeleton variant="avatar" />
+                        <div class="flex-1">
+                            <x-ui.skeleton variant="line" :lines="2" />
+                        </div>
+                    </div>
+                    <x-ui.skeleton variant="rect" class="h-20" />
+                </div>
+            </x-ui.card>
+
+            <x-ui.card :title="__('Error state')" :padding="false">
+                <div class="p-5">
+                    <x-ui.error-state
+                        :title="__('Unable to load services')"
+                        :description="__('Please try again in a moment.')"
+                        code="503"
+                    >
+                        <x-slot:actions>
+                            <x-ui.button type="button" variant="secondary" size="sm">
+                                {{ __('Retry') }}
+                            </x-ui.button>
+                        </x-slot:actions>
+                    </x-ui.error-state>
+                </div>
+            </x-ui.card>
+        </div>
     </div>
 
     <x-ui.modal name="dashboard-demo" :title="__('Demo modal')" size="sm">

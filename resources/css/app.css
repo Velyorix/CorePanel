@@ -12,6 +12,7 @@
 @source inline("bg-background bg-surface bg-muted text-foreground text-muted-foreground border-border outline-ring");
 @source inline("text-h1 text-h2 text-h3 text-body text-body-sm text-small rounded-sm rounded-md rounded-lg rounded-xl");
 @source inline("dark:bg-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 dark:border-neutral-800");
+@source inline("animate-pulse border-dashed sr-only size-10 size-12 w-2/3 w-3/4");
 
 /*
 |--------------------------------------------------------------------------

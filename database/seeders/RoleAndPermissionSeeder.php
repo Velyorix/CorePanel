@@ -61,6 +61,17 @@ class RoleAndPermissionSeeder extends Seeder
 
             $role->permissions()->sync($permissionIds);
         }
+
+        foreach ($this->roles() as $roleDefinition) {
+            if (! array_key_exists('parent', $roleDefinition) || $roleDefinition['parent'] === null) {
+                continue;
+            }
+
+            $role = Role::query()->where('name', $roleDefinition['name'])->firstOrFail();
+            $parent = Role::query()->where('name', $roleDefinition['parent'])->firstOrFail();
+
+            $role->update(['parent_id' => $parent->id]);
+        }
     }
 
     /**
@@ -73,13 +84,17 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.access', 'module' => 'core', 'description' => 'Access the client area'],
 
             ['name' => 'users.view', 'module' => 'core', 'description' => 'View users'],
+            ['name' => 'users.view.own', 'module' => 'core', 'description' => 'View own user profile'],
             ['name' => 'users.create', 'module' => 'core', 'description' => 'Create users'],
             ['name' => 'users.update', 'module' => 'core', 'description' => 'Update users'],
+            ['name' => 'users.update.own', 'module' => 'core', 'description' => 'Update own user profile'],
             ['name' => 'users.delete', 'module' => 'core', 'description' => 'Delete users'],
 
             ['name' => 'clients.view', 'module' => 'core', 'description' => 'View clients'],
+            ['name' => 'clients.view.own', 'module' => 'core', 'description' => 'View own client account'],
             ['name' => 'clients.create', 'module' => 'core', 'description' => 'Create clients'],
             ['name' => 'clients.update', 'module' => 'core', 'description' => 'Update clients'],
+            ['name' => 'clients.update.own', 'module' => 'core', 'description' => 'Update own client account'],
             ['name' => 'clients.delete', 'module' => 'core', 'description' => 'Delete clients'],
             ['name' => 'clients.impersonate', 'module' => 'core', 'description' => 'Impersonate clients'],
 
@@ -119,7 +134,7 @@ class RoleAndPermissionSeeder extends Seeder
     }
 
     /**
-     * @return list<array{name: string, description: string, permissions: list<string>}>
+     * @return list<array{name: string, description: string, parent?: string|null, permissions: list<string>}>
      */
     private function roles(): array
     {
@@ -127,11 +142,13 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'super-admin',
                 'description' => 'Full system access',
+                'parent' => 'admin',
                 'permissions' => ['*'],
             ],
             [
                 'name' => 'admin',
                 'description' => 'Administrative access',
+                'parent' => 'support',
                 'permissions' => [
                     'admin.access',
                     'users.*',
@@ -149,6 +166,7 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'support',
                 'description' => 'Support team access',
+                'parent' => null,
                 'permissions' => [
                     'admin.access',
                     'clients.view',
@@ -160,9 +178,14 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'client',
                 'description' => 'Client area access',
+                'parent' => null,
                 'permissions' => [
                     'client.access',
                     'client.*',
+                    'users.view.own',
+                    'users.update.own',
+                    'clients.view.own',
+                    'clients.update.own',
                 ],
             ],
         ];

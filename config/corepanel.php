@@ -195,4 +195,32 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | RBAC (CDC Tome 4 §8, Tome 5)
+    |--------------------------------------------------------------------------
+    */
+
+    'rbac' => [
+        'cache' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_CACHE_ENABLED', true),
+            'store' => env('COREPANEL_RBAC_CACHE_STORE', 'redis'),
+            'prefix' => env('COREPANEL_RBAC_CACHE_PREFIX', 'corepanel.rbac'),
+            'ttl_seconds' => (int) env('COREPANEL_RBAC_CACHE_TTL', 3600),
+        ],
+
+        'permissions_registry' => [
+            'cache_enabled' => (bool) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_CACHE_ENABLED', true),
+            'ttl_seconds' => (int) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_TTL', 3600),
+        ],
+
+        'inheritance' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_INHERITANCE_ENABLED', true),
+        ],
+
+        'user_overrides' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_USER_OVERRIDES_ENABLED', true),
+        ],
+    ],
+
 ];

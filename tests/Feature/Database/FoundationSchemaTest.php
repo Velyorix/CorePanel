@@ -28,6 +28,7 @@ class FoundationSchemaTest extends TestCase
             'permissions',
             'role_permissions',
             'user_roles',
+            'user_permissions',
             'clients',
             'client_users',
             'settings',
@@ -86,7 +87,7 @@ class FoundationSchemaTest extends TestCase
         $this->seed(RoleAndPermissionSeeder::class);
 
         $this->assertDatabaseCount('roles', 4);
-        $this->assertDatabaseCount('permissions', 36);
+        $this->assertDatabaseCount('permissions', 40);
 
         $this->assertDatabaseHas('roles', [
             'name' => 'super-admin',

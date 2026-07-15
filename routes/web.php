@@ -13,7 +13,44 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('welcome');
+    $rows = collect([
+        ['name' => 'Acme Corp', 'status' => 'active'],
+        ['name' => 'Nova Cloud', 'status' => 'pending'],
+        ['name' => 'Orbit Labs', 'status' => 'active'],
+        ['name' => 'Pioneer Host', 'status' => 'pending'],
+        ['name' => 'Zenith Nodes', 'status' => 'active'],
+        ['name' => 'Blue Harbor', 'status' => 'active'],
+        ['name' => 'Cedar Stack', 'status' => 'pending'],
+        ['name' => 'Delta Forge', 'status' => 'active'],
+    ]);
+
+    if (filled(request('q'))) {
+        $query = strtolower((string) request('q'));
+        $rows = $rows->filter(
+            fn (array $row): bool => str_contains(strtolower($row['name']), $query)
+                || str_contains(strtolower($row['status']), $query),
+        )->values();
+    }
+
+    $sort = request('sort');
+    $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+    if (in_array($sort, ['name', 'status'], true)) {
+        $rows = $rows->sortBy($sort, SORT_NATURAL | SORT_FLAG_CASE, $dir === 'desc')->values();
+    }
+
+    $demoRows = new \Illuminate\Pagination\LengthAwarePaginator(
+        items: $rows->forPage((int) request('page', 1), 4)->values(),
+        total: $rows->count(),
+        perPage: 4,
+        currentPage: (int) request('page', 1),
+        options: [
+            'path' => route('dashboard'),
+            'query' => request()->query(),
+        ],
+    );
+
+    return view('dashboard', compact('demoRows'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->group(function (): void {

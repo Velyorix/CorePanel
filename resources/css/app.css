@@ -2,8 +2,219 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.js';
+
+/* Ensure core token utilities survive until components adopt them */
+@source inline("bg-primary-50 bg-primary-100 bg-primary-500 bg-primary-600 bg-primary-700 text-primary-600 text-primary-700 border-primary-200");
+@source inline("bg-success-50 text-success-700 border-success-200 bg-warning-50 text-warning-700 border-warning-200 bg-danger-50 text-danger-700 border-danger-200");
+@source inline("bg-neutral-50 bg-neutral-100 bg-neutral-900 text-neutral-500 text-neutral-900 border-neutral-200");
+@source inline("bg-background bg-surface bg-muted text-foreground text-muted-foreground border-border outline-ring");
+@source inline("text-h1 text-h2 text-h3 text-body text-body-sm text-small rounded-sm rounded-md rounded-lg rounded-xl");
+@source inline("dark:bg-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 dark:border-neutral-800");
+@source inline("animate-pulse border-dashed sr-only size-10 size-12 w-2/3 w-3/4");
+
+/*
+|--------------------------------------------------------------------------
+| Dark mode variant (class strategy)
+|--------------------------------------------------------------------------
+|
+| Prefer `.dark` on <html> over media query.
+|
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+|--------------------------------------------------------------------------
+|   Design tokens
+| CorePanel © 2026
+|--------------------------------------------------------------------------
+|
+| Colors: Primary (Indigo/Blue), Success, Warning, Danger, Neutral
+| Typography: H1 32 / H2 24 / H3 20 / Body 14–16 / Small 12
+| Spacing: 4px base ( --spacing: 0.25rem)
+|
+*/
 
 @theme {
+    /* Font */
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Spacing base remains 0.25rem (4px) via Tailwind */
+
+    /* Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Typography scale */
+    --text-h1: 2rem;
+    --text-h1--line-height: 2.5rem;
+    --text-h2: 1.5rem;
+    --text-h2--line-height: 2rem;
+    --text-h3: 1.25rem;
+    --text-h3--line-height: 1.75rem;
+    --text-body: 0.9375rem;
+    --text-body--line-height: 1.5rem;
+    --text-body-sm: 0.875rem;
+    --text-body-sm--line-height: 1.25rem;
+    --text-small: 0.75rem;
+    --text-small--line-height: 1rem;
+
+    /* Primary — Indigo / Blue */
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
+    --color-primary-950: #1e1b4b;
+
+    /* Success — Green */
+    --color-success-50: #ecfdf5;
+    --color-success-100: #d1fae5;
+    --color-success-200: #a7f3d0;
+    --color-success-300: #6ee7b7;
+    --color-success-400: #34d399;
+    --color-success-500: #10b981;
+    --color-success-600: #059669;
+    --color-success-700: #047857;
+    --color-success-800: #065f46;
+    --color-success-900: #064e3b;
+    --color-success-950: #022c22;
+
+    /* Warning — Orange */
+    --color-warning-50: #fff7ed;
+    --color-warning-100: #ffedd5;
+    --color-warning-200: #fed7aa;
+    --color-warning-300: #fdba74;
+    --color-warning-400: #fb923c;
+    --color-warning-500: #f97316;
+    --color-warning-600: #ea580c;
+    --color-warning-700: #c2410c;
+    --color-warning-800: #9a3412;
+    --color-warning-900: #7c2d12;
+    --color-warning-950: #431407;
+
+    /* Danger — Red */
+    --color-danger-50: #fef2f2;
+    --color-danger-100: #fee2e2;
+    --color-danger-200: #fecaca;
+    --color-danger-300: #fca5a5;
+    --color-danger-400: #f87171;
+    --color-danger-500: #ef4444;
+    --color-danger-600: #dc2626;
+    --color-danger-700: #b91c1c;
+    --color-danger-800: #991b1b;
+    --color-danger-900: #7f1d1d;
+    --color-danger-950: #450a0a;
+
+    /* Neutral — Gray scale */
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f4f4f5;
+    --color-neutral-200: #e4e4e7;
+    --color-neutral-300: #d4d4d8;
+    --color-neutral-400: #a1a1aa;
+    --color-neutral-500: #71717a;
+    --color-neutral-600: #52525b;
+    --color-neutral-700: #3f3f46;
+    --color-neutral-800: #27272a;
+    --color-neutral-900: #18181b;
+    --color-neutral-950: #09090b;
+
+    /*
+    | Semantic surface tokens (resolve against :root / .dark)
+    | Use: bg-background, text-foreground, border-border, bg-surface, …
+    */
+    --color-background: var(--cp-background);
+    --color-foreground: var(--cp-foreground);
+    --color-surface: var(--cp-surface);
+    --color-surface-elevated: var(--cp-surface-elevated);
+    --color-muted: var(--cp-muted);
+    --color-muted-foreground: var(--cp-muted-foreground);
+    --color-border: var(--cp-border);
+    --color-ring: var(--cp-ring);
+    --color-accent: var(--cp-accent);
+    --color-accent-foreground: var(--cp-accent-foreground);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Semantic light / dark values
+|--------------------------------------------------------------------------
+*/
+
+:root {
+    --cp-background: var(--color-neutral-50);
+    --cp-foreground: var(--color-neutral-900);
+    --cp-surface: #ffffff;
+    --cp-surface-elevated: #ffffff;
+    --cp-muted: var(--color-neutral-100);
+    --cp-muted-foreground: var(--color-neutral-500);
+    --cp-border: var(--color-neutral-200);
+    --cp-ring: var(--color-primary-500);
+    --cp-accent: var(--color-primary-600);
+    --cp-accent-foreground: #ffffff;
+}
+
+.dark {
+    --cp-background: var(--color-neutral-950);
+    --cp-foreground: var(--color-neutral-50);
+    --cp-surface: var(--color-neutral-900);
+    --cp-surface-elevated: var(--color-neutral-800);
+    --cp-muted: var(--color-neutral-800);
+    --cp-muted-foreground: var(--color-neutral-400);
+    --cp-border: var(--color-neutral-800);
+    --cp-ring: var(--color-primary-400);
+    --cp-accent: var(--color-primary-500);
+    --cp-accent-foreground: #ffffff;
+}
+
+@layer base {
+    html {
+        @apply antialiased;
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    body {
+        @apply bg-background font-sans text-body text-foreground;
+    }
+
+    h1 {
+        @apply text-h1 font-semibold tracking-tight text-foreground;
+    }
+
+    h2 {
+        @apply text-h2 font-semibold tracking-tight text-foreground;
+    }
+
+    h3 {
+        @apply text-h3 font-semibold tracking-tight text-foreground;
+    }
+
+    ::selection {
+        @apply bg-primary-100 text-primary-950;
+    }
+
+    .dark ::selection {
+        @apply bg-primary-900 text-primary-50;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-ring;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
 }

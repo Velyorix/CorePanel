@@ -223,4 +223,29 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | UI theme (CDC Tome 13 §13)
+    |--------------------------------------------------------------------------
+    |
+    | Class-strategy dark mode. Preference is stored in localStorage and applied
+    | before paint via <x-ui.theme-script />.
+    |
+    */
+
+    'ui' => [
+        'theme' => [
+            'default' => env('COREPANEL_THEME_DEFAULT', 'system'),
+            'storage_key' => env('COREPANEL_THEME_STORAGE_KEY', 'corepanel.theme'),
+        ],
+
+        /*
+        | Component showcase at /dev/components (étape 4.8).
+        | null = enabled only when APP_ENV=local.
+        */
+        'showcase' => [
+            'enabled' => env('COREPANEL_UI_SHOWCASE'),
+        ],
+    ],
+
 ];

@@ -238,6 +238,14 @@ return [
             'default' => env('COREPANEL_THEME_DEFAULT', 'system'),
             'storage_key' => env('COREPANEL_THEME_STORAGE_KEY', 'corepanel.theme'),
         ],
+
+        /*
+        | Component showcase at /dev/components (étape 4.8).
+        | null = enabled only when APP_ENV=local.
+        */
+        'showcase' => [
+            'enabled' => env('COREPANEL_UI_SHOWCASE'),
+        ],
     ],
 
 ];

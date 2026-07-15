@@ -67,6 +67,13 @@
                         Sign in
                     </button>
                 </form>
+
+                @if (config('corepanel.auth.registration.mode') === 'open')
+                    <p class="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                        No account yet?
+                        <a href="{{ route('register') }}" class="font-medium text-zinc-900 hover:underline dark:text-zinc-100">Create one</a>
+                    </p>
+                @endif
             </div>
         </main>
     </body>

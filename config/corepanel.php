@@ -126,6 +126,22 @@ return [
             'track_activity' => (bool) env('COREPANEL_SESSION_TRACK_ACTIVITY', true),
             'activity_touch_interval_seconds' => (int) env('COREPANEL_SESSION_ACTIVITY_INTERVAL', 60),
         ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Registration (CDC — open or invite-only)
+        |----------------------------------------------------------------------
+        |
+        | mode: open   — public /register
+        | mode: invite — registration only via /register/invitation/{token}
+        |
+        */
+
+        'registration' => [
+            'mode' => env('COREPANEL_REGISTRATION_MODE', 'invite'),
+            'default_role' => env('COREPANEL_REGISTRATION_DEFAULT_ROLE', 'client'),
+            'invitation_ttl_hours' => (int) env('COREPANEL_REGISTRATION_INVITATION_TTL', 72),
+        ],
     ],
 
 ];

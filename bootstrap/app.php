@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureLoginIsNotRateLimited;
+use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\EnforceMaintenanceMode;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAuthenticatedSession;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale' => SetLocale::class,
             'maintenance' => EnforceMaintenanceMode::class,
             'login.ratelimit' => EnsureLoginIsNotRateLimited::class,
+            'registration.open' => EnsureRegistrationIsOpen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

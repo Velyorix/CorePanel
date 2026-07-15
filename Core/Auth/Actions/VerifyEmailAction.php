@@ -4,10 +4,15 @@ namespace Core\Auth\Actions;
 
 use Core\Auth\DataTransferObjects\VerifyEmailResult;
 use Core\Auth\Models\User;
+use Core\Auth\Services\AccountLockoutService;
 use Illuminate\Auth\Events\Verified;
 
 class VerifyEmailAction
 {
+    public function __construct(
+        private readonly AccountLockoutService $accountLockoutService,
+    ) {
+    }
     public function execute(User $user, int|string $userId, string $hash): VerifyEmailResult
     {
         if (! hash_equals((string) $user->getKey(), (string) $userId)) {
@@ -24,6 +29,10 @@ class VerifyEmailAction
 
         if ($user->markEmailAsVerified()) {
             event(new Verified($user));
+        }
+
+        if ($user->status === 'locked') {
+            $this->accountLockoutService->unlock($user);
         }
 
         return VerifyEmailResult::success();

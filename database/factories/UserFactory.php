@@ -61,6 +61,18 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user account is locked.
+     */
+    public function locked(int $failedAttempts = 10): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'locked',
+            'failed_login_attempts' => $failedAttempts,
+            'locked_at' => now(),
+        ]);
+    }
+
+    /**
      * Indicate that two-factor authentication is enabled.
      */
     public function withTwoFactor(): static

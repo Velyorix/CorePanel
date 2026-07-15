@@ -26,7 +26,7 @@ class SendPasswordResetLinkAction
 
         $user = User::query()->where('email', $email)->first();
 
-        if ($user === null || $user->status !== 'active') {
+        if ($user === null || ! in_array($user->status, ['active', 'locked'], true)) {
             return PasswordResetLinkResult::sent();
         }
 

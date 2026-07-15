@@ -4,6 +4,7 @@ namespace Core\Auth\Actions;
 
 use Core\Auth\DataTransferObjects\ResetPasswordResult;
 use Core\Auth\Models\User;
+use Core\Auth\Services\AccountLockoutService;
 use Core\Auth\Services\LoginRateLimiter;
 use Illuminate\Support\Facades\Password;
 
@@ -11,6 +12,7 @@ class ResetPasswordAction
 {
     public function __construct(
         private readonly LoginRateLimiter $loginRateLimiter,
+        private readonly AccountLockoutService $accountLockoutService,
     ) {
     }
 
@@ -36,6 +38,7 @@ class ResetPasswordAction
         }
 
         $this->loginRateLimiter->clear($email, $ipAddress);
+        $this->accountLockoutService->unlock($user);
 
         return ResetPasswordResult::success($user);
     }

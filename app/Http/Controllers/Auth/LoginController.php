@@ -86,6 +86,7 @@ class LoginController extends Controller
     {
         return match ($reason) {
             'account_inactive' => __('This account is not active. Please contact support.'),
+            'account_locked' => __('This account has been locked due to too many failed login attempts. Reset your password or contact support.'),
             default => __('These credentials do not match our records.'),
         };
     }

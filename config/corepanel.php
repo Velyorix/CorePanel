@@ -114,6 +114,23 @@ return [
 
         /*
         |----------------------------------------------------------------------
+        | Account lockout (CDC Tome 4 §13)
+        |----------------------------------------------------------------------
+        |
+        | Locks the user account after repeated failed login attempts.
+        | Unlock paths: password reset, email verification, admin unlock.
+        | Set lockout_minutes to null for a lock that persists until unlock.
+        |
+        */
+
+        'lockout' => [
+            'enabled' => (bool) env('COREPANEL_ACCOUNT_LOCKOUT_ENABLED', true),
+            'max_attempts' => (int) env('COREPANEL_ACCOUNT_LOCKOUT_MAX_ATTEMPTS', 10),
+            'lockout_minutes' => env('COREPANEL_ACCOUNT_LOCKOUT_MINUTES'),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
         | Session tracking (CDC Tome 4 §4.2)
         |----------------------------------------------------------------------
         |

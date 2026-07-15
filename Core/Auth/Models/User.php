@@ -5,8 +5,11 @@ namespace Core\Auth\Models;
 use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
 use Core\Permissions\Models\Role;
+use Core\Auth\Notifications\ResetPasswordNotification;
 use Core\Support\Models\AuditLog;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,10 +30,10 @@ use Illuminate\Notifications\Notifiable;
     'last_login_at',
 ])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret'])]
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use CanResetPassword, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -97,5 +100,10 @@ class User extends Authenticatable
     protected static function newFactory(): UserFactory
     {
         return UserFactory::new();
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }

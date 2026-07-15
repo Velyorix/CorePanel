@@ -142,6 +142,17 @@ return [
             'default_role' => env('COREPANEL_REGISTRATION_DEFAULT_ROLE', 'client'),
             'invitation_ttl_hours' => (int) env('COREPANEL_REGISTRATION_INVITATION_TTL', 72),
         ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Password reset (CDC Tome 4 §10)
+        |----------------------------------------------------------------------
+        */
+
+        'password_reset' => [
+            'max_attempts' => (int) env('COREPANEL_PASSWORD_RESET_MAX_ATTEMPTS', 5),
+            'decay_seconds' => (int) env('COREPANEL_PASSWORD_RESET_DECAY_SECONDS', 60),
+        ],
     ],
 
 ];

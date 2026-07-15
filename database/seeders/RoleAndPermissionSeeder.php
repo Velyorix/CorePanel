@@ -73,13 +73,17 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.access', 'module' => 'core', 'description' => 'Access the client area'],
 
             ['name' => 'users.view', 'module' => 'core', 'description' => 'View users'],
+            ['name' => 'users.view.own', 'module' => 'core', 'description' => 'View own user profile'],
             ['name' => 'users.create', 'module' => 'core', 'description' => 'Create users'],
             ['name' => 'users.update', 'module' => 'core', 'description' => 'Update users'],
+            ['name' => 'users.update.own', 'module' => 'core', 'description' => 'Update own user profile'],
             ['name' => 'users.delete', 'module' => 'core', 'description' => 'Delete users'],
 
             ['name' => 'clients.view', 'module' => 'core', 'description' => 'View clients'],
+            ['name' => 'clients.view.own', 'module' => 'core', 'description' => 'View own client account'],
             ['name' => 'clients.create', 'module' => 'core', 'description' => 'Create clients'],
             ['name' => 'clients.update', 'module' => 'core', 'description' => 'Update clients'],
+            ['name' => 'clients.update.own', 'module' => 'core', 'description' => 'Update own client account'],
             ['name' => 'clients.delete', 'module' => 'core', 'description' => 'Delete clients'],
             ['name' => 'clients.impersonate', 'module' => 'core', 'description' => 'Impersonate clients'],
 
@@ -163,6 +167,10 @@ class RoleAndPermissionSeeder extends Seeder
                 'permissions' => [
                     'client.access',
                     'client.*',
+                    'users.view.own',
+                    'users.update.own',
+                    'clients.view.own',
+                    'clients.update.own',
                 ],
             ],
         ];

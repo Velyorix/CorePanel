@@ -9,31 +9,31 @@ class ClientPolicy extends BasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->allows($user, 'clients.view');
+        return $this->allowsAny($user, 'clients.view');
     }
 
     public function view(User $user, Client $client): bool
     {
-        return $this->allows($user, 'clients.view');
+        return $this->allows($user, 'clients.view', $client);
     }
 
     public function create(User $user): bool
     {
-        return $this->allows($user, 'clients.create');
+        return $this->allowsAny($user, 'clients.create');
     }
 
     public function update(User $user, Client $client): bool
     {
-        return $this->allows($user, 'clients.update');
+        return $this->allows($user, 'clients.update', $client);
     }
 
     public function delete(User $user, Client $client): bool
     {
-        return $this->allows($user, 'clients.delete');
+        return $this->allows($user, 'clients.delete', $client);
     }
 
     public function impersonate(User $user, Client $client): bool
     {
-        return $this->allows($user, 'clients.impersonate');
+        return $this->allowsAny($user, 'clients.impersonate');
     }
 }

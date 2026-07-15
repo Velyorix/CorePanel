@@ -12,8 +12,13 @@ abstract class BasePolicy
     ) {
     }
 
-    protected function allows(User $user, string $permission): bool
+    protected function allows(User $user, string $permission, mixed $subject = null): bool
     {
-        return $this->permissionService->userHasPermission($user, $permission);
+        return $this->permissionService->userCan($user, $permission, $subject);
+    }
+
+    protected function allowsAny(User $user, string $permission): bool
+    {
+        return $this->permissionService->userCan($user, $permission);
     }
 }

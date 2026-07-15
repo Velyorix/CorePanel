@@ -15,12 +15,14 @@ class GateRegistrar
 
     public function register(): void
     {
-        Gate::before(function (?User $user, string $ability): ?bool {
+        Gate::before(function (?User $user, string $ability, mixed ...$arguments): ?bool {
             if ($user === null || ! $this->permissionRegistry->contains($ability)) {
                 return null;
             }
 
-            return $this->permissionService->userHasPermission($user, $ability);
+            $subject = $arguments[0] ?? null;
+
+            return $this->permissionService->userCan($user, $ability, $subject);
         });
     }
 }

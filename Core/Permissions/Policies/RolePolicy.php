@@ -9,26 +9,26 @@ class RolePolicy extends BasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $this->allows($user, 'roles.view');
+        return $this->allowsAny($user, 'roles.view');
     }
 
     public function view(User $user, Role $role): bool
     {
-        return $this->allows($user, 'roles.view');
+        return $this->allowsAny($user, 'roles.view');
     }
 
     public function create(User $user): bool
     {
-        return $this->allows($user, 'roles.manage');
+        return $this->allowsAny($user, 'roles.manage');
     }
 
     public function update(User $user, Role $role): bool
     {
-        return $this->allows($user, 'roles.manage');
+        return $this->allowsAny($user, 'roles.manage');
     }
 
     public function delete(User $user, Role $role): bool
     {
-        return $this->allows($user, 'roles.manage') && ! $role->is_system;
+        return $this->allowsAny($user, 'roles.manage') && ! $role->is_system;
     }
 }

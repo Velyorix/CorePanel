@@ -86,6 +86,17 @@ class AuthorizationPolicyTest extends TestCase
         $this->assertFalse(Gate::forUser($clientUser)->allows('view', $role));
     }
 
+    public function test_client_user_can_manage_own_profile_and_owned_client(): void
+    {
+        $clientUser = User::factory()->withRole('client')->create();
+        $ownedClient = Client::factory()->create(['user_id' => $clientUser->id]);
+
+        $this->assertTrue(Gate::forUser($clientUser)->allows('view', $clientUser));
+        $this->assertTrue(Gate::forUser($clientUser)->allows('update', $clientUser));
+        $this->assertTrue(Gate::forUser($clientUser)->allows('view', $ownedClient));
+        $this->assertTrue(Gate::forUser($clientUser)->allows('update', $ownedClient));
+    }
+
     public function test_system_roles_cannot_be_deleted_even_with_manage_permission(): void
     {
         $superAdmin = User::factory()->withRole('super-admin')->create();

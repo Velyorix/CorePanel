@@ -10,14 +10,14 @@ class BladeAuthorizationDirectives
 {
     public static function register(): void
     {
-        Blade::if('permission', function (string $permission): bool {
+        Blade::if('permission', function (string $permission, mixed $subject = null): bool {
             $user = auth()->user();
 
             if (! $user instanceof User) {
                 return false;
             }
 
-            return app(PermissionService::class)->userHasPermission($user, $permission);
+            return app(PermissionService::class)->userCan($user, $permission, $subject);
         });
 
         Blade::if('anypermission', function (string ...$permissions): bool {

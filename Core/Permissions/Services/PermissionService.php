@@ -4,11 +4,17 @@ namespace Core\Permissions\Services;
 
 use Core\Auth\Models\User;
 use Core\Permissions\Models\Role;
+use Core\Permissions\Support\PermissionScopeParser;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
 
 class PermissionService
 {
+    public function __construct(
+        private readonly ResourceOwnershipResolver $resourceOwnershipResolver,
+    ) {
+    }
+
     /**
      * @return list<string>
      */
@@ -81,6 +87,34 @@ class PermissionService
         }
 
         return false;
+    }
+
+    public function userCan(User $user, string $permission, mixed $subject = null): bool
+    {
+        $base = PermissionScopeParser::base($permission);
+        $requiresOwn = PermissionScopeParser::isOwnScoped($permission);
+
+        if (! $requiresOwn && $this->userHasAnyPermission($user, [$base, PermissionScopeParser::anyPermission($base)])) {
+            return true;
+        }
+
+        if ($this->userHasPermission($user, PermissionScopeParser::ownPermission($base))) {
+            if ($subject === null) {
+                return false;
+            }
+
+            return $this->resourceOwnershipResolver->userOwns($user, $subject);
+        }
+
+        if ($requiresOwn) {
+            return false;
+        }
+
+        if ($subject === null) {
+            return $this->userHasPermission($user, $base);
+        }
+
+        return $this->userHasPermission($user, $base);
     }
 
     public function forgetUser(User|int $user): void

@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\User;
 use Core\Auth\Actions\RegisterAction;
+use Core\Auth\Actions\SendEmailVerificationNotificationAction;
 use Core\Auth\DataTransferObjects\RegisterResult;
+use Core\Auth\Services\EmailVerificationGate;
 use Core\Auth\Services\RegistrationGate;
 use Core\Auth\Services\UserSessionTracker;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -17,6 +21,8 @@ class RegisterController extends Controller
     public function __construct(
         private readonly RegistrationGate $registrationGate,
         private readonly UserSessionTracker $userSessionTracker,
+        private readonly EmailVerificationGate $emailVerificationGate,
+        private readonly SendEmailVerificationNotificationAction $sendEmailVerificationNotificationAction,
     ) {
     }
 
@@ -105,16 +111,30 @@ class RegisterController extends Controller
                 ]);
         }
 
-        Auth::login($result->user);
+        Auth::loginUsingId($result->user->getKey());
+
+        /** @var User $authenticatedUser */
+        $authenticatedUser = Auth::user();
 
         $this->userSessionTracker->record(
-            $result->user,
+            $authenticatedUser,
             $request->session()->getId(),
             $request->ip(),
             $request->userAgent(),
         );
 
+        if ($this->shouldVerifyEmail($authenticatedUser)) {
+            $this->sendEmailVerificationNotificationAction->execute($authenticatedUser, $request->ip());
+
+            return redirect()->route('verification.notice');
+        }
+
         return redirect()->intended('/');
+    }
+
+    private function shouldVerifyEmail(MustVerifyEmail $user): bool
+    {
+        return $this->emailVerificationGate->isRequired() && ! $user->hasVerifiedEmail();
     }
 
     private function failureMessage(?string $reason): string

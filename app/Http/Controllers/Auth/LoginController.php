@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Core\Auth\Actions\LoginAction;
+use Core\Auth\Services\EmailVerificationGate;
 use Core\Auth\Services\UserSessionTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class LoginController extends Controller
 {
     public function __construct(
         private readonly UserSessionTracker $userSessionTracker,
+        private readonly EmailVerificationGate $emailVerificationGate,
     ) {
     }
     /**
@@ -46,6 +48,10 @@ class LoginController extends Controller
             $request->ip(),
             $request->userAgent(),
         );
+
+        if ($this->emailVerificationGate->isRequired() && ! $result->user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
 
         return redirect()->intended('/');
     }

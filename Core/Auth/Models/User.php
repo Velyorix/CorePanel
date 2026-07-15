@@ -6,10 +6,13 @@ use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
 use Core\Permissions\Models\Role;
 use Core\Auth\Notifications\ResetPasswordNotification;
+use Core\Auth\Notifications\VerifyEmailNotification;
 use Core\Support\Models\AuditLog;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,10 +33,10 @@ use Illuminate\Notifications\Notifiable;
     'last_login_at',
 ])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret'])]
-class User extends Authenticatable implements CanResetPasswordContract
+class User extends Authenticatable implements CanResetPasswordContract, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use CanResetPassword, HasFactory, Notifiable, SoftDeletes;
+    use CanResetPassword, HasFactory, MustVerifyEmail, Notifiable, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -105,5 +108,10 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
     }
 }

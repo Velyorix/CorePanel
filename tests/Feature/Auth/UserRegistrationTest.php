@@ -21,6 +21,7 @@ class UserRegistrationTest extends TestCase
 
         config([
             'corepanel.password.check_compromised' => false,
+            'corepanel.auth.email_verification.required' => false,
             'session.driver' => 'array',
         ]);
     }

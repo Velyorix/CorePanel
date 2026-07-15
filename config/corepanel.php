@@ -153,6 +153,19 @@ return [
             'max_attempts' => (int) env('COREPANEL_PASSWORD_RESET_MAX_ATTEMPTS', 5),
             'decay_seconds' => (int) env('COREPANEL_PASSWORD_RESET_DECAY_SECONDS', 60),
         ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Email verification
+        |----------------------------------------------------------------------
+        */
+
+        'email_verification' => [
+            'required' => (bool) env('COREPANEL_EMAIL_VERIFICATION_REQUIRED', true),
+            'expire_minutes' => (int) env('COREPANEL_EMAIL_VERIFICATION_EXPIRE', 60),
+            'max_attempts' => (int) env('COREPANEL_EMAIL_VERIFICATION_MAX_ATTEMPTS', 6),
+            'decay_seconds' => (int) env('COREPANEL_EMAIL_VERIFICATION_DECAY_SECONDS', 60),
+        ],
     ],
 
 ];

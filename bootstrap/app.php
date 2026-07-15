@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureLoginIsNotRateLimited;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\EnforceMaintenanceMode;
@@ -45,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'maintenance' => EnforceMaintenanceMode::class,
             'login.ratelimit' => EnsureLoginIsNotRateLimited::class,
             'registration.open' => EnsureRegistrationIsOpen::class,
+            'verified' => EnsureEmailIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

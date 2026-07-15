@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureLoginIsNotRateLimited;
 use App\Http\Middleware\EnsurePermission;
@@ -52,6 +53,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerified::class,
             'permission' => EnsurePermission::class,
             'role' => EnsureRole::class,
+            'admin' => EnsureAdmin::class,
+        ]);
+
+        $middleware->group('admin', [
+            'web',
+            EnsureAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

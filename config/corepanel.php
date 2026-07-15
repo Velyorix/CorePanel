@@ -61,4 +61,31 @@ return [
         'validation_cache_hours' => (int) env('COREPANEL_LICENSE_CACHE_HOURS', 12),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Locale
+    |--------------------------------------------------------------------------
+    */
+
+    'locale' => [
+        'supported' => array_values(array_filter(array_map(
+            trim(...),
+            explode(',', (string) env('COREPANEL_SUPPORTED_LOCALES', 'fr,en'))
+        ))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Maintenance (CMS — distinct de `php artisan down`)
+    |--------------------------------------------------------------------------
+    */
+
+    'maintenance' => [
+        'enabled' => (bool) env('COREPANEL_MAINTENANCE', false),
+        'message' => env('COREPANEL_MAINTENANCE_MESSAGE', 'CorePanel is under maintenance. Please try again later.'),
+        'except' => [
+            'up',
+        ],
+    ],
+
 ];

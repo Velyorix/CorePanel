@@ -5,10 +5,12 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Core\Auth\Models\UserSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Auth\Concerns\InteractsWithAuthSessions;
 use Tests\TestCase;
 
 class UserSessionManagementTest extends TestCase
 {
+    use InteractsWithAuthSessions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -112,10 +114,7 @@ class UserSessionManagementTest extends TestCase
             'session_id' => 'other-session-b',
         ]);
 
-        foreach ($loginResponse->headers->getCookies() as $cookie) {
-            $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue());
-        }
-
+        $this->persistCookiesFrom($loginResponse);
         $this->assertAuthenticated();
 
         $this->post(route('account.sessions.revoke-others'))
@@ -143,10 +142,7 @@ class UserSessionManagementTest extends TestCase
 
         $userSession = UserSession::query()->where('user_id', $user->id)->firstOrFail();
 
-        foreach ($loginResponse->headers->getCookies() as $cookie) {
-            $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue());
-        }
-
+        $this->persistCookiesFrom($loginResponse);
         $this->assertAuthenticated();
 
         $this->delete(route('account.sessions.destroy', $userSession))

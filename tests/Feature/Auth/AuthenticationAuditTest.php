@@ -7,11 +7,12 @@ use Core\Auth\Models\User as CoreUser;
 use Core\Auth\Services\AuthenticationAuditLogger;
 use Core\Support\Models\AuditLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Testing\TestResponse;
+use Tests\Feature\Auth\Concerns\InteractsWithAuthSessions;
 use Tests\TestCase;
 
 class AuthenticationAuditTest extends TestCase
 {
+    use InteractsWithAuthSessions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -170,12 +171,5 @@ class AuthenticationAuditTest extends TestCase
         ])->assertRedirect('/');
 
         $this->assertDatabaseCount('audit_logs', 0);
-    }
-
-    private function persistCookiesFrom(TestResponse $response): void
-    {
-        foreach ($response->headers->getCookies() as $cookie) {
-            $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue());
-        }
     }
 }

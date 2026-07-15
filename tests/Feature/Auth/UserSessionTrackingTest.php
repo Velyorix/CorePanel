@@ -5,11 +5,12 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Core\Auth\Models\UserSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Testing\TestResponse;
+use Tests\Feature\Auth\Concerns\InteractsWithAuthSessions;
 use Tests\TestCase;
 
 class UserSessionTrackingTest extends TestCase
 {
+    use InteractsWithAuthSessions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -102,12 +103,5 @@ class UserSessionTrackingTest extends TestCase
         $userSession->refresh();
 
         $this->assertTrue($userSession->last_activity_at->gt($initialActivity));
-    }
-
-    private function persistCookiesFrom(TestResponse $response): void
-    {
-        foreach ($response->headers->getCookies() as $cookie) {
-            $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue());
-        }
     }
 }

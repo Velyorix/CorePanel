@@ -135,4 +135,35 @@ class PermissionServiceTest extends TestCase
         $this->assertContains('client.access', $permissions);
         $this->assertFalse(Cache::store('array')->has($cacheKey));
     }
+
+    public function test_user_with_multiple_roles_receives_union_of_permissions(): void
+    {
+        $user = User::factory()->withRole('support')->create();
+        $auditPermissionId = Permission::query()->where('name', 'audit.view')->value('id');
+
+        $extraRole = Role::query()->create([
+            'name' => 'auditor-extra',
+            'description' => 'Extra auditor role',
+            'is_system' => false,
+        ]);
+        $extraRole->permissions()->sync([$auditPermissionId]);
+        $user->roles()->syncWithoutDetaching([$extraRole->id]);
+
+        $this->permissionService->forgetUser($user);
+
+        $this->assertTrue($this->permissionService->userHasPermission($user->fresh(), 'tickets.reply'));
+        $this->assertTrue($this->permissionService->userHasPermission($user->fresh(), 'audit.view'));
+        $this->assertFalse($this->permissionService->userHasPermission($user->fresh(), 'users.delete'));
+    }
+
+    public function test_user_without_roles_is_denied_by_default(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertSame([], $this->permissionService->permissionsForUser($user));
+        $this->assertSame([], $this->permissionService->rolesForUser($user));
+        $this->assertFalse($this->permissionService->userHasPermission($user, 'admin.access'));
+        $this->assertFalse($this->permissionService->userHasPermission($user, 'client.access'));
+        $this->assertFalse($this->permissionService->userHasAnyRole($user, ['admin', 'client', 'support']));
+    }
 }

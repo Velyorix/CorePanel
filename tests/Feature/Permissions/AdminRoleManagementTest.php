@@ -206,4 +206,117 @@ class AdminRoleManagementTest extends TestCase
 
         $this->assertNull($support->fresh()->parent_id);
     }
+
+    public function test_admin_cannot_mutate_or_duplicate_roles(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $role = Role::query()->create([
+            'name' => 'readonly-target',
+            'description' => 'Target role',
+            'is_system' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.roles.update', $role), [
+                'name' => 'readonly-target',
+                'description' => 'Changed',
+                'permission_ids' => [],
+                'user_ids' => [],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->post(route('admin.roles.duplicate', $role), [
+                'name' => 'readonly-target-copy',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.roles.destroy', $role))
+            ->assertForbidden();
+    }
+
+    public function test_support_cannot_view_permissions_catalog(): void
+    {
+        $support = User::factory()->withRole('support')->create();
+
+        $this->actingAs($support)
+            ->get(route('admin.permissions.index'))
+            ->assertForbidden();
+    }
+
+    public function test_store_role_validates_unique_name_and_permission_ids(): void
+    {
+        $superAdmin = User::factory()->withRole('super-admin')->create();
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.roles.store'), [
+                'name' => 'admin',
+                'description' => 'Duplicate name',
+            ])
+            ->assertSessionHasErrors('name');
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.roles.store'), [
+                'name' => 'valid-ops-role',
+                'description' => 'Invalid permissions',
+                'permission_ids' => [999999],
+            ])
+            ->assertSessionHasErrors('permission_ids.0');
+    }
+
+    public function test_cannot_delete_role_that_still_has_children(): void
+    {
+        $superAdmin = User::factory()->withRole('super-admin')->create();
+
+        $parent = Role::query()->create([
+            'name' => 'parent-ops',
+            'description' => 'Parent',
+            'is_system' => false,
+        ]);
+
+        Role::query()->create([
+            'name' => 'child-ops',
+            'description' => 'Child',
+            'is_system' => false,
+            'parent_id' => $parent->id,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->from(route('admin.roles.show', $parent))
+            ->delete(route('admin.roles.destroy', $parent))
+            ->assertRedirect(route('admin.roles.show', $parent))
+            ->assertSessionHasErrors('role');
+
+        $this->assertDatabaseHas('roles', ['id' => $parent->id, 'name' => 'parent-ops']);
+    }
+
+    public function test_changing_parent_role_invalidates_assignee_permission_cache(): void
+    {
+        $superAdmin = User::factory()->withRole('super-admin')->create();
+        $support = Role::query()->where('name', 'support')->firstOrFail();
+        $assignee = User::factory()->create();
+        $permissionService = app(PermissionService::class);
+
+        $role = Role::query()->create([
+            'name' => 'team-lead',
+            'description' => 'Team lead',
+            'is_system' => false,
+        ]);
+        $role->users()->sync([$assignee->id]);
+
+        $this->assertFalse($permissionService->userHasPermission($assignee, 'tickets.reply'));
+
+        $this->actingAs($superAdmin)
+            ->put(route('admin.roles.update', $role), [
+                'name' => 'team-lead',
+                'description' => 'Team lead',
+                'parent_id' => $support->id,
+                'permission_ids' => [],
+                'user_ids' => [$assignee->id],
+            ])
+            ->assertRedirect(route('admin.roles.show', $role));
+
+        $this->assertTrue($permissionService->userHasPermission($assignee->fresh(), 'tickets.reply'));
+    }
 }

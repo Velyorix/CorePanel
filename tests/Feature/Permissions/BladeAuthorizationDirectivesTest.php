@@ -3,6 +3,7 @@
 namespace Tests\Feature\Permissions;
 
 use App\Models\User;
+use Core\Clients\Models\Client;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
@@ -83,5 +84,40 @@ class BladeAuthorizationDirectivesTest extends TestCase
         $this->assertStringContainsString('any-perm', $anyOutput);
         $this->assertStringContainsString('all-perm', $allOutput);
         $this->assertStringNotContainsString('missing-all', $missingAllOutput);
+    }
+
+    public function test_role_blade_directives_hide_content_for_unauthorized_user(): void
+    {
+        $client = User::factory()->withRole('client')->create();
+
+        $this->actingAs($client);
+
+        $roleOutput = Blade::render('@role("admin")<span>admin-role</span>@endrole');
+        $anyRoleOutput = Blade::render('@anyrole("admin", "support")<span>staff-role</span>@endanyrole');
+
+        $this->assertStringNotContainsString('admin-role', $roleOutput);
+        $this->assertStringNotContainsString('staff-role', $anyRoleOutput);
+    }
+
+    public function test_permission_blade_directive_respects_own_scope_subject(): void
+    {
+        $clientUser = User::factory()->withRole('client')->create();
+        $ownedClient = Client::factory()->create(['user_id' => $clientUser->id]);
+        $foreignClient = Client::factory()->create();
+
+        $this->actingAs($clientUser);
+
+        $ownedOutput = Blade::render(
+            '@permission("clients.view", $client)<span>owned-client</span>@endpermission',
+            ['client' => $ownedClient],
+        );
+
+        $foreignOutput = Blade::render(
+            '@permission("clients.view", $client)<span>foreign-client</span>@endpermission',
+            ['client' => $foreignClient],
+        );
+
+        $this->assertStringContainsString('owned-client', $ownedOutput);
+        $this->assertStringNotContainsString('foreign-client', $foreignOutput);
     }
 }

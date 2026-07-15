@@ -52,7 +52,8 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Dashboard'),
-                        'route' => null,
+                        'route' => 'admin.dashboard',
+                        'routeIs' => ['admin.dashboard'],
                         'permission' => 'admin.access',
                     ],
                     [

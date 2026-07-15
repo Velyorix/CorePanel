@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::middleware(['web', 'auth', 'permission:admin.access'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        Route::get('/', DashboardController::class)->name('dashboard');
+
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 
         Route::get('roles', [RoleController::class, 'index'])->name('roles.index');

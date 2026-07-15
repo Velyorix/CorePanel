@@ -34,7 +34,7 @@
             >
                 <div class="flex h-14 items-center border-b border-border px-4">
                     <a
-                        href="{{ Route::has('admin.roles.index') ? route('admin.roles.index') : route('dashboard') }}"
+                        href="{{ Route::has('admin.dashboard') ? route('admin.dashboard') : route('dashboard') }}"
                         class="text-h3 font-semibold tracking-tight text-foreground hover:text-primary-600"
                     >
                         {{ config('corepanel.name') }}

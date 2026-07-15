@@ -69,10 +69,16 @@ class AdminNavigationTest extends TestCase
             $this->assertContains($expected, $labels);
         }
 
-        $rolesItem = collect($sections)
+        $flatItems = collect($sections)
             ->flatMap(fn (array $section) => $section['items'])
-            ->flatMap(fn (array $item) => [$item, ...($item['children'] ?? [])])
-            ->firstWhere('label', __('Roles'));
+            ->flatMap(fn (array $item) => [$item, ...($item['children'] ?? [])]);
+
+        $dashboardItem = $flatItems->firstWhere('label', __('Dashboard'));
+        $rolesItem = $flatItems->firstWhere('label', __('Roles'));
+
+        $this->assertNotNull($dashboardItem);
+        $this->assertFalse($dashboardItem['placeholder']);
+        $this->assertSame(route('admin.dashboard'), $dashboardItem['url']);
 
         $this->assertNotNull($rolesItem);
         $this->assertFalse($rolesItem['placeholder']);

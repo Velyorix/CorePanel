@@ -31,14 +31,12 @@
                 <span class="hidden text-body-sm text-muted-foreground sm:inline">
                     {{ auth()->user()->email }}
                 </span>
+                <x-ui.badge variant="neutral">{{ __('Signed in') }}</x-ui.badge>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button
-                        type="submit"
-                        class="rounded-md border border-border bg-surface px-3 py-1.5 text-body-sm font-medium text-foreground transition hover:bg-muted"
-                    >
+                    <x-ui.button type="submit" variant="secondary" size="sm">
                         {{ __('Log out') }}
-                    </button>
+                    </x-ui.button>
                 </form>
             @endauth
         </div>
@@ -50,19 +48,26 @@
             {{ __('Welcome back. This page uses the CorePanel app layout shell.') }}
         </p>
 
+        <div class="mt-6">
+            <x-ui.alert variant="info" title="{{ __('Design system') }}">
+                {{ __('Form and feedback components are available via') }}
+                <code class="text-small">&lt;x-ui.*&gt;</code>.
+            </x-ui.alert>
+        </div>
+
         <div class="mt-8 rounded-lg border border-border bg-surface p-5">
             <h2 class="text-h3">{{ __('Quick links') }}</h2>
             <ul class="mt-3 space-y-2 text-body-sm">
                 <li>
-                    <a href="{{ route('account.sessions.index') }}" class="font-medium text-primary-600 hover:underline">
+                    <x-ui.button :href="route('account.sessions.index')" variant="ghost" size="sm">
                         {{ __('Manage active sessions') }}
-                    </a>
+                    </x-ui.button>
                 </li>
                 @permission('roles.view')
                     <li>
-                        <a href="{{ route('admin.roles.index') }}" class="font-medium text-primary-600 hover:underline">
+                        <x-ui.button :href="route('admin.roles.index')" variant="ghost" size="sm">
                             {{ __('Manage roles') }}
-                        </a>
+                        </x-ui.button>
                     </li>
                 @endpermission
             </ul>

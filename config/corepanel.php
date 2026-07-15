@@ -88,4 +88,111 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Password policy (CDC Tome 4 §3.3)
+    |--------------------------------------------------------------------------
+    */
+
+    'password' => [
+        'min_length' => (int) env('COREPANEL_PASSWORD_MIN_LENGTH', 12),
+        'require_special_character' => (bool) env('COREPANEL_PASSWORD_REQUIRE_SPECIAL', true),
+        'check_compromised' => (bool) env('COREPANEL_PASSWORD_CHECK_COMPROMISED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication (CDC Tome 4 §10)
+    |--------------------------------------------------------------------------
+    */
+
+    'auth' => [
+        'login' => [
+            'max_attempts' => (int) env('COREPANEL_LOGIN_MAX_ATTEMPTS', 5),
+            'decay_seconds' => (int) env('COREPANEL_LOGIN_DECAY_SECONDS', 60),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Account lockout (CDC Tome 4 §13)
+        |----------------------------------------------------------------------
+        |
+        | Locks the user account after repeated failed login attempts.
+        | Unlock paths: password reset, email verification, admin unlock.
+        | Set lockout_minutes to null for a lock that persists until unlock.
+        |
+        */
+
+        'lockout' => [
+            'enabled' => (bool) env('COREPANEL_ACCOUNT_LOCKOUT_ENABLED', true),
+            'max_attempts' => (int) env('COREPANEL_ACCOUNT_LOCKOUT_MAX_ATTEMPTS', 10),
+            'lockout_minutes' => env('COREPANEL_ACCOUNT_LOCKOUT_MINUTES'),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Authentication audit (CDC Tome 4 §11)
+        |----------------------------------------------------------------------
+        */
+
+        'audit' => [
+            'enabled' => (bool) env('COREPANEL_AUTH_AUDIT_ENABLED', true),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Session tracking (CDC Tome 4 §4.2)
+        |----------------------------------------------------------------------
+        |
+        | Laravel sessions are stored via SESSION_DRIVER (redis recommended).
+        | user_sessions mirrors active sessions for multi-device management.
+        |
+        */
+
+        'session' => [
+            'track_activity' => (bool) env('COREPANEL_SESSION_TRACK_ACTIVITY', true),
+            'activity_touch_interval_seconds' => (int) env('COREPANEL_SESSION_ACTIVITY_INTERVAL', 60),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Registration (CDC — open or invite-only)
+        |----------------------------------------------------------------------
+        |
+        | mode: open   — public /register
+        | mode: invite — registration only via /register/invitation/{token}
+        |
+        */
+
+        'registration' => [
+            'mode' => env('COREPANEL_REGISTRATION_MODE', 'invite'),
+            'default_role' => env('COREPANEL_REGISTRATION_DEFAULT_ROLE', 'client'),
+            'invitation_ttl_hours' => (int) env('COREPANEL_REGISTRATION_INVITATION_TTL', 72),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Password reset (CDC Tome 4 §10)
+        |----------------------------------------------------------------------
+        */
+
+        'password_reset' => [
+            'max_attempts' => (int) env('COREPANEL_PASSWORD_RESET_MAX_ATTEMPTS', 5),
+            'decay_seconds' => (int) env('COREPANEL_PASSWORD_RESET_DECAY_SECONDS', 60),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
+        | Email verification
+        |----------------------------------------------------------------------
+        */
+
+        'email_verification' => [
+            'required' => (bool) env('COREPANEL_EMAIL_VERIFICATION_REQUIRED', true),
+            'expire_minutes' => (int) env('COREPANEL_EMAIL_VERIFICATION_EXPIRE', 60),
+            'max_attempts' => (int) env('COREPANEL_EMAIL_VERIFICATION_MAX_ATTEMPTS', 6),
+            'decay_seconds' => (int) env('COREPANEL_EMAIL_VERIFICATION_DECAY_SECONDS', 60),
+        ],
+    ],
+
 ];

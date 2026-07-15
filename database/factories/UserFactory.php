@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use Core\Auth\Models\User;
+use App\Models\User;
 use Core\Permissions\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +57,18 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'suspended',
+        ]);
+    }
+
+    /**
+     * Indicate that the user account is locked.
+     */
+    public function locked(int $failedAttempts = 10): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'locked',
+            'failed_login_attempts' => $failedAttempts,
+            'locked_at' => now(),
         ]);
     }
 

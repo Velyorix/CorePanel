@@ -42,7 +42,11 @@
                     </a>
                 </div>
                 <div class="flex-1 overflow-y-auto p-3">
-                    {{ $sidebar ?? '' }}
+                    @isset($sidebar)
+                        {{ $sidebar }}
+                    @else
+                        <x-admin.nav />
+                    @endisset
                 </div>
             </aside>
 

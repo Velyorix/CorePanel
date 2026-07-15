@@ -6,24 +6,6 @@
         {{ __('Manage roles, inheritance, and assigned permissions.') }}
     </x-slot:subtitle>
 
-    <x-slot:sidebar>
-        <nav class="space-y-1" aria-label="{{ __('Admin navigation') }}">
-            <a
-                href="{{ route('admin.roles.index') }}"
-                class="block rounded-md bg-muted px-3 py-2 text-body-sm font-medium text-foreground"
-                aria-current="page"
-            >
-                {{ __('Roles') }}
-            </a>
-            <a
-                href="{{ route('admin.permissions.index') }}"
-                class="block rounded-md px-3 py-2 text-body-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-                {{ __('Permissions') }}
-            </a>
-        </nav>
-    </x-slot:sidebar>
-
     <x-slot:topbar>
         <div class="ml-auto flex items-center gap-3">
             <x-ui.theme-toggle />

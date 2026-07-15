@@ -82,6 +82,7 @@ class AdminLayoutTest extends TestCase
             ->assertOk()
             ->assertSee('Admin navigation', false)
             ->assertSee('Admin top bar', false)
+            ->assertSee('aria-label="'.__('Admin menu').'"', false)
             ->assertSee('aria-label="Breadcrumb"', false)
             ->assertSee('super-admin', false)
             ->assertSee(__('Roles'), false);

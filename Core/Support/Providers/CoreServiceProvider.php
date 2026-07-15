@@ -11,6 +11,7 @@ use Core\Permissions\Policies\UserPolicy;
 use Core\Permissions\Services\GateRegistrar;
 use Core\Permissions\Services\PermissionRegistry;
 use Core\Permissions\Services\PermissionService;
+use Core\Permissions\Services\RoleInheritanceService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +25,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PermissionService::class);
         $this->app->singleton(PermissionRegistry::class);
+        $this->app->singleton(RoleInheritanceService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

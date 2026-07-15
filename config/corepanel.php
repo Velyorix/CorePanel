@@ -213,6 +213,10 @@ return [
             'cache_enabled' => (bool) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_CACHE_ENABLED', true),
             'ttl_seconds' => (int) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_TTL', 3600),
         ],
+
+        'inheritance' => [
+            'enabled' => (bool) env('COREPANEL_RBAC_INHERITANCE_ENABLED', true),
+        ],
     ],
 
 ];

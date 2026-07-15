@@ -4,7 +4,9 @@ namespace Core\Permissions\Models;
 
 use Core\Auth\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Role extends Model
 {
@@ -15,6 +17,7 @@ class Role extends Model
         'name',
         'description',
         'is_system',
+        'parent_id',
     ];
 
     /**
@@ -33,6 +36,22 @@ class Role extends Model
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'role_permissions');
+    }
+
+    /**
+     * @return BelongsTo<Role, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'parent_id');
+    }
+
+    /**
+     * @return HasMany<Role, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Role::class, 'parent_id');
     }
 
     /**

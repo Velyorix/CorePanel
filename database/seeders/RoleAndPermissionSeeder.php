@@ -61,6 +61,17 @@ class RoleAndPermissionSeeder extends Seeder
 
             $role->permissions()->sync($permissionIds);
         }
+
+        foreach ($this->roles() as $roleDefinition) {
+            if (! array_key_exists('parent', $roleDefinition) || $roleDefinition['parent'] === null) {
+                continue;
+            }
+
+            $role = Role::query()->where('name', $roleDefinition['name'])->firstOrFail();
+            $parent = Role::query()->where('name', $roleDefinition['parent'])->firstOrFail();
+
+            $role->update(['parent_id' => $parent->id]);
+        }
     }
 
     /**
@@ -123,7 +134,7 @@ class RoleAndPermissionSeeder extends Seeder
     }
 
     /**
-     * @return list<array{name: string, description: string, permissions: list<string>}>
+     * @return list<array{name: string, description: string, parent?: string|null, permissions: list<string>}>
      */
     private function roles(): array
     {
@@ -131,11 +142,13 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'super-admin',
                 'description' => 'Full system access',
+                'parent' => 'admin',
                 'permissions' => ['*'],
             ],
             [
                 'name' => 'admin',
                 'description' => 'Administrative access',
+                'parent' => 'support',
                 'permissions' => [
                     'admin.access',
                     'users.*',
@@ -153,6 +166,7 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'support',
                 'description' => 'Support team access',
+                'parent' => null,
                 'permissions' => [
                     'admin.access',
                     'clients.view',
@@ -164,6 +178,7 @@ class RoleAndPermissionSeeder extends Seeder
             [
                 'name' => 'client',
                 'description' => 'Client area access',
+                'parent' => null,
                 'permissions' => [
                     'client.access',
                     'client.*',

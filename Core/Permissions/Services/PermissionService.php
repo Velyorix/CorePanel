@@ -6,12 +6,14 @@ use Core\Auth\Models\User;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Support\PermissionScopeParser;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Cache;
 
 class PermissionService
 {
     public function __construct(
         private readonly ResourceOwnershipResolver $resourceOwnershipResolver,
+        private readonly RoleInheritanceService $roleInheritanceService,
     ) {
     }
 
@@ -126,10 +128,15 @@ class PermissionService
 
     public function forgetRole(Role $role): void
     {
-        $userIds = $role->users()->pluck('users.id');
+        $roles = (new EloquentCollection([$role]))
+            ->merge($this->roleInheritanceService->descendantRoles($role));
 
-        foreach ($userIds as $userId) {
-            $this->forgetUser((int) $userId);
+        foreach ($roles as $affectedRole) {
+            $userIds = $affectedRole->users()->pluck('users.id');
+
+            foreach ($userIds as $userId) {
+                $this->forgetUser((int) $userId);
+            }
         }
     }
 
@@ -171,7 +178,7 @@ class PermissionService
             ->all();
 
         $permissions = $user->roles
-            ->flatMap(fn (Role $role) => $role->permissions->pluck('name'))
+            ->flatMap(fn (Role $role) => $this->roleInheritanceService->permissionsForRole($role))
             ->unique()
             ->values()
             ->all();

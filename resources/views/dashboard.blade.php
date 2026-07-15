@@ -27,6 +27,7 @@
 
     <x-slot:topbar>
         <div class="ml-auto flex items-center gap-3">
+            <x-ui.theme-toggle />
             @auth
                 <span class="hidden text-body-sm text-muted-foreground sm:inline">
                     {{ auth()->user()->email }}

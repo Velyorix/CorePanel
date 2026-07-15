@@ -208,6 +208,11 @@ return [
             'prefix' => env('COREPANEL_RBAC_CACHE_PREFIX', 'corepanel.rbac'),
             'ttl_seconds' => (int) env('COREPANEL_RBAC_CACHE_TTL', 3600),
         ],
+
+        'permissions_registry' => [
+            'cache_enabled' => (bool) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_CACHE_ENABLED', true),
+            'ttl_seconds' => (int) env('COREPANEL_RBAC_PERMISSIONS_REGISTRY_TTL', 3600),
+        ],
     ],
 
 ];

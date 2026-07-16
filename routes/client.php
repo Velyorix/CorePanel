@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Client\DashboardController;
+use App\Http\Controllers\Client\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,4 +20,8 @@ Route::middleware('client')
     ->name('client.')
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     });

@@ -83,12 +83,14 @@ class ClientNavigation
                 'items' => [
                     [
                         'label' => __('Profile'),
-                        'route' => null,
+                        'route' => 'client.profile.edit',
+                        'routeIs' => ['client.profile.*'],
                         'permission' => 'client.account.view',
                     ],
                     [
                         'label' => __('Security'),
-                        'route' => null,
+                        'route' => 'client.profile.edit',
+                        'routeIs' => ['client.profile.*'],
                         'permission' => 'client.account.manage',
                     ],
                     [

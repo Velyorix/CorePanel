@@ -212,4 +212,21 @@ class AdminClientManagementTest extends TestCase
             ->assertRedirect(route('admin.clients.create'))
             ->assertSessionHasErrors('country');
     }
+
+    public function test_invalid_status_transition_returns_error(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Closed,
+            'company_name' => 'Closed Status Co',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.clients.show', $client))
+            ->post(route('admin.clients.suspend', $client))
+            ->assertRedirect(route('admin.clients.show', $client))
+            ->assertSessionHasErrors('status');
+
+        $this->assertTrue($client->fresh()->status === ClientStatus::Closed);
+    }
 }

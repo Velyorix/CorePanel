@@ -131,4 +131,23 @@ class AdminClientNotesTest extends TestCase
 
         $this->assertDatabaseHas('client_notes', ['id' => $note->id]);
     }
+
+    public function test_support_cannot_delete_notes(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $support = User::factory()->withRole('support')->create();
+        $client = Client::factory()->create(['status' => ClientStatus::Active]);
+
+        $note = ClientNote::query()->create([
+            'client_id' => $client->id,
+            'user_id' => $admin->id,
+            'body' => 'Support cannot delete this.',
+        ]);
+
+        $this->actingAs($support)
+            ->delete(route('admin.clients.notes.destroy', [$client, $note]))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('client_notes', ['id' => $note->id]);
+    }
 }

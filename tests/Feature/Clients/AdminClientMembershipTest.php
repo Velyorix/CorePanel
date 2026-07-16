@@ -202,4 +202,43 @@ class AdminClientMembershipTest extends TestCase
             'role' => ClientMembershipRole::Admin->value,
         ]));
     }
+
+    public function test_cross_client_membership_route_returns_not_found(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $ownerA = User::factory()->create();
+        $ownerB = User::factory()->create();
+        $member = User::factory()->create();
+
+        $clientA = app(ClientService::class)->create(
+            \Core\Clients\DataTransferObjects\ClientData::fromArray([
+                'user_id' => $ownerA->id,
+                'company_name' => 'Client A',
+                'status' => ClientStatus::Active->value,
+            ]),
+        );
+
+        $clientB = app(ClientService::class)->create(
+            \Core\Clients\DataTransferObjects\ClientData::fromArray([
+                'user_id' => $ownerB->id,
+                'company_name' => 'Client B',
+                'status' => ClientStatus::Active->value,
+            ]),
+        );
+
+        $membershipOnB = app(ClientService::class)->addMember(
+            $clientB,
+            new ClientMembershipData(
+                userId: $member->id,
+                role: ClientMembershipRole::User,
+                permissions: null,
+            ),
+        );
+
+        $this->actingAs($admin)
+            ->delete(route('admin.clients.members.destroy', [$clientA, $membershipOnB]))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('client_users', ['id' => $membershipOnB->id]);
+    }
 }

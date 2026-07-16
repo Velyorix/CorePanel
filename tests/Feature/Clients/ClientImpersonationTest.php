@@ -132,4 +132,34 @@ class ClientImpersonationTest extends TestCase
             ->assertRedirect(route('client.dashboard'))
             ->assertSessionHasErrors('impersonation');
     }
+
+    public function test_nested_impersonation_is_rejected(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $ownerA = User::factory()->withRole('client')->create(['status' => 'active']);
+        $ownerB = User::factory()->withRole('client')->create(['status' => 'active']);
+
+        $clientA = Client::factory()->create([
+            'user_id' => $ownerA->id,
+            'status' => ClientStatus::Active,
+        ]);
+        $clientB = Client::factory()->create([
+            'user_id' => $ownerB->id,
+            'status' => ClientStatus::Active,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.impersonate', $clientA))
+            ->assertRedirect(route('client.dashboard'));
+
+        $this->assertTrue(app(ClientImpersonationService::class)->isImpersonating());
+
+        $this->actingAs($admin)
+            ->from(route('admin.clients.show', $clientB))
+            ->post(route('admin.clients.impersonate', $clientB))
+            ->assertRedirect(route('admin.clients.show', $clientB))
+            ->assertSessionHasErrors('impersonation');
+
+        $this->assertSame($clientA->id, app(ClientImpersonationService::class)->impersonatedClientId());
+    }
 }

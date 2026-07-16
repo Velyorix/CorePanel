@@ -181,6 +181,11 @@ class AdminNavigation
                         'permission' => 'settings.view',
                     ],
                     [
+                        'label' => __('License'),
+                        'route' => 'admin.license.show',
+                        'permission' => 'settings.view',
+                    ],
+                    [
                         'label' => __('Security'),
                         'route' => null,
                         'permission' => 'settings.view',

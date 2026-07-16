@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
@@ -26,6 +27,10 @@ Route::middleware('admin')
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+        Route::get('license', [LicenseController::class, 'show'])->name('license.show');
+        Route::put('license', [LicenseController::class, 'update'])->name('license.update');
+        Route::post('license/revalidate', [LicenseController::class, 'revalidate'])->name('license.revalidate');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

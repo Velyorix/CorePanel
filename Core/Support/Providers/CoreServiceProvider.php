@@ -7,6 +7,10 @@ use Core\Admin\Navigation\AdminNavigation;
 use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
+use Core\License\Services\EntitlementService;
+use Core\License\Services\LicenseSettings;
+use Core\License\Services\CorePanelOrgClient;
+use Core\License\Services\LicenseValidationService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
 use Core\Permissions\Policies\RolePolicy;
@@ -36,6 +40,10 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNavigation::class);
         $this->app->singleton(ClientNavigation::class);
         $this->app->singleton(AdminNotificationFeed::class);
+        $this->app->singleton(CorePanelOrgClient::class);
+        $this->app->singleton(LicenseSettings::class);
+        $this->app->singleton(LicenseValidationService::class);
+        $this->app->singleton(EntitlementService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

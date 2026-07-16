@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientMemberController;
 use App\Http\Controllers\Admin\ClientInvitationController;
 use App\Http\Controllers\Admin\ClientStatusController;
+use App\Http\Controllers\Admin\ClientImpersonationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -54,6 +55,7 @@ Route::middleware('admin')
         Route::post('clients/{client}/unsuspend', [ClientStatusController::class, 'unsuspend'])->name('clients.unsuspend');
         Route::post('clients/{client}/close', [ClientStatusController::class, 'close'])->name('clients.close');
         Route::post('clients/{client}/reopen', [ClientStatusController::class, 'reopen'])->name('clients.reopen');
+        Route::post('clients/{client}/impersonate', [ClientImpersonationController::class, 'store'])->name('clients.impersonate');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

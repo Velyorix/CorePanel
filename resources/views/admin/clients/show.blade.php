@@ -28,6 +28,16 @@
     </x-slot:breadcrumbs>
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        @can('impersonate', $client)
+            @if ($client->owner)
+                <form method="POST" action="{{ route('admin.clients.impersonate', $client) }}" onsubmit="return confirm(@js(__('Impersonate this client owner?')))">
+                    @csrf
+                    <x-ui.button type="submit" variant="secondary" size="sm">
+                        {{ __('Impersonate') }}
+                    </x-ui.button>
+                </form>
+            @endif
+        @endcan
         @can('update', $client)
             @if ($client->status === \Core\Clients\Enums\ClientStatus::Active)
                 <form method="POST" action="{{ route('admin.clients.suspend', $client) }}">
@@ -94,6 +104,12 @@
     @if ($errors->has('status'))
         <div class="mb-6">
             <x-ui.alert variant="danger">{{ $errors->first('status') }}</x-ui.alert>
+        </div>
+    @endif
+
+    @if ($errors->has('impersonation'))
+        <div class="mb-6">
+            <x-ui.alert variant="danger">{{ $errors->first('impersonation') }}</x-ui.alert>
         </div>
     @endif
 

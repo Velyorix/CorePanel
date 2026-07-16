@@ -36,6 +36,10 @@ class ClientAuditLogger
 
     public const ACTION_INVITATION_ACCEPTED = 'client.invitation.accepted';
 
+    public const ACTION_IMPERSONATION_STARTED = 'client.impersonation.started';
+
+    public const ACTION_IMPERSONATION_STOPPED = 'client.impersonation.stopped';
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {

@@ -44,12 +44,53 @@
     @endif
 
     <x-ui.table :paginator="$clients">
+        <x-slot:filters>
+            <form method="GET" action="{{ route('admin.clients.index') }}" class="flex w-full flex-wrap items-end gap-3">
+                <div class="min-w-56 flex-1">
+                    <x-ui.input
+                        name="q"
+                        :label="__('Search')"
+                        :value="$filters['q']"
+                        :placeholder="__('Company, owner, country, ID…')"
+                    />
+                </div>
+
+                <div class="min-w-40">
+                    <x-ui.select name="status" :label="__('Status')">
+                        <option value="">{{ __('All statuses') }}</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->value }}" @selected(($filters['status']?->value ?? null) === $status->value)>
+                                {{ $status->label() }}
+                            </option>
+                        @endforeach
+                    </x-ui.select>
+                </div>
+
+                @if (filled(request('sort')))
+                    <input type="hidden" name="sort" value="{{ request('sort') }}">
+                @endif
+                @if (filled(request('dir')))
+                    <input type="hidden" name="dir" value="{{ request('dir') }}">
+                @endif
+
+                <x-ui.button type="submit" variant="secondary" size="sm">
+                    {{ __('Apply') }}
+                </x-ui.button>
+
+                @if (filled($filters['q']) || $filters['status'] !== null)
+                    <x-ui.button :href="route('admin.clients.index', request()->only(['sort', 'dir']))" variant="ghost" size="sm">
+                        {{ __('Clear') }}
+                    </x-ui.button>
+                @endif
+            </form>
+        </x-slot:filters>
+
         <x-slot:head>
             <tr>
-                <th class="px-4 py-3 font-medium">{{ __('Company') }}</th>
+                <x-ui.table-heading sort="company_name">{{ __('Company') }}</x-ui.table-heading>
                 <th class="px-4 py-3 font-medium">{{ __('Owner') }}</th>
-                <th class="px-4 py-3 font-medium">{{ __('Country') }}</th>
-                <th class="px-4 py-3 font-medium">{{ __('Status') }}</th>
+                <x-ui.table-heading sort="country">{{ __('Country') }}</x-ui.table-heading>
+                <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
                 <th class="px-4 py-3 font-medium"></th>
             </tr>
         </x-slot:head>
@@ -59,7 +100,9 @@
                 <td colspan="5" class="p-4">
                     <x-ui.empty
                         :title="__('No clients found')"
-                        :description="__('Create a client account to get started.')"
+                        :description="filled($filters['q']) || $filters['status'] !== null
+                            ? __('Try adjusting your search or filters.')
+                            : __('Create a client account to get started.')"
                     />
                 </td>
             </tr>

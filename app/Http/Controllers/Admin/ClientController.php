@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\IndexClientRequest;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\User;
 use Core\Clients\Enums\ClientMembershipRole;
+use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
 use Illuminate\Http\RedirectResponse;
@@ -22,16 +24,17 @@ class ClientController extends Controller
     ) {
     }
 
-    public function index(): View
+    public function index(IndexClientRequest $request): View
     {
-        Gate::authorize('viewAny', Client::class);
+        $filters = $request->filters();
 
-        $clients = Client::query()
-            ->with('owner')
-            ->orderByDesc('created_at')
-            ->paginate(20);
+        $clients = $this->clientService->paginateForAdmin($filters);
 
-        return view('admin.clients.index', compact('clients'));
+        return view('admin.clients.index', [
+            'clients' => $clients,
+            'filters' => $filters,
+            'statuses' => ClientStatus::cases(),
+        ]);
     }
 
     public function create(): View

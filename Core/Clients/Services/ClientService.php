@@ -9,12 +9,63 @@ use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
 
 class ClientService
 {
+    /**
+     * @param  array{q?: string|null, status?: ClientStatus|null, sort?: string, dir?: string}  $filters
+     * @return LengthAwarePaginator<int, Client>
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, ['company_name', 'country', 'status', 'created_at'], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Client::query()->with('owner');
+
+        if ($status instanceof ClientStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($search, $term): void {
+                $builder
+                    ->where('company_name', 'like', $term)
+                    ->orWhere('country', 'like', $term)
+                    ->orWhere('vat_number', 'like', $term)
+                    ->orWhere('city', 'like', $term)
+                    ->orWhere('phone', 'like', $term)
+                    ->orWhereHas('owner', function ($ownerQuery) use ($term): void {
+                        $ownerQuery
+                            ->where('name', 'like', $term)
+                            ->orWhere('email', 'like', $term);
+                    });
+
+                if (ctype_digit($search)) {
+                    $builder->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
     public function create(ClientData $data): Client
     {
         $this->assertOwnerExists($data->userId);

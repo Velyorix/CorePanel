@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'auth', 'permission:client.access'])
+Route::middleware('client')
     ->prefix('client')
     ->name('client.')
     ->group(function (): void {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureClient;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureLoginIsNotRateLimited;
 use App\Http\Middleware\EnsurePermission;
@@ -54,11 +55,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsurePermission::class,
             'role' => EnsureRole::class,
             'admin' => EnsureAdmin::class,
+            'client' => EnsureClient::class,
         ]);
 
         $middleware->group('admin', [
             'web',
             EnsureAdmin::class,
+        ]);
+
+        $middleware->group('client', [
+            'web',
+            EnsureClient::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

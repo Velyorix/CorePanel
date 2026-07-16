@@ -54,6 +54,7 @@ class AdminLayoutTest extends TestCase
         $this->assertStringContainsString('Manage roles', $html);
         $this->assertStringContainsString('Page body', $html);
         $this->assertStringContainsString('w-72', $html);
+        $this->assertStringContainsString('data-admin-sidebar-toggle', $html);
     }
 
     public function test_breadcrumb_marks_last_item_as_current(): void

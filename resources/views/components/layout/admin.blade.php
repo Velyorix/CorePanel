@@ -25,30 +25,50 @@
         {{--
             Admin panel shell (CDC Tome 13 §4 + §9.2, Tome 6)
             Sidebar | Topbar | Breadcrumbs | Main
-            Full navigation menu = étape 5.2 · mobile drawer = 5.7
         --}}
-        <div class="flex min-h-screen">
+        <div
+            class="flex min-h-screen"
+            x-data="{ sidebarOpen: false }"
+            x-on:keydown.escape.window="sidebarOpen = false"
+        >
             <aside
                 class="hidden w-72 shrink-0 flex-col border-r border-border bg-surface lg:flex"
                 aria-label="{{ __('Admin navigation') }}"
+                data-admin-sidebar-desktop
             >
-                <div class="flex h-14 items-center border-b border-border px-4">
-                    <a
-                        href="{{ Route::has('admin.dashboard') ? route('admin.dashboard') : route('dashboard') }}"
-                        class="text-h3 font-semibold tracking-tight text-foreground hover:text-primary-600"
-                    >
-                        {{ config('corepanel.name') }}
-                        <span class="ms-1 text-small font-medium text-muted-foreground">{{ __('Admin') }}</span>
-                    </a>
-                </div>
-                <div class="flex-1 overflow-y-auto p-3">
-                    @isset($sidebar)
-                        {{ $sidebar }}
-                    @else
-                        <x-admin.nav />
-                    @endisset
-                </div>
+                @include('components.admin.partials.sidebar-shell')
             </aside>
+
+            <div class="lg:hidden">
+                <div
+                    x-show="sidebarOpen"
+                    x-cloak
+                    x-transition.opacity
+                    class="fixed inset-0 z-40 bg-neutral-950/50"
+                    x-on:click="sidebarOpen = false"
+                    aria-hidden="true"
+                    data-admin-sidebar-overlay
+                ></div>
+
+                <aside
+                    x-show="sidebarOpen"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="-translate-x-full"
+                    x-transition:enter-end="translate-x-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="translate-x-0"
+                    x-transition:leave-end="-translate-x-full"
+                    class="fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-surface shadow-xl"
+                    aria-label="{{ __('Admin navigation') }}"
+                    role="dialog"
+                    aria-modal="true"
+                    data-admin-sidebar-drawer
+                    x-on:click="if ($event.target.closest('a[href]')) sidebarOpen = false"
+                >
+                    @include('components.admin.partials.sidebar-shell', ['showClose' => true])
+                </aside>
+            </div>
 
             <div class="flex min-w-0 flex-1 flex-col">
                 <header
@@ -56,10 +76,24 @@
                     aria-label="{{ __('Admin top bar') }}"
                 >
                     <div class="flex min-w-0 flex-1 items-center gap-3">
+                        <button
+                            type="button"
+                            class="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:hidden"
+                            x-on:click="sidebarOpen = true"
+                            aria-label="{{ __('Open admin menu') }}"
+                            x-bind:aria-expanded="sidebarOpen"
+                            data-admin-sidebar-toggle
+                        >
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
+                        </button>
+
                         <span class="font-semibold tracking-tight text-foreground lg:hidden">
                             {{ config('corepanel.name') }}
                             <span class="text-muted-foreground">· {{ __('Admin') }}</span>
                         </span>
+
                         {{ $topbar ?? '' }}
                     </div>
                 </header>

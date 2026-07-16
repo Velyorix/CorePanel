@@ -48,6 +48,7 @@ return [
     'org' => [
         'api_url' => env('COREPANEL_ORG_API_URL', 'https://corepanel.org/api/v1'),
         'health_url' => env('COREPANEL_ORG_HEALTH_URL', 'https://corepanel.org/up'),
+        'timeout_seconds' => (int) env('COREPANEL_ORG_TIMEOUT_SECONDS', 10),
     ],
 
     /*

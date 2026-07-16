@@ -3,6 +3,8 @@
 namespace Core\Support\Providers;
 
 use App\Models\User;
+use Core\Admin\Navigation\AdminNavigation;
+use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Clients\Models\Client;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
@@ -30,6 +32,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(RoleInheritanceService::class);
         $this->app->singleton(UserPermissionService::class);
         $this->app->singleton(RoleManagementService::class);
+        $this->app->singleton(AdminNavigation::class);
+        $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

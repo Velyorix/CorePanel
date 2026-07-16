@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,10 +17,16 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'auth', 'permission:admin.access'])
+Route::middleware('admin')
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        Route::get('/', DashboardController::class)->name('dashboard');
+
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 
         Route::get('roles', [RoleController::class, 'index'])->name('roles.index');

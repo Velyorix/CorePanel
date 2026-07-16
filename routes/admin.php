@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientMemberController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -40,6 +41,10 @@ Route::middleware('admin')
         Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
         Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
         Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+        Route::post('clients/{client}/members', [ClientMemberController::class, 'store'])->name('clients.members.store');
+        Route::put('clients/{client}/members/{membership}', [ClientMemberController::class, 'update'])->name('clients.members.update');
+        Route::delete('clients/{client}/members/{membership}', [ClientMemberController::class, 'destroy'])->name('clients.members.destroy');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

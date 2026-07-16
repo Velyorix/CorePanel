@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\User;
+use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
@@ -60,7 +61,18 @@ class ClientController extends Controller
 
         $client->load(['owner', 'memberships.user']);
 
-        return view('admin.clients.show', compact('client'));
+        $memberIds = $client->memberships->pluck('user_id')->all();
+
+        $availableUsers = User::query()
+            ->orderBy('email')
+            ->when($memberIds !== [], fn ($query) => $query->whereKeyNot($memberIds))
+            ->get(['id', 'name', 'email']);
+
+        return view('admin.clients.show', [
+            'client' => $client,
+            'availableUsers' => $availableUsers,
+            'membershipRoles' => ClientMembershipRole::cases(),
+        ]);
     }
 
     public function edit(Client $client): View

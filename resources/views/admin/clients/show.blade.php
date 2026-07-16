@@ -50,6 +50,12 @@
         </div>
     @endif
 
+    @if ($errors->has('membership'))
+        <div class="mb-6">
+            <x-ui.alert variant="danger">{{ $errors->first('membership') }}</x-ui.alert>
+        </div>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         <x-ui.card :title="__('Client details')">
             <dl class="space-y-3 text-body-sm">
@@ -94,7 +100,7 @@
         <x-ui.card :title="__('Ownership')">
             <dl class="space-y-3 text-body-sm">
                 <div class="flex items-start justify-between gap-4">
-                    <dt class="text-muted-foreground">{{ __('Owner') }}</dt>
+                    <dt class="text-muted-foreground">{{ __('Primary owner') }}</dt>
                     <dd class="text-end font-medium">
                         @if ($client->owner)
                             <div>{{ $client->owner->name }}</div>
@@ -110,20 +116,10 @@
                     <dd class="font-medium">{{ $client->memberships->count() }}</dd>
                 </div>
             </dl>
-
-            @if ($client->memberships->isNotEmpty())
-                <ul class="mt-4 divide-y divide-border rounded-lg border border-border text-body-sm">
-                    @foreach ($client->memberships as $membership)
-                        <li class="flex items-center justify-between gap-3 px-3 py-2">
-                            <div>
-                                <div class="font-medium">{{ $membership->user?->name ?: __('Unknown user') }}</div>
-                                <div class="text-small text-muted-foreground">{{ $membership->user?->email }}</div>
-                            </div>
-                            <x-ui.badge variant="neutral">{{ $membership->role }}</x-ui.badge>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
         </x-ui.card>
+    </div>
+
+    <div class="mt-6">
+        @include('admin.clients._members')
     </div>
 </x-layout.admin>

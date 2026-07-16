@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ClientMemberController;
 use App\Http\Controllers\Admin\ClientInvitationController;
 use App\Http\Controllers\Admin\ClientStatusController;
 use App\Http\Controllers\Admin\ClientImpersonationController;
+use App\Http\Controllers\Admin\ClientNoteController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -56,6 +57,9 @@ Route::middleware('admin')
         Route::post('clients/{client}/close', [ClientStatusController::class, 'close'])->name('clients.close');
         Route::post('clients/{client}/reopen', [ClientStatusController::class, 'reopen'])->name('clients.reopen');
         Route::post('clients/{client}/impersonate', [ClientImpersonationController::class, 'store'])->name('clients.impersonate');
+
+        Route::post('clients/{client}/notes', [ClientNoteController::class, 'store'])->name('clients.notes.store');
+        Route::delete('clients/{client}/notes/{note}', [ClientNoteController::class, 'destroy'])->name('clients.notes.destroy');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

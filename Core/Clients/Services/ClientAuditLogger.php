@@ -40,6 +40,10 @@ class ClientAuditLogger
 
     public const ACTION_IMPERSONATION_STOPPED = 'client.impersonation.stopped';
 
+    public const ACTION_NOTE_CREATED = 'client.note.created';
+
+    public const ACTION_NOTE_DELETED = 'client.note.deleted';
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {

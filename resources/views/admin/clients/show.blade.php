@@ -113,6 +113,12 @@
         </div>
     @endif
 
+    @if ($errors->has('note'))
+        <div class="mb-6">
+            <x-ui.alert variant="danger">{{ $errors->first('note') }}</x-ui.alert>
+        </div>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         <x-ui.card :title="__('Client details')">
             <dl class="space-y-3 text-body-sm">
@@ -248,5 +254,9 @@
                 </div>
             @endif
         </x-ui.card>
+    </div>
+
+    <div class="mt-6">
+        @include('admin.clients._notes')
     </div>
 </x-layout.admin>

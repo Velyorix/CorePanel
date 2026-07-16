@@ -61,7 +61,7 @@ class ClientController extends Controller
     {
         Gate::authorize('view', $client);
 
-        $client->load(['owner', 'memberships.user', 'invitations']);
+        $client->load(['owner', 'memberships.user', 'invitations', 'notes.author']);
 
         $memberIds = $client->memberships->pluck('user_id')->all();
 
@@ -79,6 +79,7 @@ class ClientController extends Controller
             'availableUsers' => $availableUsers,
             'membershipRoles' => ClientMembershipRole::cases(),
             'pendingInvitations' => $pendingInvitations,
+            'notes' => $client->notes,
         ]);
     }
 

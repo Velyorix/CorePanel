@@ -68,6 +68,16 @@ class Client extends Model
     }
 
     /**
+     * Internal staff notes (admin only).
+     *
+     * @return HasMany<ClientNote, $this>
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ClientNote::class)->latest();
+    }
+
+    /**
      * @return BelongsToMany<User, $this>
      */
     public function users(): BelongsToMany

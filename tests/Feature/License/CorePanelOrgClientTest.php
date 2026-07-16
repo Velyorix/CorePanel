@@ -160,6 +160,33 @@ class CorePanelOrgClientTest extends TestCase
         $this->assertSame('Une erreur inattendue s’est produite.', $result->message);
     }
 
+    public function test_validate_license_reads_retry_after_from_429_response(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/licenses/validate' => Http::response([
+                'error' => [
+                    'code' => 'rate_limit_exceeded',
+                    'message' => 'Too many requests.',
+                    'details' => [
+                        'retry_after' => 42,
+                    ],
+                ],
+            ], 429, [
+                'Retry-After' => '42',
+            ]),
+        ]);
+
+        $result = app(CorePanelOrgClient::class)->validateLicense(
+            licenseKey: 'CP-TEST-1234567890',
+            instanceId: 'cms-prod-01',
+        );
+
+        $this->assertFalse($result->valid);
+        $this->assertSame(429, $result->statusCode);
+        $this->assertSame('rate_limit_exceeded', $result->reason);
+        $this->assertSame(42, $result->retryAfter);
+    }
+
     public function test_validate_license_omits_blank_optional_fields(): void
     {
         Http::fake([

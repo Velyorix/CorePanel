@@ -19,13 +19,14 @@ class LicenseValidationResult
         public readonly array $activation,
         public readonly array $entitlements,
         public readonly array $raw,
+        public readonly ?int $retryAfter = null,
     ) {
     }
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function fromResponse(array $payload, ?int $statusCode): self
+    public static function fromResponse(array $payload, ?int $statusCode, ?int $retryAfterHeader = null): self
     {
         // Flat license envelope (validate/activate success or business failure).
         if (array_key_exists('valid', $payload)) {
@@ -38,12 +39,18 @@ class LicenseValidationResult
                 activation: is_array($payload['activation'] ?? null) ? $payload['activation'] : [],
                 entitlements: is_array($payload['entitlements'] ?? null) ? array_values($payload['entitlements']) : [],
                 raw: $payload,
+                retryAfter: $retryAfterHeader,
             );
         }
 
         // Standard API error envelope: { error: { code, message, details } }
         if (is_array($payload['error'] ?? null)) {
             $error = $payload['error'];
+            $retryAfter = $retryAfterHeader;
+
+            if (isset($error['details']['retry_after']) && is_numeric($error['details']['retry_after'])) {
+                $retryAfter = (int) $error['details']['retry_after'];
+            }
 
             return new self(
                 valid: false,
@@ -54,6 +61,7 @@ class LicenseValidationResult
                 activation: [],
                 entitlements: [],
                 raw: $payload,
+                retryAfter: $retryAfter,
             );
         }
 
@@ -66,6 +74,7 @@ class LicenseValidationResult
             activation: [],
             entitlements: [],
             raw: $payload,
+            retryAfter: $retryAfterHeader,
         );
     }
 
@@ -80,6 +89,7 @@ class LicenseValidationResult
             activation: [],
             entitlements: [],
             raw: [],
+            retryAfter: null,
         );
     }
 }

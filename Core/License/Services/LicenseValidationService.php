@@ -5,6 +5,7 @@ namespace Core\License\Services;
 use Core\License\DataTransferObjects\LicenseValidationResult;
 use Core\License\DataTransferObjects\LicenseValidationState;
 use Core\License\Models\LicenseActivation;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class LicenseValidationService
@@ -33,10 +34,22 @@ class LicenseValidationService
 
         $cacheKey = $this->cacheKey((string) $instanceId);
 
+        if ($forceRefresh) {
+            $this->clearBackoff((string) $instanceId);
+        }
+
         if (! $forceRefresh) {
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
                 return LicenseValidationState::fromCachePayload($cached);
+            }
+
+            if ($this->isBackedOff((string) $instanceId)) {
+                return $this->graceState(
+                    (string) $instanceId,
+                    __('License validation is rate-limited. Retrying after backoff.'),
+                    reason: 'rate_limit_exceeded',
+                );
             }
         }
 
@@ -56,6 +69,7 @@ class LicenseValidationService
         );
 
         if ($result->valid) {
+            $this->clearBackoff((string) $instanceId);
             $this->persistActivation((string) $instanceId, $result);
 
             $state = new LicenseValidationState(
@@ -72,9 +86,24 @@ class LicenseValidationService
             return $state;
         }
 
+        if ($result->statusCode === 429 || $result->reason === 'rate_limit_exceeded') {
+            $this->rememberBackoff((string) $instanceId, $result->retryAfter);
+
+            $graceState = $this->graceState(
+                (string) $instanceId,
+                $result->message ?: __('License validation is rate-limited. Retrying after backoff.'),
+                reason: 'rate_limit_exceeded',
+            );
+
+            if ($graceState->isValid) {
+                $this->putCache($cacheKey, $graceState);
+            }
+
+            return $graceState;
+        }
+
         if ($result->reason === 'request_failed'
             || $result->reason === 'server_error'
-            || $result->statusCode === 429
             || ($result->statusCode !== null && $result->statusCode >= 500)
         ) {
             $graceState = $this->graceState((string) $instanceId, $result->message);
@@ -109,10 +138,14 @@ class LicenseValidationService
         }
 
         Cache::forget($this->cacheKey((string) $instanceId));
+        $this->clearBackoff((string) $instanceId);
     }
 
-    private function graceState(string $instanceId, ?string $errorMessage): LicenseValidationState
-    {
+    private function graceState(
+        string $instanceId,
+        ?string $errorMessage,
+        ?string $reason = null,
+    ): LicenseValidationState {
         $activation = LicenseActivation::query()
             ->where('instance_id', $instanceId)
             ->first();
@@ -125,7 +158,7 @@ class LicenseValidationService
                 isValid: true,
                 inGracePeriod: true,
                 status: 'grace',
-                reason: 'grace_period',
+                reason: $reason ?? 'grace_period',
                 message: $errorMessage,
                 source: 'grace',
             );
@@ -135,7 +168,7 @@ class LicenseValidationService
             isValid: false,
             inGracePeriod: false,
             status: 'invalid',
-            reason: 'request_failed',
+            reason: $reason ?? 'request_failed',
             message: $errorMessage,
             source: 'remote',
         );
@@ -161,9 +194,67 @@ class LicenseValidationService
         );
     }
 
+    private function isBackedOff(string $instanceId): bool
+    {
+        $payload = Cache::get($this->backoffKey($instanceId));
+
+        if (! is_array($payload) || blank($payload['until'] ?? null)) {
+            return false;
+        }
+
+        return now()->lt(Carbon::parse((string) $payload['until']));
+    }
+
+    private function rememberBackoff(string $instanceId, ?int $retryAfter): void
+    {
+        $payload = Cache::get($this->backoffKey($instanceId));
+        $step = is_array($payload) ? (int) ($payload['step'] ?? 0) : 0;
+        $schedule = $this->backoffSchedule();
+        $seconds = $retryAfter !== null && $retryAfter > 0
+            ? $retryAfter
+            : $schedule[min($step, count($schedule) - 1)];
+
+        Cache::put(
+            $this->backoffKey($instanceId),
+            [
+                'until' => now()->addSeconds($seconds)->toIso8601String(),
+                'step' => min($step + 1, count($schedule) - 1),
+                'seconds' => $seconds,
+            ],
+            now()->addSeconds($seconds + 60),
+        );
+    }
+
+    private function clearBackoff(string $instanceId): void
+    {
+        Cache::forget($this->backoffKey($instanceId));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function backoffSchedule(): array
+    {
+        $schedule = config('corepanel.license.backoff_seconds', [60, 120, 300]);
+
+        if (! is_array($schedule) || $schedule === []) {
+            return [60, 120, 300];
+        }
+
+        return array_values(array_map(
+            static fn (mixed $value): int => max(1, (int) $value),
+            $schedule,
+        ));
+    }
+
     private function cacheKey(string $instanceId): string
     {
         return 'corepanel.license.validation.'.sha1($instanceId);
+    }
+
+    private function backoffKey(string $instanceId): string
+    {
+        return 'corepanel.license.backoff.'.sha1($instanceId);
     }
 
     private function putCache(string $cacheKey, LicenseValidationState $state): void
@@ -185,4 +276,3 @@ class LicenseValidationService
         return max(1, (int) config('corepanel.license.grace_period_hours', 72));
     }
 }
-

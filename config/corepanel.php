@@ -72,6 +72,15 @@ return [
         'validation_cache_hours' => (int) env('COREPANEL_LICENSE_CACHE_HOURS', 12),
 
         /*
+        | Exponential backoff after HTTP 429 (seconds).
+        | Overridden by Retry-After / error.details.retry_after when present.
+        */
+        'backoff_seconds' => array_values(array_filter(array_map(
+            static fn (string $value): int => (int) trim($value),
+            explode(',', (string) env('COREPANEL_LICENSE_BACKOFF_SECONDS', '60,120,300')),
+        ), static fn (int $value): bool => $value > 0)) ?: [60, 120, 300],
+
+        /*
         | Routes accessible without a valid license (install wizard, auth, health).
         */
         'except' => [

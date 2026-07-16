@@ -45,7 +45,11 @@ class CorePanelOrgClient
         /** @var array<string, mixed> $json */
         $json = $response->json() ?? [];
 
-        return LicenseValidationResult::fromResponse($json, $response->status());
+        $retryAfterHeader = is_numeric($response->header('Retry-After'))
+            ? (int) $response->header('Retry-After')
+            : null;
+
+        return LicenseValidationResult::fromResponse($json, $response->status(), $retryAfterHeader);
     }
 
     private function endpoint(string $path): string

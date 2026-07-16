@@ -9,7 +9,6 @@ use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
 use Core\Clients\Models\ClientUserInvitation;
 use Core\Clients\Notifications\ClientUserInvitationNotification;
-use Core\Support\Services\AuditLogger;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
 use RuntimeException;
@@ -19,12 +18,12 @@ class ClientInvitationService
     public function __construct(
         private readonly ClientInvitationGate $gate,
         private readonly ClientService $clientService,
-        private readonly AuditLogger $auditLogger,
+        private readonly ClientAuditLogger $clientAuditLogger,
     ) {
     }
 
     /**
-     * @return array{ClientUserInvitation, string}
+     * @return array{0: ClientUserInvitation, 1: string}
      */
     public function createInvitation(
         Client $client,
@@ -76,16 +75,15 @@ class ClientInvitationService
             'created_at' => now(),
         ]);
 
-        $this->auditLogger->record(
-            action: 'client.invitation.created',
-            actorId: $invitedBy->id,
-            entityType: Client::class,
-            entityId: $client->id,
-            before: null,
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_INVITATION_CREATED,
+            $client,
             after: [
                 'email' => $email,
                 'role' => $role->value,
+                'invitation_id' => $invitation->id,
             ],
+            actorId: $invitedBy->id,
         );
 
         $invitation->loadMissing('client');
@@ -150,19 +148,17 @@ class ClientInvitationService
 
         $invitation->forceFill(['accepted_at' => now()])->save();
 
-        $this->auditLogger->record(
-            action: 'client.invitation.accepted',
-            actorId: $user->id,
-            entityType: Client::class,
-            entityId: $client->id,
-            before: null,
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_INVITATION_ACCEPTED,
+            $client,
             after: [
                 'email' => $invitation->email,
                 'role' => $role->value,
+                'invitation_id' => $invitation->id,
             ],
+            actorId: $user->id,
         );
 
         return $membership;
     }
 }
-

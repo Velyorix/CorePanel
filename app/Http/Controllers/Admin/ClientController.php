@@ -110,7 +110,7 @@ class ClientController extends Controller
     {
         Gate::authorize('delete', $client);
 
-        $client->delete();
+        $this->clientService->delete($client);
 
         return redirect()
             ->route('admin.clients.index')

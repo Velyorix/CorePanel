@@ -16,6 +16,11 @@ use RuntimeException;
 
 class ClientService
 {
+    public function __construct(
+        private readonly ClientAuditLogger $clientAuditLogger,
+    ) {
+    }
+
     /**
      * @param  array{q?: string|null, status?: ClientStatus|null, sort?: string, dir?: string}  $filters
      * @return LengthAwarePaginator<int, Client>
@@ -71,7 +76,7 @@ class ClientService
         $this->assertOwnerExists($data->userId);
         $this->assertCountryFormat($data->country);
 
-        return DB::transaction(function () use ($data): Client {
+        $client = DB::transaction(function () use ($data): Client {
             $client = Client::query()->create($data->toAttributes());
 
             if ($data->userId !== null) {
@@ -80,6 +85,14 @@ class ClientService
 
             return $client->fresh(['owner', 'memberships']) ?? $client;
         });
+
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_CREATED,
+            $client,
+            after: $this->clientAuditLogger->clientSnapshot($client),
+        );
+
+        return $client;
     }
 
     public function update(Client $client, ClientData $data): Client
@@ -91,7 +104,9 @@ class ClientService
             throw new RuntimeException('Client status cannot be changed via update. Use a dedicated transition.');
         }
 
-        return DB::transaction(function () use ($client, $data): Client {
+        $before = $this->clientAuditLogger->clientSnapshot($client);
+
+        $client = DB::transaction(function () use ($client, $data): Client {
             $previousOwnerId = $client->user_id;
 
             $client->update($data->toAttributes());
@@ -102,6 +117,32 @@ class ClientService
 
             return $client->fresh(['owner', 'memberships']) ?? $client;
         });
+
+        $after = $this->clientAuditLogger->clientSnapshot($client);
+
+        if ($before !== $after) {
+            $this->clientAuditLogger->log(
+                ClientAuditLogger::ACTION_UPDATED,
+                $client,
+                before: $before,
+                after: $after,
+            );
+        }
+
+        return $client;
+    }
+
+    public function delete(Client $client): void
+    {
+        $before = $this->clientAuditLogger->clientSnapshot($client);
+
+        $client->delete();
+
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_DELETED,
+            $client,
+            before: $before,
+        );
     }
 
     public function suspend(Client $client, ?string $reason = null): Client
@@ -114,7 +155,7 @@ class ClientService
             throw new RuntimeException('Only active clients can be suspended.');
         }
 
-        return $this->transition($client, ClientStatus::Suspended, $reason);
+        return $this->transition($client, ClientStatus::Suspended, ClientAuditLogger::ACTION_STATUS_SUSPENDED, $reason);
     }
 
     public function unsuspend(Client $client, ?string $reason = null): Client
@@ -127,7 +168,7 @@ class ClientService
             throw new RuntimeException('Only suspended clients can be unsuspended.');
         }
 
-        return $this->transition($client, ClientStatus::Active, $reason);
+        return $this->transition($client, ClientStatus::Active, ClientAuditLogger::ACTION_STATUS_UNSUSPENDED, $reason);
     }
 
     public function close(Client $client, ?string $reason = null): Client
@@ -140,7 +181,7 @@ class ClientService
             throw new RuntimeException('Only active or suspended clients can be closed.');
         }
 
-        return $this->transition($client, ClientStatus::Closed, $reason);
+        return $this->transition($client, ClientStatus::Closed, ClientAuditLogger::ACTION_STATUS_CLOSED, $reason);
     }
 
     public function reopen(Client $client, ?string $reason = null): Client
@@ -153,11 +194,15 @@ class ClientService
             throw new RuntimeException('Only closed clients can be reopened.');
         }
 
-        return $this->transition($client, ClientStatus::Active, $reason);
+        return $this->transition($client, ClientStatus::Active, ClientAuditLogger::ACTION_STATUS_REOPENED, $reason);
     }
 
-    private function transition(Client $client, ClientStatus $target, ?string $reason = null): Client
-    {
+    private function transition(
+        Client $client,
+        ClientStatus $target,
+        string $auditAction,
+        ?string $reason = null,
+    ): Client {
         if (! $client->status->canTransitionTo($target)) {
             throw new RuntimeException(sprintf(
                 'Cannot transition client from %s to %s.',
@@ -166,18 +211,29 @@ class ClientService
             ));
         }
 
+        $before = ['status' => $client->status->value];
+
         $client->update([
             'status' => $target,
         ]);
 
-        return $client->fresh(['owner', 'memberships']) ?? $client;
+        $client = $client->fresh(['owner', 'memberships']) ?? $client;
+
+        $after = ['status' => $client->status->value];
+        if (filled($reason)) {
+            $after['reason'] = $reason;
+        }
+
+        $this->clientAuditLogger->log($auditAction, $client, before: $before, after: $after);
+
+        return $client;
     }
 
     public function addMember(Client $client, ClientMembershipData $data): ClientUser
     {
         $this->assertOwnerExists($data->userId);
 
-        return DB::transaction(function () use ($client, $data): ClientUser {
+        $membership = DB::transaction(function () use ($client, $data): ClientUser {
             $exists = ClientUser::query()
                 ->where('client_id', $client->id)
                 ->where('user_id', $data->userId)
@@ -199,6 +255,14 @@ class ClientService
                 'created_at' => now(),
             ]);
         });
+
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_MEMBER_ADDED,
+            $client,
+            after: $this->clientAuditLogger->membershipSnapshot($membership),
+        );
+
+        return $membership;
     }
 
     public function updateMember(ClientUser $membership, ClientMembershipData $data): ClientUser
@@ -207,7 +271,9 @@ class ClientService
             throw new InvalidArgumentException('Membership user cannot be changed. Remove and re-add the member instead.');
         }
 
-        return DB::transaction(function () use ($membership, $data): ClientUser {
+        $before = $this->clientAuditLogger->membershipSnapshot($membership);
+
+        $membership = DB::transaction(function () use ($membership, $data): ClientUser {
             $client = $membership->client()->firstOrFail();
             $isPrimaryOwner = $client->user_id === $membership->user_id;
 
@@ -226,6 +292,20 @@ class ClientService
 
             return $membership->fresh(['user', 'client']) ?? $membership;
         });
+
+        $client = $membership->client ?? Client::query()->findOrFail($membership->client_id);
+        $after = $this->clientAuditLogger->membershipSnapshot($membership);
+
+        if ($before !== $after) {
+            $this->clientAuditLogger->log(
+                ClientAuditLogger::ACTION_MEMBER_UPDATED,
+                $client,
+                before: $before,
+                after: $after,
+            );
+        }
+
+        return $membership;
     }
 
     public function removeMember(Client $client, ClientUser $membership): void
@@ -238,7 +318,15 @@ class ClientService
             throw new RuntimeException('Cannot remove the primary owner. Reassign ownership first.');
         }
 
+        $before = $this->clientAuditLogger->membershipSnapshot($membership);
+
         $membership->delete();
+
+        $this->clientAuditLogger->log(
+            ClientAuditLogger::ACTION_MEMBER_REMOVED,
+            $client,
+            before: $before,
+        );
     }
 
     private function promoteToPrimaryOwner(Client $client, int $userId): void

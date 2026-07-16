@@ -3,6 +3,7 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Core\Clients\Enums\ClientStatus;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +32,16 @@ class Client extends Model
         'phone',
         'status',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => ClientStatus::class,
+        ];
+    }
 
     /**
      * @return BelongsTo<User, $this>

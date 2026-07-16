@@ -119,7 +119,7 @@ class ClientNavigationTest extends TestCase
         $this->assertStringContainsString(__('My tickets'), $html);
     }
 
-    public function test_dashboard_item_is_placeholder_until_client_dashboard_route_exists(): void
+    public function test_dashboard_item_links_to_client_dashboard_route(): void
     {
         $client = User::factory()->withRole('client')->create();
         $sections = app(ClientNavigation::class)->forUser($client);
@@ -129,7 +129,7 @@ class ClientNavigationTest extends TestCase
             ->firstWhere('label', __('Dashboard'));
 
         $this->assertNotNull($dashboardItem);
-        $this->assertTrue($dashboardItem['placeholder']);
-        $this->assertNull($dashboardItem['url']);
+        $this->assertFalse($dashboardItem['placeholder']);
+        $this->assertSame(route('client.dashboard'), $dashboardItem['url']);
     }
 }

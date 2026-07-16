@@ -51,7 +51,7 @@ class ClientLayoutTest extends TestCase
             </x-layout.client>
         BLADE);
 
-        $this->assertStringContainsString('href="'.route('dashboard').'"', $html);
+        $this->assertStringContainsString('href="'.route('client.dashboard').'"', $html);
         $this->assertStringNotContainsString('data-client-sidebar-toggle', $html);
         $this->assertStringNotContainsString('data-client-sidebar-drawer', $html);
     }

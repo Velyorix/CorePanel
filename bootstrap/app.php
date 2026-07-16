@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureClient;
+use App\Http\Middleware\EnsureValidLicense;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureLoginIsNotRateLimited;
 use App\Http\Middleware\EnsurePermission;
@@ -56,16 +57,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'admin' => EnsureAdmin::class,
             'client' => EnsureClient::class,
+            'license.valid' => EnsureValidLicense::class,
         ]);
 
         $middleware->group('admin', [
             'web',
             EnsureAdmin::class,
+            EnsureValidLicense::class,
         ]);
 
         $middleware->group('client', [
             'web',
             EnsureClient::class,
+            EnsureValidLicense::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

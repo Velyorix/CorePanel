@@ -14,6 +14,8 @@ class LicenseStorageTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $configureValidLicenseByDefault = false;
+
     protected function setUp(): void
     {
         parent::setUp();

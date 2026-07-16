@@ -27,14 +27,44 @@ class LicenseValidationResult
      */
     public static function fromResponse(array $payload, ?int $statusCode): self
     {
+        // Flat license envelope (validate/activate success or business failure).
+        if (array_key_exists('valid', $payload)) {
+            return new self(
+                valid: (bool) $payload['valid'],
+                statusCode: $statusCode,
+                reason: isset($payload['reason']) ? (string) $payload['reason'] : null,
+                message: isset($payload['message']) ? (string) $payload['message'] : null,
+                license: is_array($payload['license'] ?? null) ? $payload['license'] : [],
+                activation: is_array($payload['activation'] ?? null) ? $payload['activation'] : [],
+                entitlements: is_array($payload['entitlements'] ?? null) ? array_values($payload['entitlements']) : [],
+                raw: $payload,
+            );
+        }
+
+        // Standard API error envelope: { error: { code, message, details } }
+        if (is_array($payload['error'] ?? null)) {
+            $error = $payload['error'];
+
+            return new self(
+                valid: false,
+                statusCode: $statusCode,
+                reason: isset($error['code']) ? (string) $error['code'] : 'request_failed',
+                message: isset($error['message']) ? (string) $error['message'] : null,
+                license: [],
+                activation: [],
+                entitlements: [],
+                raw: $payload,
+            );
+        }
+
         return new self(
-            valid: (bool) ($payload['valid'] ?? false),
+            valid: false,
             statusCode: $statusCode,
-            reason: isset($payload['reason']) ? (string) $payload['reason'] : null,
-            message: isset($payload['message']) ? (string) $payload['message'] : null,
-            license: is_array($payload['license'] ?? null) ? $payload['license'] : [],
-            activation: is_array($payload['activation'] ?? null) ? $payload['activation'] : [],
-            entitlements: is_array($payload['entitlements'] ?? null) ? array_values($payload['entitlements']) : [],
+            reason: 'request_failed',
+            message: __('Unexpected response from CorePanel.org.'),
+            license: [],
+            activation: [],
+            entitlements: [],
             raw: $payload,
         );
     }
@@ -53,4 +83,3 @@ class LicenseValidationResult
         );
     }
 }
-

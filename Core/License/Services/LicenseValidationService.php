@@ -43,8 +43,12 @@ class LicenseValidationService
         $result = $this->corePanelOrgClient->validateLicense(
             licenseKey: (string) $licenseKey,
             instanceId: (string) $instanceId,
-            instanceLabel: (string) config('corepanel.instance.label'),
-            domain: (string) config('corepanel.instance.domain'),
+            instanceLabel: filled(config('corepanel.instance.label'))
+                ? (string) config('corepanel.instance.label')
+                : null,
+            domain: filled(config('corepanel.instance.domain'))
+                ? (string) config('corepanel.instance.domain')
+                : null,
             metadata: [
                 'cms_version' => (string) config('corepanel.version'),
                 'php_version' => PHP_VERSION,
@@ -68,9 +72,17 @@ class LicenseValidationService
             return $state;
         }
 
-        if ($result->reason === 'request_failed' || $result->statusCode === 429) {
+        if ($result->reason === 'request_failed'
+            || $result->reason === 'server_error'
+            || $result->statusCode === 429
+            || ($result->statusCode !== null && $result->statusCode >= 500)
+        ) {
             $graceState = $this->graceState((string) $instanceId, $result->message);
-            $this->putCache($cacheKey, $graceState);
+
+            // Do not cache hard transport / upstream failures — they often resolve quickly.
+            if ($graceState->isValid) {
+                $this->putCache($cacheKey, $graceState);
+            }
 
             return $graceState;
         }

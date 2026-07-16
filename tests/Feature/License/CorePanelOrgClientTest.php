@@ -13,6 +13,8 @@ class CorePanelOrgClientTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected bool $configureValidLicenseByDefault = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -133,6 +135,52 @@ class CorePanelOrgClientTest extends TestCase
 
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://staging.corepanel.test/api/v1/licenses/validate';
+        });
+    }
+
+    public function test_validate_license_parses_standard_error_envelope(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/licenses/validate' => Http::response([
+                'error' => [
+                    'code' => 'server_error',
+                    'message' => 'Une erreur inattendue s’est produite.',
+                ],
+            ], 500),
+        ]);
+
+        $result = app(CorePanelOrgClient::class)->validateLicense(
+            licenseKey: 'CP-TEST-1234567890',
+            instanceId: 'cms-prod-01',
+        );
+
+        $this->assertFalse($result->valid);
+        $this->assertSame(500, $result->statusCode);
+        $this->assertSame('server_error', $result->reason);
+        $this->assertSame('Une erreur inattendue s’est produite.', $result->message);
+    }
+
+    public function test_validate_license_omits_blank_optional_fields(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/licenses/validate' => Http::response([
+                'valid' => true,
+            ], 200),
+        ]);
+
+        app(CorePanelOrgClient::class)->validateLicense(
+            licenseKey: 'CP-TEST-1234567890',
+            instanceId: 'cms-prod-01',
+            instanceLabel: '',
+            domain: '',
+        );
+
+        Http::assertSent(function ($request): bool {
+            return $request->url() === 'https://corepanel.org/api/v1/licenses/validate'
+                && $request['license_key'] === 'CP-TEST-1234567890'
+                && $request['instance_id'] === 'cms-prod-01'
+                && ! array_key_exists('instance_label', $request->data())
+                && ! array_key_exists('domain', $request->data());
         });
     }
 }

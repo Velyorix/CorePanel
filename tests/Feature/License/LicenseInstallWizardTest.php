@@ -3,6 +3,7 @@
 namespace Tests\Feature\License;
 
 use Core\License\Services\LicenseSettings;
+use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -12,6 +13,8 @@ use Tests\TestCase;
 class LicenseInstallWizardTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected bool $configureValidLicenseByDefault = false;
 
     protected function setUp(): void
     {
@@ -56,7 +59,7 @@ class LicenseInstallWizardTest extends TestCase
         ]);
 
         $response->assertRedirect(route('login'));
-        $response->assertSessionHas('status', 'License activated successfully. You can now sign in.');
+        $response->assertSessionHas('status', 'License activated successfully.');
 
         $settings = app(LicenseSettings::class);
         $this->assertSame('CP-LIVE-AAAA-BBBB', $settings->licenseKey());
@@ -109,5 +112,57 @@ class LicenseInstallWizardTest extends TestCase
 
         $response->assertRedirect(route('install.license.create'));
         $response->assertSessionHasErrors('license_key');
+    }
+
+    public function test_authenticated_super_admin_can_open_install_wizard_when_license_is_missing(): void
+    {
+        $superAdmin = User::factory()->withRole('super-admin')->create();
+
+        config([
+            'corepanel.rbac.cache.enabled' => true,
+            'corepanel.rbac.cache.store' => 'array',
+            'corepanel.rbac.cache.prefix' => 'test.rbac.install-wizard',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.dashboard'))
+            ->assertRedirect(route('install.license.create'));
+
+        $this->actingAs($superAdmin)
+            ->get(route('install.license.create'))
+            ->assertOk()
+            ->assertSee('Activate your license to finish installation');
+    }
+
+    public function test_authenticated_admin_is_redirected_to_admin_after_license_activation(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/licenses/validate' => Http::response([
+                'valid' => true,
+                'license' => [
+                    'status' => 'active',
+                ],
+                'activation' => [],
+                'entitlements' => [],
+            ], 200),
+        ]);
+
+        $superAdmin = User::factory()->withRole('super-admin')->create();
+
+        config([
+            'corepanel.rbac.cache.enabled' => true,
+            'corepanel.rbac.cache.store' => 'array',
+            'corepanel.rbac.cache.prefix' => 'test.rbac.install-wizard',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('install.license.store'), [
+                'license_key' => 'CP-LIVE-AAAA-BBBB',
+            ])
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.dashboard'))
+            ->assertOk();
     }
 }

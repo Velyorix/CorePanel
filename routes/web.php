@@ -13,10 +13,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::middleware('guest')->group(function (): void {
-    Route::get('install/license', [LicenseActivationController::class, 'create'])->name('install.license.create');
-    Route::post('install/license', [LicenseActivationController::class, 'store'])->name('install.license.store');
-});
+Route::get('install/license', [LicenseActivationController::class, 'create'])->name('install.license.create');
+Route::post('install/license', [LicenseActivationController::class, 'store'])->name('install.license.store');
 
 Route::get('/dashboard', function () {
     $rows = collect([

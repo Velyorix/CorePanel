@@ -49,6 +49,16 @@ return [
         'api_url' => env('COREPANEL_ORG_API_URL', 'https://corepanel.org/api/v1'),
         'health_url' => env('COREPANEL_ORG_HEALTH_URL', 'https://corepanel.org/up'),
         'timeout_seconds' => (int) env('COREPANEL_ORG_TIMEOUT_SECONDS', 10),
+        /*
+        | SSL verification for outbound calls to CorePanel.org.
+        | Defaults to false in local (common Windows CA bundle issue) and true elsewhere.
+        | Prefer setting COREPANEL_ORG_CA_BUNDLE to a cacert.pem path in production.
+        */
+        'verify_ssl' => filter_var(
+            env('COREPANEL_ORG_VERIFY_SSL', env('APP_ENV') !== 'local'),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'ca_bundle' => env('COREPANEL_ORG_CA_BUNDLE'),
     ],
 
     /*
@@ -60,6 +70,24 @@ return [
     'license' => [
         'grace_period_hours' => (int) env('COREPANEL_LICENSE_GRACE_HOURS', 72),
         'validation_cache_hours' => (int) env('COREPANEL_LICENSE_CACHE_HOURS', 12),
+
+        /*
+        | Routes accessible without a valid license (install wizard, auth, health).
+        */
+        'except' => [
+            'install/license',
+            'install/license/*',
+            'login',
+            'logout',
+            'forgot-password',
+            'reset-password/*',
+            'register',
+            'register/*',
+            'email/verify',
+            'email/verify/*',
+            'email/verification-notification',
+            'up',
+        ],
     ],
 
     /*

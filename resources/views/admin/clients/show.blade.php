@@ -122,4 +122,74 @@
     <div class="mt-6">
         @include('admin.clients._members')
     </div>
+
+    <div class="mt-6">
+        @if ($errors->has('invitation'))
+            <div class="mb-4">
+                <x-ui.alert variant="danger">{{ $errors->first('invitation') }}</x-ui.alert>
+            </div>
+        @endif
+
+        <x-ui.card :title="__('Invitations')">
+            @can('update', $client)
+                <form method="POST" action="{{ route('admin.clients.invitations.store', $client) }}" class="mb-6 space-y-4">
+                    @csrf
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <x-ui.input
+                            name="email"
+                            :label="__('Email')"
+                            type="email"
+                            required
+                            autocomplete="email"
+                        />
+
+                        <x-ui.select name="role" :label="__('Role')" required>
+                            @foreach ($membershipRoles as $role)
+                                <option value="{{ $role->value }}">{{ $role->label() }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <x-ui.button type="submit" variant="primary">
+                            {{ __('Send invitation') }}
+                        </x-ui.button>
+                    </div>
+                </form>
+            @endcan
+
+            @if ($pendingInvitations->isEmpty())
+                <x-ui.empty
+                    :title="__('No pending invitations')"
+                    :description="__('Invite users by email to attach them to this client account.')"
+                />
+            @else
+                <div class="overflow-x-auto rounded-lg border border-border">
+                    <table class="min-w-full divide-y divide-border text-start text-body-sm">
+                        <thead class="bg-muted/60 text-small font-medium uppercase tracking-wide text-muted-foreground">
+                            <tr>
+                                <th class="px-4 py-3">{{ __('Email') }}</th>
+                                <th class="px-4 py-3">{{ __('Role') }}</th>
+                                <th class="px-4 py-3">{{ __('Expires at') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            @foreach ($pendingInvitations as $invitation)
+                                <tr class="hover:bg-muted/40">
+                                    <td class="px-4 py-3 font-medium">{{ $invitation->email }}</td>
+                                    <td class="px-4 py-3">
+                                        <x-ui.badge variant="neutral">{{ $invitation->role->label() }}</x-ui.badge>
+                                    </td>
+                                    <td class="px-4 py-3 text-muted-foreground">
+                                        {{ $invitation->expires_at?->toDayDateTimeString() ?: '—' }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-ui.card>
+    </div>
 </x-layout.admin>

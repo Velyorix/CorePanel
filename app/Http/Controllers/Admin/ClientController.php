@@ -59,7 +59,7 @@ class ClientController extends Controller
     {
         Gate::authorize('view', $client);
 
-        $client->load(['owner', 'memberships.user']);
+        $client->load(['owner', 'memberships.user', 'invitations']);
 
         $memberIds = $client->memberships->pluck('user_id')->all();
 
@@ -68,10 +68,15 @@ class ClientController extends Controller
             ->when($memberIds !== [], fn ($query) => $query->whereKeyNot($memberIds))
             ->get(['id', 'name', 'email']);
 
+        $pendingInvitations = $client->invitations
+            ->filter(fn ($invitation) => $invitation->isPending())
+            ->values();
+
         return view('admin.clients.show', [
             'client' => $client,
             'availableUsers' => $availableUsers,
             'membershipRoles' => ClientMembershipRole::cases(),
+            'pendingInvitations' => $pendingInvitations,
         ]);
     }
 

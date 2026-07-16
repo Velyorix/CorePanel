@@ -60,6 +60,14 @@ class Client extends Model
     }
 
     /**
+     * @return HasMany<ClientUserInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ClientUserInvitation::class);
+    }
+
+    /**
      * @return BelongsToMany<User, $this>
      */
     public function users(): BelongsToMany

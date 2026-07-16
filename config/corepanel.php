@@ -212,6 +212,15 @@ return [
 
         /*
         |----------------------------------------------------------------------
+        | Client invitations (CDC Tome 7 §9)
+        |----------------------------------------------------------------------
+        */
+        'client_invitations' => [
+            'invitation_ttl_hours' => (int) env('COREPANEL_CLIENT_INVITATION_TTL', 72),
+        ],
+
+        /*
+        |----------------------------------------------------------------------
         | Password reset (CDC Tome 4 §10)
         |----------------------------------------------------------------------
         */
@@ -232,6 +241,18 @@ return [
             'expire_minutes' => (int) env('COREPANEL_EMAIL_VERIFICATION_EXPIRE', 60),
             'max_attempts' => (int) env('COREPANEL_EMAIL_VERIFICATION_MAX_ATTEMPTS', 6),
             'decay_seconds' => (int) env('COREPANEL_EMAIL_VERIFICATION_DECAY_SECONDS', 60),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Clients (CDC Tome 3 §5, Tome 6 §5–6)
+    |--------------------------------------------------------------------------
+    */
+
+    'clients' => [
+        'audit' => [
+            'enabled' => (bool) env('COREPANEL_CLIENTS_AUDIT_ENABLED', true),
         ],
     ],
 

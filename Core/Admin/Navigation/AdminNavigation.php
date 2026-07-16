@@ -58,7 +58,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Clients'),
-                        'route' => null,
+                        'route' => 'admin.clients.index',
+                        'routeIs' => ['admin.clients.*'],
                         'permission' => 'clients.view',
                     ],
                     [

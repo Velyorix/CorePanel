@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Client\ClientInvitationAcceptController;
+use App\Http\Controllers\LeaveImpersonationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -84,6 +86,14 @@ Route::middleware('guest')->group(function (): void {
 
 Route::post('logout', [LoginController::class, 'destroy'])
     ->name('logout');
+
+Route::post('impersonation/leave', LeaveImpersonationController::class)
+    ->middleware('auth')
+    ->name('impersonation.leave');
+
+Route::get('client-invitations/{token}', [ClientInvitationAcceptController::class, 'accept'])
+    ->name('client.invitations.accept')
+    ->middleware('client');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('email/verify', [EmailVerificationController::class, 'notice'])

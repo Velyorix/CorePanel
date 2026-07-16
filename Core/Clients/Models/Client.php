@@ -3,6 +3,7 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Core\Clients\Enums\ClientStatus;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +34,16 @@ class Client extends Model
     ];
 
     /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => ClientStatus::class,
+        ];
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function owner(): BelongsTo
@@ -46,6 +57,24 @@ class Client extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(ClientUser::class);
+    }
+
+    /**
+     * @return HasMany<ClientUserInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ClientUserInvitation::class);
+    }
+
+    /**
+     * Internal staff notes (admin only).
+     *
+     * @return HasMany<ClientNote, $this>
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ClientNote::class)->latest();
     }
 
     /**

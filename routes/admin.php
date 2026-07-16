@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientMemberController;
+use App\Http\Controllers\Admin\ClientInvitationController;
+use App\Http\Controllers\Admin\ClientStatusController;
+use App\Http\Controllers\Admin\ClientImpersonationController;
+use App\Http\Controllers\Admin\ClientNoteController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -31,6 +37,29 @@ Route::middleware('admin')
         Route::get('license', [LicenseController::class, 'show'])->name('license.show');
         Route::put('license', [LicenseController::class, 'update'])->name('license.update');
         Route::post('license/revalidate', [LicenseController::class, 'revalidate'])->name('license.revalidate');
+
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+        Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+        Route::post('clients/{client}/members', [ClientMemberController::class, 'store'])->name('clients.members.store');
+        Route::put('clients/{client}/members/{membership}', [ClientMemberController::class, 'update'])->name('clients.members.update');
+        Route::delete('clients/{client}/members/{membership}', [ClientMemberController::class, 'destroy'])->name('clients.members.destroy');
+
+        Route::post('clients/{client}/invitations', [ClientInvitationController::class, 'store'])->name('clients.invitations.store');
+
+        Route::post('clients/{client}/suspend', [ClientStatusController::class, 'suspend'])->name('clients.suspend');
+        Route::post('clients/{client}/unsuspend', [ClientStatusController::class, 'unsuspend'])->name('clients.unsuspend');
+        Route::post('clients/{client}/close', [ClientStatusController::class, 'close'])->name('clients.close');
+        Route::post('clients/{client}/reopen', [ClientStatusController::class, 'reopen'])->name('clients.reopen');
+        Route::post('clients/{client}/impersonate', [ClientImpersonationController::class, 'store'])->name('clients.impersonate');
+
+        Route::post('clients/{client}/notes', [ClientNoteController::class, 'store'])->name('clients.notes.store');
+        Route::delete('clients/{client}/notes/{note}', [ClientNoteController::class, 'destroy'])->name('clients.notes.destroy');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

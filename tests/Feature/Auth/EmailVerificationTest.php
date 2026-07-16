@@ -22,6 +22,7 @@ class EmailVerificationTest extends TestCase
 
         config([
             'corepanel.auth.email_verification.required' => true,
+            'corepanel.password.check_compromised' => false,
             'session.driver' => 'array',
         ]);
     }

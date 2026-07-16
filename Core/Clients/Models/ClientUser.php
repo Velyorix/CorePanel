@@ -3,6 +3,7 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Core\Clients\Enums\ClientMembershipRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -27,6 +28,7 @@ class ClientUser extends Model
     protected function casts(): array
     {
         return [
+            'role' => ClientMembershipRole::class,
             'permissions' => 'array',
             'created_at' => 'datetime',
         ];

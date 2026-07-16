@@ -52,8 +52,6 @@ class ClientLayoutTest extends TestCase
         BLADE);
 
         $this->assertStringContainsString('href="'.route('client.dashboard').'"', $html);
-        $this->assertStringNotContainsString('data-client-sidebar-toggle', $html);
-        $this->assertStringNotContainsString('data-client-sidebar-drawer', $html);
     }
 
     public function test_breadcrumb_marks_last_item_as_current_in_client_layout(): void

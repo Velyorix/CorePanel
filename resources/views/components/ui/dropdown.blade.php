@@ -1,5 +1,6 @@
 @props([
     'align' => 'left',
+    'panelClass' => '',
 ])
 
 @php
@@ -21,7 +22,7 @@
         x-cloak
         x-transition
         role="menu"
-        class="absolute {{ $menuAlign }} z-40 mt-2 min-w-44 overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg"
+        class="absolute {{ $menuAlign }} z-40 mt-2 min-w-44 overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg {{ $panelClass }}"
     >
         {{ $slot }}
     </div>

@@ -1,6 +1,7 @@
 <div class="ml-auto flex items-center gap-3">
     <x-ui.theme-toggle />
     @auth
+        <x-admin.notifications-dropdown />
         <x-ui.button
             :href="route('admin.profile.edit')"
             variant="ghost"

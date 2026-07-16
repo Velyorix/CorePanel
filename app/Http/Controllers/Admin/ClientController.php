@@ -7,7 +7,6 @@ use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
 use App\Models\User;
 use Core\Clients\Enums\ClientMembershipRole;
-use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
 use Illuminate\Http\RedirectResponse;
@@ -116,13 +115,12 @@ class ClientController extends Controller
     }
 
     /**
-     * @return array{users: \Illuminate\Database\Eloquent\Collection<int, User>, statuses: list<ClientStatus>}
+     * @return array{users: \Illuminate\Database\Eloquent\Collection<int, User>}
      */
     private function formData(): array
     {
         return [
             'users' => User::query()->orderBy('email')->get(['id', 'name', 'email']),
-            'statuses' => ClientStatus::cases(),
         ];
     }
 }

@@ -90,7 +90,6 @@ class AdminClientManagementTest extends TestCase
                 'country' => 'be',
                 'postal_code' => '1000',
                 'phone' => '+32000000000',
-                'status' => ClientStatus::Active->value,
             ])
             ->assertRedirect();
 
@@ -119,7 +118,6 @@ class AdminClientManagementTest extends TestCase
                 'company_name' => 'Nova Cloud Updated',
                 'country' => 'FR',
                 'city' => 'Paris',
-                'status' => ClientStatus::Suspended->value,
             ])
             ->assertRedirect(route('admin.clients.show', $client));
 
@@ -128,7 +126,7 @@ class AdminClientManagementTest extends TestCase
         $this->assertSame('Nova Cloud Updated', $client->company_name);
         $this->assertSame($newOwner->id, $client->user_id);
         $this->assertSame('FR', $client->country);
-        $this->assertTrue($client->status === ClientStatus::Suspended);
+        $this->assertTrue($client->status === ClientStatus::Active);
         $this->assertDatabaseHas('client_users', [
             'client_id' => $client->id,
             'user_id' => $newOwner->id,
@@ -142,7 +140,7 @@ class AdminClientManagementTest extends TestCase
         $this->assertSoftDeleted($client);
     }
 
-    public function test_admin_cannot_reopen_closed_client_via_update(): void
+    public function test_admin_cannot_change_status_via_update_payload(): void
     {
         $admin = User::factory()->withRole('admin')->create();
         $client = Client::factory()->create([
@@ -151,15 +149,54 @@ class AdminClientManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->from(route('admin.clients.edit', $client))
             ->put(route('admin.clients.update', $client), [
                 'company_name' => 'Closed Co',
                 'status' => ClientStatus::Active->value,
             ])
-            ->assertRedirect(route('admin.clients.edit', $client))
-            ->assertSessionHasErrors('client');
+            ->assertRedirect(route('admin.clients.show', $client));
 
         $this->assertTrue($client->fresh()->status === ClientStatus::Closed);
+    }
+
+    public function test_admin_can_run_status_lifecycle_transitions(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Active,
+            'company_name' => 'Lifecycle Co',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.suspend', $client))
+            ->assertRedirect(route('admin.clients.show', $client));
+        $this->assertTrue($client->fresh()->status === ClientStatus::Suspended);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.unsuspend', $client))
+            ->assertRedirect(route('admin.clients.show', $client));
+        $this->assertTrue($client->fresh()->status === ClientStatus::Active);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.close', $client))
+            ->assertRedirect(route('admin.clients.show', $client));
+        $this->assertTrue($client->fresh()->status === ClientStatus::Closed);
+
+        $this->actingAs($admin)
+            ->post(route('admin.clients.reopen', $client))
+            ->assertRedirect(route('admin.clients.show', $client));
+        $this->assertTrue($client->fresh()->status === ClientStatus::Active);
+    }
+
+    public function test_support_cannot_transition_client_status(): void
+    {
+        $support = User::factory()->withRole('support')->create();
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Active,
+        ]);
+
+        $this->actingAs($support)
+            ->post(route('admin.clients.suspend', $client))
+            ->assertForbidden();
     }
 
     public function test_create_form_validation_rejects_invalid_country(): void
@@ -171,7 +208,6 @@ class AdminClientManagementTest extends TestCase
             ->post(route('admin.clients.store'), [
                 'company_name' => 'Bad Country Co',
                 'country' => 'BEL',
-                'status' => ClientStatus::Active->value,
             ])
             ->assertRedirect(route('admin.clients.create'))
             ->assertSessionHasErrors('country');

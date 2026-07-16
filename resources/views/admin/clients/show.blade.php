@@ -29,6 +29,41 @@
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
         @can('update', $client)
+            @if ($client->status === \Core\Clients\Enums\ClientStatus::Active)
+                <form method="POST" action="{{ route('admin.clients.suspend', $client) }}">
+                    @csrf
+                    <x-ui.button type="submit" variant="secondary" size="sm">
+                        {{ __('Suspend') }}
+                    </x-ui.button>
+                </form>
+                <form method="POST" action="{{ route('admin.clients.close', $client) }}" onsubmit="return confirm(@js(__('Close this client account?')))">
+                    @csrf
+                    <x-ui.button type="submit" variant="danger" size="sm">
+                        {{ __('Close') }}
+                    </x-ui.button>
+                </form>
+            @elseif ($client->status === \Core\Clients\Enums\ClientStatus::Suspended)
+                <form method="POST" action="{{ route('admin.clients.unsuspend', $client) }}">
+                    @csrf
+                    <x-ui.button type="submit" variant="secondary" size="sm">
+                        {{ __('Unsuspend') }}
+                    </x-ui.button>
+                </form>
+                <form method="POST" action="{{ route('admin.clients.close', $client) }}" onsubmit="return confirm(@js(__('Close this client account?')))">
+                    @csrf
+                    <x-ui.button type="submit" variant="danger" size="sm">
+                        {{ __('Close') }}
+                    </x-ui.button>
+                </form>
+            @elseif ($client->status === \Core\Clients\Enums\ClientStatus::Closed)
+                <form method="POST" action="{{ route('admin.clients.reopen', $client) }}" onsubmit="return confirm(@js(__('Reopen this client account?')))">
+                    @csrf
+                    <x-ui.button type="submit" variant="secondary" size="sm">
+                        {{ __('Reopen') }}
+                    </x-ui.button>
+                </form>
+            @endif
+
             <x-ui.button :href="route('admin.clients.edit', $client)" variant="secondary" size="sm">
                 {{ __('Edit') }}
             </x-ui.button>
@@ -56,6 +91,12 @@
         </div>
     @endif
 
+    @if ($errors->has('status'))
+        <div class="mb-6">
+            <x-ui.alert variant="danger">{{ $errors->first('status') }}</x-ui.alert>
+        </div>
+    @endif
+
     <div class="grid gap-6 lg:grid-cols-2">
         <x-ui.card :title="__('Client details')">
             <dl class="space-y-3 text-body-sm">
@@ -63,7 +104,7 @@
                     <dt class="text-muted-foreground">{{ __('Status') }}</dt>
                     <dd>
                         <x-ui.badge :variant="$statusVariant">
-                            {{ __(ucfirst($client->status->value)) }}
+                            {{ $client->status->label() }}
                         </x-ui.badge>
                     </dd>
                 </div>

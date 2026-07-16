@@ -85,7 +85,7 @@
                 <td class="px-4 py-3 text-muted-foreground">{{ $client->country ?: '—' }}</td>
                 <td class="px-4 py-3">
                     <x-ui.badge :variant="$statusVariant">
-                        {{ __(ucfirst($client->status->value)) }}
+                        {{ $client->status->label() }}
                     </x-ui.badge>
                 </td>
                 <td class="px-4 py-3 text-end">

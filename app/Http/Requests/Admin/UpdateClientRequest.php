@@ -3,10 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use Core\Clients\DataTransferObjects\ClientData;
-use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateClientRequest extends FormRequest
 {
@@ -32,13 +30,18 @@ class UpdateClientRequest extends FormRequest
             'country' => ['nullable', 'string', 'size:2'],
             'postal_code' => ['nullable', 'string', 'max:32'],
             'phone' => ['nullable', 'string', 'max:64'],
-            'status' => ['required', 'string', Rule::in(ClientStatus::values())],
         ];
     }
 
     public function clientData(): ClientData
     {
-        return ClientData::fromArray($this->validated());
+        /** @var Client $client */
+        $client = $this->route('client');
+
+        return ClientData::fromArray([
+            ...$this->validated(),
+            'status' => $client->status->value,
+        ]);
     }
 
     protected function prepareForValidation(): void

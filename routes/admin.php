@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientMemberController;
 use App\Http\Controllers\Admin\ClientInvitationController;
+use App\Http\Controllers\Admin\ClientStatusController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -48,6 +49,11 @@ Route::middleware('admin')
         Route::delete('clients/{client}/members/{membership}', [ClientMemberController::class, 'destroy'])->name('clients.members.destroy');
 
         Route::post('clients/{client}/invitations', [ClientInvitationController::class, 'store'])->name('clients.invitations.store');
+
+        Route::post('clients/{client}/suspend', [ClientStatusController::class, 'suspend'])->name('clients.suspend');
+        Route::post('clients/{client}/unsuspend', [ClientStatusController::class, 'unsuspend'])->name('clients.unsuspend');
+        Route::post('clients/{client}/close', [ClientStatusController::class, 'close'])->name('clients.close');
+        Route::post('clients/{client}/reopen', [ClientStatusController::class, 'reopen'])->name('clients.reopen');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

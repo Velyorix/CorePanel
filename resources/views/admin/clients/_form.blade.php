@@ -70,15 +70,4 @@
         maxlength="2"
         autocomplete="country"
     />
-
-    <x-ui.select name="status" :label="__('Status')" required>
-        @foreach ($statuses as $status)
-            <option
-                value="{{ $status->value }}"
-                @selected(old('status', $client?->status?->value ?? \Core\Clients\Enums\ClientStatus::Active->value) === $status->value)
-            >
-                {{ __(ucfirst($status->value)) }}
-            </option>
-        @endforeach
-    </x-ui.select>
 </div>

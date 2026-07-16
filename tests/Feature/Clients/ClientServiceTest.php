@@ -125,14 +125,14 @@ class ClientServiceTest extends TestCase
             'company_name' => 'New Name',
             'country' => 'de',
             'city' => 'Berlin',
-            'status' => ClientStatus::Suspended->value,
+            'status' => ClientStatus::Active->value,
         ]));
 
         $this->assertSame('New Name', $updated->company_name);
         $this->assertSame('DE', $updated->country);
         $this->assertSame('Berlin', $updated->city);
         $this->assertSame($newOwner->id, $updated->user_id);
-        $this->assertTrue($updated->status === ClientStatus::Suspended);
+        $this->assertTrue($updated->status === ClientStatus::Active);
 
         $this->assertDatabaseHas('client_users', [
             'client_id' => $client->id,
@@ -141,18 +141,18 @@ class ClientServiceTest extends TestCase
         ]);
     }
 
-    public function test_update_rejects_reopening_closed_client(): void
+    public function test_update_rejects_status_change(): void
     {
         $client = Client::factory()->create([
-            'status' => ClientStatus::Closed,
+            'status' => ClientStatus::Active,
         ]);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Closed clients cannot be reopened via update.');
+        $this->expectExceptionMessage('Client status cannot be changed via update. Use a dedicated transition.');
 
         $this->clientService->update($client, ClientData::fromArray([
             'company_name' => $client->company_name,
-            'status' => ClientStatus::Active->value,
+            'status' => ClientStatus::Suspended->value,
         ]));
     }
 
@@ -190,8 +190,55 @@ class ClientServiceTest extends TestCase
         ]);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Closed clients cannot be suspended.');
+        $this->expectExceptionMessage('Only active clients can be suspended.');
 
         $this->clientService->suspend($client);
+    }
+
+    public function test_unsuspend_reactivates_suspended_client(): void
+    {
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Suspended,
+        ]);
+
+        $reactivated = $this->clientService->unsuspend($client);
+
+        $this->assertTrue($reactivated->status === ClientStatus::Active);
+    }
+
+    public function test_unsuspend_rejects_closed_client(): void
+    {
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Closed,
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Only suspended clients can be unsuspended.');
+
+        $this->clientService->unsuspend($client);
+    }
+
+    public function test_close_and_reopen_lifecycle(): void
+    {
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Active,
+        ]);
+
+        $closed = $this->clientService->close($client, 'Contract ended');
+        $this->assertTrue($closed->status === ClientStatus::Closed);
+
+        $reopened = $this->clientService->reopen($closed);
+        $this->assertTrue($reopened->status === ClientStatus::Active);
+    }
+
+    public function test_close_from_suspended_is_allowed(): void
+    {
+        $client = Client::factory()->create([
+            'status' => ClientStatus::Suspended,
+        ]);
+
+        $closed = $this->clientService->close($client);
+
+        $this->assertTrue($closed->status === ClientStatus::Closed);
     }
 }

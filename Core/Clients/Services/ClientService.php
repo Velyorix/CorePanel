@@ -36,8 +36,8 @@ class ClientService
         $this->assertOwnerExists($data->userId);
         $this->assertCountryFormat($data->country);
 
-        if ($client->status === ClientStatus::Closed && $data->status !== ClientStatus::Closed) {
-            throw new RuntimeException('Closed clients cannot be reopened via update. Use a dedicated transition.');
+        if ($data->status !== $client->status) {
+            throw new RuntimeException('Client status cannot be changed via update. Use a dedicated transition.');
         }
 
         return DB::transaction(function () use ($client, $data): Client {
@@ -55,16 +55,68 @@ class ClientService
 
     public function suspend(Client $client, ?string $reason = null): Client
     {
-        if ($client->status === ClientStatus::Closed) {
-            throw new RuntimeException('Closed clients cannot be suspended.');
-        }
-
         if ($client->status === ClientStatus::Suspended) {
             return $client->fresh(['owner', 'memberships']) ?? $client;
         }
 
+        if ($client->status !== ClientStatus::Active) {
+            throw new RuntimeException('Only active clients can be suspended.');
+        }
+
+        return $this->transition($client, ClientStatus::Suspended, $reason);
+    }
+
+    public function unsuspend(Client $client, ?string $reason = null): Client
+    {
+        if ($client->status === ClientStatus::Active) {
+            return $client->fresh(['owner', 'memberships']) ?? $client;
+        }
+
+        if ($client->status !== ClientStatus::Suspended) {
+            throw new RuntimeException('Only suspended clients can be unsuspended.');
+        }
+
+        return $this->transition($client, ClientStatus::Active, $reason);
+    }
+
+    public function close(Client $client, ?string $reason = null): Client
+    {
+        if ($client->status === ClientStatus::Closed) {
+            return $client->fresh(['owner', 'memberships']) ?? $client;
+        }
+
+        if (! in_array($client->status, [ClientStatus::Active, ClientStatus::Suspended], true)) {
+            throw new RuntimeException('Only active or suspended clients can be closed.');
+        }
+
+        return $this->transition($client, ClientStatus::Closed, $reason);
+    }
+
+    public function reopen(Client $client, ?string $reason = null): Client
+    {
+        if ($client->status === ClientStatus::Active) {
+            return $client->fresh(['owner', 'memberships']) ?? $client;
+        }
+
+        if ($client->status !== ClientStatus::Closed) {
+            throw new RuntimeException('Only closed clients can be reopened.');
+        }
+
+        return $this->transition($client, ClientStatus::Active, $reason);
+    }
+
+    private function transition(Client $client, ClientStatus $target, ?string $reason = null): Client
+    {
+        if (! $client->status->canTransitionTo($target)) {
+            throw new RuntimeException(sprintf(
+                'Cannot transition client from %s to %s.',
+                $client->status->value,
+                $target->value,
+            ));
+        }
+
         $client->update([
-            'status' => ClientStatus::Suspended,
+            'status' => $target,
         ]);
 
         return $client->fresh(['owner', 'memberships']) ?? $client;

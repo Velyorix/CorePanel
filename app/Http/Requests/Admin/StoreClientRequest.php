@@ -6,7 +6,6 @@ use Core\Clients\DataTransferObjects\ClientData;
 use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreClientRequest extends FormRequest
 {
@@ -29,13 +28,15 @@ class StoreClientRequest extends FormRequest
             'country' => ['nullable', 'string', 'size:2'],
             'postal_code' => ['nullable', 'string', 'max:32'],
             'phone' => ['nullable', 'string', 'max:64'],
-            'status' => ['required', 'string', Rule::in(ClientStatus::values())],
         ];
     }
 
     public function clientData(): ClientData
     {
-        return ClientData::fromArray($this->validated());
+        return ClientData::fromArray([
+            ...$this->validated(),
+            'status' => ClientStatus::Active->value,
+        ]);
     }
 
     protected function prepareForValidation(): void

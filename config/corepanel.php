@@ -77,6 +77,8 @@ return [
         'except' => [
             'install/license',
             'install/license/*',
+            'admin/license',
+            'admin/license/*',
             'login',
             'logout',
             'forgot-password',

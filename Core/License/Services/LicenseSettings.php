@@ -41,6 +41,26 @@ class LicenseSettings
         return filled($this->instanceId());
     }
 
+    /**
+     * Masked key for admin UI — never expose the full license key in Blade.
+     */
+    public function maskedLicenseKey(): ?string
+    {
+        $licenseKey = $this->licenseKey();
+
+        if ($licenseKey === null) {
+            return null;
+        }
+
+        $length = strlen($licenseKey);
+
+        if ($length <= 12) {
+            return str_repeat('•', $length);
+        }
+
+        return substr($licenseKey, 0, 8).str_repeat('•', max(6, $length - 12)).substr($licenseKey, -4);
+    }
+
     private function putEncrypted(string $key, string $value): void
     {
         Setting::query()->updateOrCreate(

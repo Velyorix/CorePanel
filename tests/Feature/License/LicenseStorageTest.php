@@ -65,6 +65,9 @@ class LicenseStorageTest extends TestCase
         $this->assertSame('cms-a1b2c3d4-e5f6-7890-abcd-ef1234567890', $settings->instanceId());
         $this->assertTrue($settings->hasLicenseKey());
         $this->assertTrue($settings->hasInstanceId());
+        $this->assertNotSame('CP-TEST-1234567890', $settings->maskedLicenseKey());
+        $this->assertStringStartsWith('CP-TEST-', (string) $settings->maskedLicenseKey());
+        $this->assertStringContainsString('•', (string) $settings->maskedLicenseKey());
     }
 
     public function test_license_settings_returns_null_for_missing_or_invalid_encrypted_values(): void

@@ -25,19 +25,19 @@
                 @endif
 
                 <div class="mt-6 flex flex-col gap-3">
-                    <a
-                        href="{{ route('install.license.create') }}"
-                        class="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    >
-                        Update license key
-                    </a>
-
                     @auth
                         <a
-                            href="{{ route('login') }}"
-                            class="inline-flex w-full items-center justify-center text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+                            href="{{ route('admin.license.show') }}"
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                         >
-                            Back to sign in
+                            Manage license in admin
+                        </a>
+                    @else
+                        <a
+                            href="{{ route('install.license.create') }}"
+                            class="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                        >
+                            Update license key
                         </a>
                     @endauth
                 </div>

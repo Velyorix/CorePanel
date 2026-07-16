@@ -9,5 +9,9 @@
 </div>
 
 <div class="flex-1 overflow-y-auto p-3">
-    {{ $sidebar ?? '' }}
+    @isset($sidebar)
+        {{ $sidebar }}
+    @else
+        <x-client.nav />
+    @endisset
 </div>

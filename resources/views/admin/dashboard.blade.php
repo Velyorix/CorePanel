@@ -7,14 +7,7 @@
     </x-slot:subtitle>
 
     <x-slot:topbar>
-        <div class="ml-auto flex items-center gap-3">
-            <x-ui.theme-toggle />
-            @auth
-                <span class="hidden text-body-sm text-muted-foreground sm:inline">
-                    {{ auth()->user()->email }}
-                </span>
-            @endauth
-        </div>
+        <x-admin.topbar />
     </x-slot:topbar>
 
     <x-slot:breadcrumbs>

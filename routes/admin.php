@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -31,6 +32,14 @@ Route::middleware('admin')
         Route::get('license', [LicenseController::class, 'show'])->name('license.show');
         Route::put('license', [LicenseController::class, 'update'])->name('license.update');
         Route::post('license/revalidate', [LicenseController::class, 'revalidate'])->name('license.revalidate');
+
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+        Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

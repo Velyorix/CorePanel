@@ -75,6 +75,7 @@ class AdminNavigationTest extends TestCase
 
         $dashboardItem = $flatItems->firstWhere('label', __('Dashboard'));
         $rolesItem = $flatItems->firstWhere('label', __('Roles'));
+        $clientsItem = $flatItems->firstWhere('label', __('Clients'));
 
         $this->assertNotNull($dashboardItem);
         $this->assertFalse($dashboardItem['placeholder']);
@@ -83,6 +84,10 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($rolesItem);
         $this->assertFalse($rolesItem['placeholder']);
         $this->assertSame(route('admin.roles.index'), $rolesItem['url']);
+
+        $this->assertNotNull($clientsItem);
+        $this->assertFalse($clientsItem['placeholder']);
+        $this->assertSame(route('admin.clients.index'), $clientsItem['url']);
     }
 
     public function test_navigation_hides_items_without_permission(): void

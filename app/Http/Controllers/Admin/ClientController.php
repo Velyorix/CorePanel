@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreClientRequest;
+use App\Http\Requests\Admin\UpdateClientRequest;
+use App\Models\User;
+use Core\Clients\Enums\ClientStatus;
+use Core\Clients\Models\Client;
+use Core\Clients\Services\ClientService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
+use InvalidArgumentException;
+use RuntimeException;
+
+class ClientController extends Controller
+{
+    public function __construct(
+        private readonly ClientService $clientService,
+    ) {
+    }
+
+    public function index(): View
+    {
+        Gate::authorize('viewAny', Client::class);
+
+        $clients = Client::query()
+            ->with('owner')
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        return view('admin.clients.index', compact('clients'));
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('create', Client::class);
+
+        return view('admin.clients.create', $this->formData());
+    }
+
+    public function store(StoreClientRequest $request): RedirectResponse
+    {
+        try {
+            $client = $this->clientService->create($request->clientData());
+        } catch (InvalidArgumentException $exception) {
+            return back()->withInput()->withErrors(['client' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.clients.show', $client)
+            ->with('status', __('Client created successfully.'));
+    }
+
+    public function show(Client $client): View
+    {
+        Gate::authorize('view', $client);
+
+        $client->load(['owner', 'memberships.user']);
+
+        return view('admin.clients.show', compact('client'));
+    }
+
+    public function edit(Client $client): View
+    {
+        Gate::authorize('update', $client);
+
+        $client->load('owner');
+
+        return view('admin.clients.edit', array_merge($this->formData(), [
+            'client' => $client,
+        ]));
+    }
+
+    public function update(UpdateClientRequest $request, Client $client): RedirectResponse
+    {
+        try {
+            $client = $this->clientService->update($client, $request->clientData());
+        } catch (InvalidArgumentException|RuntimeException $exception) {
+            return back()->withInput()->withErrors(['client' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.clients.show', $client)
+            ->with('status', __('Client updated successfully.'));
+    }
+
+    public function destroy(Client $client): RedirectResponse
+    {
+        Gate::authorize('delete', $client);
+
+        $client->delete();
+
+        return redirect()
+            ->route('admin.clients.index')
+            ->with('status', __('Client deleted successfully.'));
+    }
+
+    /**
+     * @return array{users: \Illuminate\Database\Eloquent\Collection<int, User>, statuses: list<ClientStatus>}
+     */
+    private function formData(): array
+    {
+        return [
+            'users' => User::query()->orderBy('email')->get(['id', 'name', 'email']),
+            'statuses' => ClientStatus::cases(),
+        ];
+    }
+}

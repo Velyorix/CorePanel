@@ -3,6 +3,7 @@
 namespace Core\Orders\Services;
 
 use Core\Clients\Models\Client;
+use Core\Orders\DataTransferObjects\CartItemData;
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Core\Orders\Enums\CartStatus;
 use Core\Orders\Enums\OrderSource;
@@ -14,6 +15,10 @@ use Core\Orders\Models\Cart;
 use Core\Orders\Models\CartItem;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
+use Core\Auth\Models\User;
+use Core\Products\Enums\ProductStatus;
+use Core\Products\Models\Product;
+use Core\Products\Services\ProductPricingCalculator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -26,6 +31,7 @@ class OrderService
 {
     public function __construct(
         private readonly CartSummary $cartSummary,
+        private readonly ProductPricingCalculator $pricingCalculator,
     ) {
     }
 
@@ -298,6 +304,114 @@ class OrderService
     }
 
     /**
+     * Create an order on behalf of a client without touching their open cart (roadmap 11.7).
+     *
+     * @param  list<CartItemData>  $items
+     */
+    public function createFromAdmin(
+        Client $client,
+        User $creator,
+        CheckoutDraftData $draft,
+        array $items,
+        bool $submitAsPending = false,
+        ?string $notes = null,
+        ?string $currency = null,
+    ): Order {
+        if ($items === []) {
+            throw new InvalidArgumentException('At least one line item is required.');
+        }
+
+        if ($draft->paymentMethod === null || $draft->paymentMethod === '') {
+            throw new InvalidArgumentException('A payment method is required.');
+        }
+
+        if ($draft->contactName === null || $draft->contactEmail === null) {
+            throw new InvalidArgumentException('Contact name and email are required.');
+        }
+
+        if (
+            $draft->address === null
+            || $draft->city === null
+            || $draft->country === null
+            || $draft->postalCode === null
+        ) {
+            throw new InvalidArgumentException('A complete billing address is required.');
+        }
+
+        return DB::transaction(function () use (
+            $client,
+            $creator,
+            $draft,
+            $items,
+            $submitAsPending,
+            $notes,
+            $currency,
+        ): Order {
+            $pricedLines = [];
+
+            foreach ($items as $itemData) {
+                if (! $itemData instanceof CartItemData) {
+                    throw new InvalidArgumentException('Each item must be a CartItemData instance.');
+                }
+
+                $pricedLines[] = $this->priceCartItemData($itemData);
+            }
+
+            $summary = $this->cartSummary->summarizePricedLines(
+                array_map(
+                    static fn (array $line): array => [
+                        'unit_price' => $line['unit_price'],
+                        'setup_fee' => $line['setup_fee'],
+                        'quantity' => $line['data']->quantity,
+                    ],
+                    $pricedLines,
+                ),
+            );
+
+            $order = $this->createDraft($client, [
+                'source' => OrderSource::Admin,
+                'created_by' => $creator->id,
+                'currency' => $currency ?? 'EUR',
+                'payment_method' => $draft->paymentMethod,
+                'coupon_code' => $draft->couponCode,
+                'contact_name' => $draft->contactName,
+                'contact_email' => $draft->contactEmail,
+                'company_name' => $draft->companyName,
+                'vat_number' => $draft->vatNumber,
+                'address' => $draft->address,
+                'city' => $draft->city,
+                'country' => $draft->country,
+                'postal_code' => $draft->postalCode,
+                'phone' => $draft->phone,
+                'notes' => $notes,
+                'subtotal_recurring' => $summary['recurring_subtotal'],
+                'subtotal_setup' => $summary['setup_subtotal'],
+                'tax_amount' => $summary['first_payment_tax'],
+                'total_amount' => $summary['first_payment_total'],
+            ]);
+
+            foreach ($pricedLines as $line) {
+                $this->createOrderItemFromCartItemData(
+                    $order,
+                    $line['product'],
+                    $line['data'],
+                    $line['unit_price'],
+                    $line['setup_fee'],
+                    $line['line_total'],
+                );
+            }
+
+            $order = $order->fresh(['items', 'client']) ?? $order;
+
+            if ($submitAsPending) {
+                $order = $this->markPendingPayment($order);
+            }
+
+            return $order->fresh(['items.product', 'client', 'creator']) ?? $order;
+        });
+    }
+
+    /**
      * draft → pending_payment (roadmap "pending").
      */
     public function markPendingPayment(Order $order): Order
@@ -378,6 +492,78 @@ class OrderService
             'unit_price' => $item->unit_price,
             'setup_fee' => $item->setup_fee,
             'line_total' => $item->lineSubtotal(),
+        ]);
+    }
+
+    /**
+     * @return array{
+     *     product: Product,
+     *     data: CartItemData,
+     *     unit_price: string,
+     *     setup_fee: string,
+     *     line_total: string
+     * }
+     */
+    private function priceCartItemData(CartItemData $data): array
+    {
+        $product = Product::query()->with(['pricing', 'addons', 'options'])->find($data->productId);
+
+        if ($product === null) {
+            throw new InvalidArgumentException('The selected product does not exist.');
+        }
+
+        if ($product->status !== ProductStatus::Published) {
+            throw new InvalidArgumentException('Only published products can be ordered.');
+        }
+
+        $pricing = $product->pricingFor($data->billingCycle);
+
+        if ($pricing === null || ! $pricing->is_enabled) {
+            throw new InvalidArgumentException(
+                "No enabled pricing found for billing cycle [{$data->billingCycle->value}].",
+            );
+        }
+
+        $breakdown = $this->pricingCalculator->configuredBreakdownFromCartItem($product, $data);
+
+        return [
+            'product' => $product,
+            'data' => $data,
+            'unit_price' => $breakdown['unit_price'],
+            'setup_fee' => $breakdown['setup_fee'],
+            'line_total' => number_format(
+                ((float) $breakdown['unit_price'] * max(1, $data->quantity))
+                + (float) $breakdown['setup_fee'],
+                2,
+                '.',
+                '',
+            ),
+        ];
+    }
+
+    private function createOrderItemFromCartItemData(
+        Order $order,
+        Product $product,
+        CartItemData $data,
+        string $unitPrice,
+        string $setupFee,
+        string $lineTotal,
+    ): OrderItem {
+        return OrderItem::query()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'product_slug' => $product->slug,
+            'billing_cycle' => $data->billingCycle,
+            'custom_interval_days' => $data->customIntervalDays
+                ?? $product->pricingFor($data->billingCycle)?->custom_interval_days,
+            'quantity' => $data->quantity,
+            'options' => $data->options,
+            'addons' => $data->addons,
+            'config_data' => $data->configData,
+            'unit_price' => $unitPrice,
+            'setup_fee' => $setupFee,
+            'line_total' => $lineTotal,
         ]);
     }
 

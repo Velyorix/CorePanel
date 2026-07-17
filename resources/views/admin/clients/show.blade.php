@@ -38,6 +38,11 @@
                 </form>
             @endif
         @endcan
+        @can('create', Core\Orders\Models\Order::class)
+            <x-ui.button :href="route('admin.orders.create', ['client_id' => $client->id])" variant="secondary" size="sm">
+                {{ __('Create order') }}
+            </x-ui.button>
+        @endcan
         @can('update', $client)
             @if ($client->status === \Core\Clients\Enums\ClientStatus::Active)
                 <form method="POST" action="{{ route('admin.clients.suspend', $client) }}">

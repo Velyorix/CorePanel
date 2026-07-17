@@ -404,4 +404,105 @@ class OrderServiceTest extends TestCase
             fn (OrderPaid $event): bool => $event->order->is($paid),
         );
     }
+
+    public function test_create_from_admin_builds_draft_with_items_and_created_by(): void
+    {
+        config(['corepanel.billing.tax_preview_rate' => 0]);
+
+        $creator = \App\Models\User::factory()->create();
+        $client = Client::factory()->create();
+        $product = Product::factory()->published()->withPricing([BillingCycle::Monthly], '10.00', '2.00')->create();
+
+        $order = $this->orderService->createFromAdmin(
+            $client,
+            $creator,
+            CheckoutDraftData::fromArray([
+                'contact_name' => 'Staff Order',
+                'contact_email' => 'staff@example.test',
+                'address' => '1 Street',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+            ]),
+            [
+                CartItemData::fromArray([
+                    'product_id' => $product->id,
+                    'billing_cycle' => BillingCycle::Monthly->value,
+                    'quantity' => 2,
+                ]),
+            ],
+            notes: 'Admin note',
+        );
+
+        $this->assertSame(OrderStatus::Draft, $order->status);
+        $this->assertSame(OrderSource::Admin, $order->source);
+        $this->assertSame($creator->id, $order->created_by);
+        $this->assertSame('Admin note', $order->notes);
+        $this->assertSame(1, $order->items->count());
+        $this->assertSame('10.00', $order->items->first()->unit_price);
+        $this->assertSame('2.00', $order->items->first()->setup_fee);
+        $this->assertSame('22.00', $order->items->first()->line_total);
+        $this->assertSame('20.00', $order->subtotal_recurring);
+        $this->assertSame('2.00', $order->subtotal_setup);
+        $this->assertSame('22.00', $order->total_amount);
+    }
+
+    public function test_create_from_admin_submit_as_pending_dispatches_order_created(): void
+    {
+        Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);
+        config(['corepanel.billing.tax_preview_rate' => 0]);
+
+        $creator = \App\Models\User::factory()->create();
+        $client = Client::factory()->create();
+        $product = Product::factory()->published()->withPricing()->create();
+
+        $order = $this->orderService->createFromAdmin(
+            $client,
+            $creator,
+            CheckoutDraftData::fromArray([
+                'contact_name' => 'Pending Admin',
+                'contact_email' => 'pending@example.test',
+                'address' => '1 Street',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+            ]),
+            [
+                CartItemData::fromArray([
+                    'product_id' => $product->id,
+                    'billing_cycle' => BillingCycle::Monthly->value,
+                ]),
+            ],
+            submitAsPending: true,
+        );
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->status);
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+        Event::assertDispatched(
+            OrderCreated::class,
+            fn (OrderCreated $event): bool => $event->order->is($order),
+        );
+    }
+
+    public function test_create_from_admin_rejects_empty_items(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->orderService->createFromAdmin(
+            Client::factory()->create(),
+            \App\Models\User::factory()->create(),
+            CheckoutDraftData::fromArray([
+                'contact_name' => 'Empty',
+                'contact_email' => 'empty@example.test',
+                'address' => '1 Street',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+            ]),
+            [],
+        );
+    }
 }

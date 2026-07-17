@@ -23,4 +23,9 @@ class OrderPolicy extends BasePolicy
             ? $this->allowsAny($user, 'orders.manage')
             : $this->allows($user, 'orders.manage', $order);
     }
+
+    public function create(User $user): bool
+    {
+        return $this->allowsAny($user, 'orders.manage');
+    }
 }

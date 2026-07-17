@@ -92,6 +92,41 @@ class CartSummary
         ];
     }
 
+    /**
+     * Summarize pre-priced lines (admin order builder, roadmap 11.7).
+     *
+     * @param  list<array{unit_price: string|float, setup_fee: string|float, quantity: int}>  $pricedLines
+     * @return array{
+     *     recurring_subtotal: string,
+     *     setup_subtotal: string,
+     *     first_payment_subtotal: string,
+     *     first_payment_tax: string,
+     *     first_payment_total: string
+     * }
+     */
+    public function summarizePricedLines(array $pricedLines): array
+    {
+        $recurring = 0.0;
+        $setup = 0.0;
+
+        foreach ($pricedLines as $line) {
+            $qty = max(1, (int) ($line['quantity'] ?? 1));
+            $recurring += (float) ($line['unit_price'] ?? 0) * $qty;
+            $setup += (float) ($line['setup_fee'] ?? 0);
+        }
+
+        $firstPayment = $recurring + $setup;
+        $taxRate = $this->taxPreviewRate();
+
+        return [
+            'recurring_subtotal' => $this->money($recurring),
+            'setup_subtotal' => $this->money($setup),
+            'first_payment_subtotal' => $this->money($firstPayment),
+            'first_payment_tax' => $this->money($firstPayment * $taxRate),
+            'first_payment_total' => $this->money($firstPayment + ($firstPayment * $taxRate)),
+        ];
+    }
+
     private function taxPreviewRate(): float
     {
         return max(0, (float) config('corepanel.billing.tax_preview_rate', 0));

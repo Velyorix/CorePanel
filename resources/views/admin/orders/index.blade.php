@@ -17,6 +17,14 @@
         ]" />
     </x-slot:breadcrumbs>
 
+    <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        @can('create', Core\Orders\Models\Order::class)
+            <x-ui.button :href="route('admin.orders.create')" variant="primary" size="sm">
+                {{ __('Create order') }}
+            </x-ui.button>
+        @endcan
+    </div>
+
     @if (session('status'))
         <div class="mb-6">
             <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>

@@ -106,6 +106,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'products.update', 'module' => 'products', 'description' => 'Update products and categories'],
             ['name' => 'products.delete', 'module' => 'products', 'description' => 'Delete products and categories'],
 
+            ['name' => 'orders.view', 'module' => 'orders', 'description' => 'View orders'],
+            ['name' => 'orders.manage', 'module' => 'orders', 'description' => 'Manage order status and manual actions'],
+
             ['name' => 'roles.view', 'module' => 'core', 'description' => 'View roles and permissions'],
             ['name' => 'roles.manage', 'module' => 'core', 'description' => 'Manage roles and permissions'],
 
@@ -133,6 +136,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.services.manage', 'module' => 'core', 'description' => 'Manage own services'],
             ['name' => 'client.invoices.view', 'module' => 'core', 'description' => 'View own invoices'],
             ['name' => 'client.invoices.pay', 'module' => 'core', 'description' => 'Pay own invoices'],
+            ['name' => 'client.orders.view', 'module' => 'core', 'description' => 'View own orders'],
             ['name' => 'client.tickets.view', 'module' => 'core', 'description' => 'View own tickets'],
             ['name' => 'client.tickets.create', 'module' => 'core', 'description' => 'Create support tickets'],
             ['name' => 'client.tickets.reply', 'module' => 'core', 'description' => 'Reply to own tickets'],
@@ -162,6 +166,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'users.*',
                     'clients.*',
                     'products.*',
+                    'orders.*',
                     'roles.view',
                     'settings.view',
                     'settings.manage',
@@ -180,6 +185,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'admin.access',
                     'clients.view',
                     'products.view',
+                    'orders.view',
                     'services.view',
                     'billing.invoices.view',
                     'tickets.*',

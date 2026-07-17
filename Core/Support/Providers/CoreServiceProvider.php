@@ -13,10 +13,12 @@ use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeGroupService;
+use Core\Orders\Models\Order;
 use Core\Orders\Services\CartService;
 use Core\Orders\Services\CartSummary;
 use Core\Orders\Services\CheckoutDraftService;
 use Core\Orders\Services\OrderConversionService;
+use Core\Orders\Services\OrderService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogPricePreview;
@@ -27,6 +29,7 @@ use Core\Products\Services\ProductPricingCalculator;
 use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
+use Core\Permissions\Policies\OrderPolicy;
 use Core\Permissions\Policies\ProductCategoryPolicy;
 use Core\Permissions\Policies\ProductPolicy;
 use Core\Permissions\Policies\RolePolicy;
@@ -72,6 +75,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CartSummary::class);
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
+        $this->app->singleton(OrderService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 
@@ -85,6 +89,7 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Client::class, ClientPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
+        Gate::policy(Order::class, OrderPolicy::class);
 
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();

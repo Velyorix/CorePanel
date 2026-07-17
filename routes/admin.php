@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\ClientImpersonationController;
 use App\Http\Controllers\Admin\ClientNoteController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OrderStatusController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
@@ -83,6 +85,14 @@ Route::middleware('admin')
         Route::get('product-categories/{productCategory}/edit', [ProductCategoryController::class, 'edit'])->name('product-categories.edit');
         Route::put('product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
         Route::delete('product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
+        Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/mark-pending-payment', [OrderStatusController::class, 'markPendingPayment'])->name('orders.mark-pending-payment');
+        Route::post('orders/{order}/mark-paid', [OrderStatusController::class, 'markPaid'])->name('orders.mark-paid');
+        Route::post('orders/{order}/cancel', [OrderStatusController::class, 'cancel'])->name('orders.cancel');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

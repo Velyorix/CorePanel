@@ -9,8 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Minimal orders schema for cart → order conversion (roadmap 10.8).
-     * Full OrderService state machine / admin UI arrives in étape 11.
+     * Minimal orders schema for cart → order conversion.
      */
     public function up(): void
     {

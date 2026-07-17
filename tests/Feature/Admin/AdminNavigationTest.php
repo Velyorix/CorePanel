@@ -80,6 +80,7 @@ class AdminNavigationTest extends TestCase
         $clientsItem = $flatItems->firstWhere('label', __('Clients'));
         $catalogItem = $flatItems->firstWhere('label', __('Catalog'));
         $categoriesItem = $flatItems->firstWhere('label', __('Categories'));
+        $ordersItem = $flatItems->firstWhere('label', __('Orders'));
 
         $this->assertNotNull($dashboardItem);
         $this->assertFalse($dashboardItem['placeholder']);
@@ -100,6 +101,10 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($categoriesItem);
         $this->assertFalse($categoriesItem['placeholder']);
         $this->assertSame(route('admin.product-categories.index'), $categoriesItem['url']);
+
+        $this->assertNotNull($ordersItem);
+        $this->assertFalse($ordersItem['placeholder']);
+        $this->assertSame(route('admin.orders.index'), $ordersItem['url']);
     }
 
     public function test_navigation_hides_items_without_permission(): void
@@ -117,6 +122,7 @@ class AdminNavigationTest extends TestCase
         $this->assertContains(__('Tickets'), $labels);
         $this->assertContains(__('Products'), $labels);
         $this->assertContains(__('Catalog'), $labels);
+        $this->assertContains(__('Orders'), $labels);
         $this->assertNotContains(__('Roles'), $labels);
         $this->assertNotContains(__('Permissions'), $labels);
         $this->assertNotContains(__('Users'), $labels);

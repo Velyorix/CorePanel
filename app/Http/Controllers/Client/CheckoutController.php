@@ -16,7 +16,7 @@ use Core\Orders\Models\Order;
 use Core\Orders\Services\CartService;
 use Core\Orders\Services\CartSummary;
 use Core\Orders\Services\CheckoutDraftService;
-use Core\Orders\Services\OrderConversionService;
+use Core\Orders\Services\OrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,7 +30,7 @@ class CheckoutController extends Controller
         private readonly CartSummary $cartSummary,
         private readonly CheckoutDraftService $checkoutDraftService,
         private readonly ClientService $clientService,
-        private readonly OrderConversionService $orderConversionService,
+        private readonly OrderService $orderService,
     ) {
     }
 
@@ -155,7 +155,7 @@ class CheckoutController extends Controller
                     ->withErrors(['cart' => __('Add items to your cart before placing an order.')]);
             }
 
-            $order = $this->orderConversionService->convertFromCheckout($cart, $draft);
+            $order = $this->orderService->createFromCheckout($cart, $draft);
             $this->checkoutDraftService->clear($request->session());
         } catch (InvalidArgumentException|RuntimeException $exception) {
             return redirect()

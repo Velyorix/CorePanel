@@ -2,7 +2,9 @@
 
 namespace Core\Orders\Models;
 
+use Core\Auth\Models\User;
 use Core\Clients\Models\Client;
+use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +21,10 @@ class Order extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'order_number',
         'client_id',
+        'created_by',
+        'source',
         'cart_id',
         'status',
         'currency',
@@ -34,11 +39,14 @@ class Order extends Model
         'country',
         'postal_code',
         'phone',
+        'notes',
         'subtotal_recurring',
         'subtotal_setup',
         'tax_amount',
         'total_amount',
         'placed_at',
+        'paid_at',
+        'cancelled_at',
     ];
 
     /**
@@ -48,11 +56,14 @@ class Order extends Model
     {
         return [
             'status' => OrderStatus::class,
+            'source' => OrderSource::class,
             'subtotal_recurring' => 'decimal:2',
             'subtotal_setup' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'placed_at' => 'datetime',
+            'paid_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -62,6 +73,16 @@ class Order extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Staff user who created the order (admin-on-behalf, roadmap 11.7).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

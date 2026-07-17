@@ -24,6 +24,7 @@ class ProductAddon extends Model
         'price',
         'setup_fee',
         'billing_cycle',
+        'custom_interval_days',
         'is_enabled',
         'sort_order',
     ];
@@ -35,6 +36,7 @@ class ProductAddon extends Model
     {
         return [
             'billing_cycle' => BillingCycle::class,
+            'custom_interval_days' => 'integer',
             'price' => 'decimal:2',
             'setup_fee' => 'decimal:2',
             'is_enabled' => 'boolean',

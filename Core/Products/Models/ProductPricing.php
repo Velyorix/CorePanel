@@ -21,6 +21,7 @@ class ProductPricing extends Model
     protected $fillable = [
         'product_id',
         'billing_cycle',
+        'custom_interval_days',
         'price',
         'setup_fee',
         'is_enabled',
@@ -33,6 +34,7 @@ class ProductPricing extends Model
     {
         return [
             'billing_cycle' => BillingCycle::class,
+            'custom_interval_days' => 'integer',
             'price' => 'decimal:2',
             'setup_fee' => 'decimal:2',
             'is_enabled' => 'boolean',
@@ -45,6 +47,16 @@ class ProductPricing extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function firstPaymentTotal(): string
+    {
+        return number_format((float) $this->price + (float) $this->setup_fee, 2, '.', '');
+    }
+
+    public function periodDays(): int
+    {
+        return $this->billing_cycle->days($this->custom_interval_days);
     }
 
     protected static function newFactory(): ProductPricingFactory

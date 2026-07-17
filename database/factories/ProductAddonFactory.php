@@ -30,6 +30,7 @@ class ProductAddonFactory extends Factory
             'price' => fake()->randomFloat(2, 1, 50),
             'setup_fee' => fake()->randomFloat(2, 0, 20),
             'billing_cycle' => BillingCycle::Monthly,
+            'custom_interval_days' => null,
             'is_enabled' => true,
             'sort_order' => fake()->numberBetween(0, 50),
         ];
@@ -42,10 +43,13 @@ class ProductAddonFactory extends Factory
         ]);
     }
 
-    public function forCycle(BillingCycle $cycle): static
+    public function forCycle(BillingCycle $cycle, ?int $customIntervalDays = null): static
     {
         return $this->state(fn (): array => [
             'billing_cycle' => $cycle,
+            'custom_interval_days' => $cycle === BillingCycle::Custom
+                ? ($customIntervalDays ?? 45)
+                : null,
         ]);
     }
 }

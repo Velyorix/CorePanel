@@ -273,6 +273,20 @@ class Product extends Model
         );
     }
 
+    /**
+     * @return list<BillingCycle>
+     */
+    public function enabledBillingCycles(): array
+    {
+        $this->loadMissing('pricing');
+
+        return $this->pricing
+            ->where('is_enabled', true)
+            ->map(fn (ProductPricing $tier): BillingCycle => $tier->billing_cycle)
+            ->values()
+            ->all();
+    }
+
     public function optionByKey(string $key): ?ProductOption
     {
         $this->loadMissing('options');

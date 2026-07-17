@@ -17,6 +17,7 @@ readonly class ProductAddonData
         public ?string $description = null,
         public bool $isEnabled = true,
         public int $sortOrder = 0,
+        public ?int $customIntervalDays = null,
     ) {
     }
 
@@ -29,7 +30,8 @@ readonly class ProductAddonData
      *     setup_fee?: mixed,
      *     billing_cycle?: string|null,
      *     is_enabled?: mixed,
-     *     sort_order?: int|null
+     *     sort_order?: int|null,
+     *     custom_interval_days?: int|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -49,6 +51,11 @@ readonly class ProductAddonData
             throw new InvalidArgumentException("Invalid addon billing cycle [{$cycleValue}].");
         }
 
+        $customIntervalDays = self::normalizeCustomInterval(
+            $cycle,
+            $data['custom_interval_days'] ?? null,
+        );
+
         return new self(
             key: $key,
             name: $name,
@@ -58,6 +65,7 @@ readonly class ProductAddonData
             description: self::nullableString($data['description'] ?? null),
             isEnabled: filter_var($data['is_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
+            customIntervalDays: $customIntervalDays,
         );
     }
 
@@ -73,9 +81,37 @@ readonly class ProductAddonData
             'price' => $this->price,
             'setup_fee' => $this->setupFee,
             'billing_cycle' => $this->billingCycle->value,
+            'custom_interval_days' => $this->customIntervalDays,
             'is_enabled' => $this->isEnabled,
             'sort_order' => $this->sortOrder,
         ];
+    }
+
+    private static function normalizeCustomInterval(BillingCycle $cycle, mixed $value): ?int
+    {
+        if ($cycle->requiresCustomInterval()) {
+            if ($value === null || $value === '') {
+                throw new InvalidArgumentException(
+                    'Custom addon billing cycles require custom_interval_days.',
+                );
+            }
+
+            if (! is_numeric($value) || (int) $value < 1) {
+                throw new InvalidArgumentException(
+                    'custom_interval_days must be a positive integer.',
+                );
+            }
+
+            return (int) $value;
+        }
+
+        if ($value !== null && $value !== '') {
+            throw new InvalidArgumentException(
+                'custom_interval_days is only allowed for custom billing cycles.',
+            );
+        }
+
+        return null;
     }
 
     private static function money(mixed $value, string $field): string

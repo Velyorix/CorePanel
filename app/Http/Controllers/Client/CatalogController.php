@@ -104,7 +104,7 @@ class CatalogController extends Controller
         }
 
         return redirect()
-            ->route('client.catalog.products.show', $resolved->slug)
+            ->route('client.cart.index')
             ->with('status', __('Product added to your cart.'));
     }
 

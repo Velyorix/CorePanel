@@ -100,7 +100,7 @@ class ClientProductConfiguratorTest extends TestCase
                 ],
                 'addons' => ['backup'],
             ])
-            ->assertRedirect(route('client.catalog.products.show', $product->slug))
+            ->assertRedirect(route('client.cart.index'))
             ->assertSessionHas('status');
 
         $cart = Cart::query()->where('client_id', $client->id)->firstOrFail();

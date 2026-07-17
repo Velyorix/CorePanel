@@ -264,7 +264,7 @@ return [
 
     'billing' => [
         /*
-        | Tax rate used only for catalog configurator previews (roadmap 10.5).
+        | Tax rate used only for catalog/cart price previews (roadmap 10.5–10.6).
         | Real TaxCalculationService arrives in étape 12.4.
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),

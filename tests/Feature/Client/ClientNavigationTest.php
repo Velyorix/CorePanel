@@ -50,6 +50,7 @@ class ClientNavigationTest extends TestCase
         foreach ([
             __('Dashboard'),
             __('Catalog'),
+            __('Cart'),
             __('Services'),
             __('Invoices'),
             __('Payments'),
@@ -146,5 +147,19 @@ class ClientNavigationTest extends TestCase
         $this->assertNotNull($catalogItem);
         $this->assertFalse($catalogItem['placeholder']);
         $this->assertSame(route('client.catalog.index'), $catalogItem['url']);
+    }
+
+    public function test_cart_item_links_to_client_cart_route(): void
+    {
+        $client = User::factory()->withRole('client')->create();
+        $sections = app(ClientNavigation::class)->forUser($client);
+
+        $cartItem = collect($sections)
+            ->flatMap(fn (array $section) => $section['items'])
+            ->firstWhere('label', __('Cart'));
+
+        $this->assertNotNull($cartItem);
+        $this->assertFalse($cartItem['placeholder']);
+        $this->assertSame(route('client.cart.index'), $cartItem['url']);
     }
 }

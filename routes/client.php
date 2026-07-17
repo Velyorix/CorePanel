@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Client\CartController;
 use App\Http\Controllers\Client\CatalogController;
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProfileController;
@@ -28,6 +29,11 @@ Route::middleware('client')
         Route::post('catalog/products/{product}/configure', [CatalogController::class, 'store'])->name('catalog.products.configure.store');
         Route::post('catalog/products/{product}/configure/preview', [CatalogController::class, 'preview'])->name('catalog.products.configure.preview');
         Route::get('catalog/products/{product}', [CatalogController::class, 'show'])->name('catalog.products.show');
+
+        Route::get('cart', [CartController::class, 'index'])->name('cart.index');
+        Route::patch('cart/items/{item}', [CartController::class, 'updateQuantity'])->name('cart.items.update');
+        Route::delete('cart/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');
+        Route::delete('cart', [CartController::class, 'clear'])->name('cart.clear');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

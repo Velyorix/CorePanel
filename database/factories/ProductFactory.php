@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use Core\Products\Enums\BillingCycle;
 use Core\Products\Enums\ProductStatus;
+use Core\Products\Enums\ProductType;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Models\ProductPricing;
@@ -29,11 +30,18 @@ class ProductFactory extends Factory
             'name' => ucfirst($name),
             'slug' => Str::slug($name).'-'.fake()->unique()->numerify('###'),
             'description' => fake()->optional()->paragraph(),
-            'type' => 'other',
+            'type' => ProductType::Other,
             'module' => null,
             'status' => ProductStatus::Draft,
             'sort_order' => fake()->numberBetween(0, 100),
         ];
+    }
+
+    public function ofType(ProductType $type): static
+    {
+        return $this->state(fn (): array => [
+            'type' => $type,
+        ]);
     }
 
     public function published(): static

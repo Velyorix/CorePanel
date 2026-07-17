@@ -4,7 +4,9 @@ namespace Core\Products\Models;
 
 use Core\Products\Enums\BillingCycle;
 use Core\Products\Enums\ProductStatus;
+use Core\Products\Enums\ProductType;
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,9 +39,34 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'type' => ProductType::class,
             'status' => ProductStatus::class,
             'sort_order' => 'integer',
         ];
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeOfType(Builder $query, ProductType $type): Builder
+    {
+        return $query->where('type', $type->value);
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeCatalog(Builder $query): Builder
+    {
+        return $query->whereIn(
+            'type',
+            array_map(
+                static fn (ProductType $type): string => $type->value,
+                ProductType::catalogTypes(),
+            ),
+        );
     }
 
     /**

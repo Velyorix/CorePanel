@@ -5,6 +5,7 @@ namespace Core\Clients\Models;
 use Core\Auth\Models\User;
 use Core\Clients\Enums\ClientStatus;
 use Core\Orders\Models\Cart;
+use Core\Orders\Models\Order;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -93,6 +94,14 @@ class Client extends Model
     public function carts(): HasMany
     {
         return $this->hasMany(Cart::class);
+    }
+
+    /**
+     * @return HasMany<Order, $this>
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 
     protected static function newFactory(): ClientFactory

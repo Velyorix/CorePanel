@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Cart extends Model
 {
@@ -49,6 +50,14 @@ class Cart extends Model
     public function items(): HasMany
     {
         return $this->hasMany(CartItem::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasOne<Order, $this>
+     */
+    public function order(): HasOne
+    {
+        return $this->hasOne(Order::class);
     }
 
     public function isOpen(): bool

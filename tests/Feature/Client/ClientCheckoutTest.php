@@ -6,6 +6,9 @@ use App\Models\User;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CartItemData;
+use Core\Orders\Enums\CartStatus;
+use Core\Orders\Enums\OrderStatus;
+use Core\Orders\Models\Order;
 use Core\Orders\Services\CartService;
 use Core\Orders\Services\CheckoutDraftService;
 use Core\Products\Enums\BillingCycle;
@@ -15,7 +18,6 @@ use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ClientCheckoutTest extends TestCase
@@ -84,7 +86,7 @@ class ClientCheckoutTest extends TestCase
             ->assertSee(__('Save and continue'));
     }
 
-    public function test_checkout_submit_stores_draft_updates_client_and_does_not_create_orders_table(): void
+    public function test_checkout_submit_stores_draft_updates_client_without_placing_order(): void
     {
         [$user, $client] = $this->makeClientUser([
             'address' => 'Old street',
@@ -126,7 +128,72 @@ class ClientCheckoutTest extends TestCase
         $this->assertSame('manual_transfer', $draft->paymentMethod);
         $this->assertSame('WELCOME10', $draft->couponCode);
 
-        $this->assertFalse(Schema::hasTable('orders'));
+        $this->assertSame(0, Order::query()->count());
+    }
+
+    public function test_place_order_converts_cart_to_pending_payment_order(): void
+    {
+        [$user, $client] = $this->makeClientUser([
+            'address' => '12 Rue Test',
+            'city' => 'Paris',
+            'postal_code' => '75001',
+            'country' => 'FR',
+        ]);
+        $product = $this->makeProduct('place-order-vps', '19.99', '5.00');
+        $this->addLine($client, $product, 1);
+
+        $this->actingAs($user)
+            ->post(route('client.checkout.store'), [
+                'contact_name' => 'Alice Client',
+                'contact_email' => $user->email,
+                'company_name' => 'Acme',
+                'address' => '12 Rue Test',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+                'coupon_code' => 'WELCOME10',
+            ])
+            ->assertRedirect(route('client.checkout.complete'));
+
+        $response = $this->actingAs($user)
+            ->post(route('client.checkout.place'));
+
+        $order = Order::query()->firstOrFail();
+
+        $response
+            ->assertRedirect(route('client.checkout.placed', $order))
+            ->assertSessionHas('status')
+            ->assertSessionMissing(CheckoutDraftService::SESSION_KEY);
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->status);
+        $this->assertSame($client->id, $order->client_id);
+        $this->assertSame('manual_transfer', $order->payment_method);
+        $this->assertSame('WELCOME10', $order->coupon_code);
+        $this->assertSame('19.99', $order->subtotal_recurring);
+        $this->assertSame('5.00', $order->subtotal_setup);
+        $this->assertCount(1, $order->items);
+        $this->assertTrue($order->cart?->status === CartStatus::Converted);
+
+        $this->actingAs($user)
+            ->get(route('client.checkout.placed', $order))
+            ->assertOk()
+            ->assertSee(__('Pending payment'))
+            ->assertSee($product->name)
+            ->assertSee(__('Order #:id', ['id' => $order->id]));
+    }
+
+    public function test_place_order_requires_saved_draft(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $this->addLine($client, $this->makeProduct('no-draft-vps'), 1);
+
+        $this->actingAs($user)
+            ->post(route('client.checkout.place'))
+            ->assertRedirect(route('client.checkout.index'))
+            ->assertSessionHasErrors('checkout');
+
+        $this->assertSame(0, Order::query()->count());
     }
 
     public function test_checkout_rejects_disabled_payment_method(): void

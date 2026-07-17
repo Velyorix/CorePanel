@@ -1,9 +1,9 @@
 <x-layout.client
     :title="__('Checkout saved')"
-    :page-heading="__('Checkout details saved')"
+    :page-heading="__('Review and place order')"
 >
     <x-slot:subtitle>
-        {{ __('Your billing details are ready. Order placement arrives next.') }}
+        {{ __('Confirm your details, then place the order to proceed to payment.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>
@@ -22,13 +22,25 @@
             ['label' => __('Client'), 'url' => route('client.dashboard')],
             ['label' => __('Cart'), 'url' => route('client.cart.index')],
             ['label' => __('Checkout'), 'url' => route('client.checkout.index')],
-            ['label' => __('Saved')],
+            ['label' => __('Review')],
         ]" />
     </x-slot:breadcrumbs>
 
     @if (session('status'))
         <div class="mb-6">
             <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="mb-6">
+            <x-ui.alert variant="danger" :title="__('Unable to place order')">
+                <ul class="list-disc ps-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </x-ui.alert>
         </div>
     @endif
 
@@ -64,11 +76,13 @@
                     @endif
                 </dl>
 
-                <p class="mt-4 text-body-sm text-muted-foreground">
-                    {{ __('Placing the order (cart → pending payment) arrives in the next step.') }}
-                </p>
-
                 <div class="mt-6 flex flex-wrap gap-2">
+                    <form method="POST" action="{{ route('client.checkout.place') }}">
+                        @csrf
+                        <x-ui.button type="submit" variant="primary">
+                            {{ __('Place order') }}
+                        </x-ui.button>
+                    </form>
                     <x-ui.button :href="route('client.checkout.index')" variant="secondary">
                         {{ __('Edit checkout') }}
                     </x-ui.button>

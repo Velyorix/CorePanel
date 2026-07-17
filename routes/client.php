@@ -40,6 +40,8 @@ Route::middleware('client')
         Route::post('checkout', [CheckoutController::class, 'store'])->name('checkout.store');
         Route::patch('checkout/coupon', [CheckoutController::class, 'applyCoupon'])->name('checkout.coupon.apply');
         Route::get('checkout/complete', [CheckoutController::class, 'complete'])->name('checkout.complete');
+        Route::post('checkout/place', [CheckoutController::class, 'placeOrder'])->name('checkout.place');
+        Route::get('checkout/orders/{order}', [CheckoutController::class, 'placed'])->name('checkout.placed');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

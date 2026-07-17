@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Client\CatalogController;
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,10 @@ Route::middleware('client')
     ->name('client.')
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        Route::get('catalog', [CatalogController::class, 'index'])->name('catalog.index');
+        Route::get('catalog/categories/{category}', [CatalogController::class, 'category'])->name('catalog.category');
+        Route::get('catalog/products/{product}', [CatalogController::class, 'show'])->name('catalog.products.show');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

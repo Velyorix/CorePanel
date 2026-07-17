@@ -144,7 +144,9 @@ class PermissionService
 
     public function forgetAll(): void
     {
-        // Tag-based invalidation is not used yet; callers should forget targeted users/roles.
+        User::query()
+            ->pluck('id')
+            ->each(fn ($userId): mixed => $this->forgetUser((int) $userId));
     }
 
     /**

@@ -8,6 +8,7 @@ use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
 use Core\Permissions\Models\Permission;
 use Core\Permissions\Models\Role;
+use Core\Permissions\Models\UserRole;
 use Core\Support\Models\AuditLog;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
@@ -68,7 +69,8 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'user_roles');
+        return $this->belongsToMany(Role::class, 'user_roles')
+            ->using(UserRole::class);
     }
 
     /**

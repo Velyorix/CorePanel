@@ -84,6 +84,9 @@ class ProductTypeClassificationTest extends TestCase
     public function test_domain_and_addon_classification_helpers(): void
     {
         $this->assertTrue(ProductType::Domain->requiresHostname());
+        $this->assertSame('domain', ProductType::Domain->hostnameOptionKey());
+        $this->assertSame('hostname', ProductType::Vps->hostnameOptionKey());
+        $this->assertNull(ProductType::Addon->hostnameOptionKey());
         $this->assertTrue(ProductType::Addon->isAddon());
         $this->assertFalse(ProductType::Addon->requiresHostname());
         $this->assertContains(ProductType::Hosting, ProductType::catalogTypes());

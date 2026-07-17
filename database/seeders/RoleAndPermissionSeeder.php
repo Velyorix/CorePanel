@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Core\Permissions\Models\Permission;
 use Core\Permissions\Models\Role;
+use Core\Permissions\Services\PermissionService;
 use Illuminate\Database\Seeder;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -72,6 +73,8 @@ class RoleAndPermissionSeeder extends Seeder
 
             $role->update(['parent_id' => $parent->id]);
         }
+
+        app(PermissionService::class)->forgetAll();
     }
 
     /**

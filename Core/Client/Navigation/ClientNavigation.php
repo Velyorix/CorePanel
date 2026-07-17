@@ -57,6 +57,18 @@ class ClientNavigation
                         'permission' => 'client.access',
                     ],
                     [
+                        'label' => __('Catalog'),
+                        'route' => 'client.catalog.index',
+                        'routeIs' => ['client.catalog.*'],
+                        'permission' => 'client.access',
+                    ],
+                    [
+                        'label' => __('Cart'),
+                        'route' => 'client.cart.index',
+                        'routeIs' => ['client.cart.*'],
+                        'permission' => 'client.access',
+                    ],
+                    [
                         'label' => __('Services'),
                         'route' => null,
                         'permission' => 'client.services.view',

@@ -193,6 +193,40 @@ class ProductBillingCyclesTest extends TestCase
         );
     }
 
+    public function test_configured_breakdown_includes_option_price_deltas(): void
+    {
+        $product = Product::factory()->published()->withPricing(
+            [BillingCycle::Monthly],
+            '10.00',
+            '2.00',
+        )->create(['slug' => 'option-deltas']);
+
+        \Core\Products\Models\ProductOption::factory()->required()->select([
+            ['value' => 'small', 'label' => 'Small', 'price_delta' => 0],
+            ['value' => 'large', 'label' => 'Large', 'price_delta' => 5.5],
+        ])->create([
+            'product_id' => $product->id,
+            'key' => 'size',
+            'name' => 'Size',
+        ]);
+
+        $product = $product->fresh(['options', 'pricing', 'addons']);
+
+        $breakdown = $this->calculator->configuredBreakdown(
+            $product,
+            BillingCycle::Monthly,
+            ['size' => 'large'],
+            [],
+            1,
+        );
+
+        $this->assertSame('10.00', $breakdown['base_price']);
+        $this->assertSame('5.50', $breakdown['option_deltas']);
+        $this->assertSame('15.50', $breakdown['unit_price']);
+        $this->assertSame('2.00', $breakdown['setup_fee']);
+        $this->assertSame('17.50', $breakdown['first_payment_subtotal']);
+    }
+
     public function test_calculator_rejects_disabled_pricing(): void
     {
         $product = Product::factory()->create(['slug' => 'disabled-price']);

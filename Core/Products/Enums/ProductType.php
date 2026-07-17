@@ -42,6 +42,27 @@ enum ProductType: string
         };
     }
 
+    /**
+     * Canonical option key used for hostname / domain capture on configure (roadmap 10.9).
+     */
+    public function hostnameOptionKey(): ?string
+    {
+        if (! $this->requiresHostname()) {
+            return null;
+        }
+
+        return $this === self::Domain ? 'domain' : 'hostname';
+    }
+
+    public function hostnameOptionLabel(): ?string
+    {
+        return match ($this->hostnameOptionKey()) {
+            'domain' => __('Domain name'),
+            'hostname' => __('Hostname'),
+            default => null,
+        };
+    }
+
     public function isAddon(): bool
     {
         return $this === self::Addon;

@@ -258,6 +258,48 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Billing (preview stubs until étape 12)
+    |--------------------------------------------------------------------------
+    */
+
+    'billing' => [
+        /*
+        | Tax rate used only for catalog/cart price previews (roadmap 10.5–10.6).
+        | Real TaxCalculationService arrives in étape 12.4.
+        */
+        'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
+        'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Checkout stubs (roadmap 10.7)
+    |--------------------------------------------------------------------------
+    |
+    | Payment methods and coupons are UI placeholders until étapes 12 / 14 / 20.
+    |
+    */
+
+    'checkout' => [
+        'coupon_enabled' => (bool) env('COREPANEL_CHECKOUT_COUPON_ENABLED', true),
+        'payment_methods' => [
+            [
+                'key' => 'manual_transfer',
+                'label' => 'Bank transfer',
+                'enabled' => true,
+                'hint' => null,
+            ],
+            [
+                'key' => 'card',
+                'label' => 'Credit card',
+                'enabled' => false,
+                'hint' => 'Coming soon',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | RBAC (CDC Tome 4 §8, Tome 5)
     |--------------------------------------------------------------------------
     */

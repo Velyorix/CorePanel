@@ -88,16 +88,24 @@ class PermissionServiceTest extends TestCase
         $this->assertSame(0, $secondQueryCount);
     }
 
-    public function test_forget_user_invalidates_cached_permissions(): void
+    public function test_assigning_role_invalidates_cached_permissions_automatically(): void
     {
         $user = User::factory()->withRole('client')->create();
 
         $this->permissionService->permissionsForUser($user);
+        $this->assertFalse($this->permissionService->userHasPermission($user, 'admin.access'));
 
         $adminRole = Role::query()->where('name', 'admin')->firstOrFail();
         $user->roles()->syncWithoutDetaching([$adminRole->id]);
 
-        $this->assertFalse($this->permissionService->userHasPermission($user, 'admin.access'));
+        $this->assertTrue($this->permissionService->userHasPermission($user->fresh(), 'admin.access'));
+    }
+
+    public function test_forget_user_reloads_permissions_from_database(): void
+    {
+        $user = User::factory()->withRole('admin')->create();
+
+        $this->assertTrue($this->permissionService->userHasPermission($user, 'admin.access'));
 
         $this->permissionService->forgetUser($user);
 

@@ -13,8 +13,15 @@ use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeGroupService;
+use Core\Orders\Services\CartService;
+use Core\Orders\Services\CartSummary;
+use Core\Orders\Services\CheckoutDraftService;
+use Core\Orders\Services\OrderConversionService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
+use Core\Products\Services\CatalogPricePreview;
+use Core\Products\Services\CatalogService;
+use Core\Products\Services\ConfiguratorService;
 use Core\Products\Services\ProductCategoryService;
 use Core\Products\Services\ProductPricingCalculator;
 use Core\Products\Services\ProductService;
@@ -56,8 +63,15 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ClientService::class);
         $this->app->singleton(ProductService::class);
         $this->app->singleton(ProductCategoryService::class);
+        $this->app->singleton(CatalogService::class);
+        $this->app->singleton(ConfiguratorService::class);
+        $this->app->singleton(CatalogPricePreview::class);
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
+        $this->app->singleton(CartService::class);
+        $this->app->singleton(CartSummary::class);
+        $this->app->singleton(CheckoutDraftService::class);
+        $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

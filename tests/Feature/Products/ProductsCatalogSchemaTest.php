@@ -12,7 +12,7 @@ class ProductsCatalogSchemaTest extends TestCase
 
     public function test_products_catalog_tables_exist(): void
     {
-        foreach (['product_categories', 'products', 'product_pricing', 'product_options', 'product_addons'] as $table) {
+        foreach (['product_categories', 'products', 'product_pricing', 'product_options', 'product_addons', 'product_provisioning_rules'] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
                 "Expected table [{$table}] to exist.",
@@ -128,6 +128,28 @@ class ProductsCatalogSchemaTest extends TestCase
             $this->assertTrue(
                 Schema::hasColumn('product_addons', $column),
                 "Expected product_addons.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_product_provisioning_rules_table_and_columns_exist(): void
+    {
+        $this->assertTrue(Schema::hasTable('product_provisioning_rules'));
+
+        foreach ([
+            'id',
+            'product_id',
+            'auto_provision',
+            'send_welcome_email',
+            'welcome_email_template',
+            'node_group_key',
+            'config',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('product_provisioning_rules', $column),
+                "Expected product_provisioning_rules.{$column} to exist.",
             );
         }
     }

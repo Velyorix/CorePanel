@@ -6,19 +6,21 @@ use Core\Products\DataTransferObjects\ProductAddonData;
 use Core\Products\DataTransferObjects\ProductData;
 use Core\Products\DataTransferObjects\ProductOptionData;
 use Core\Products\DataTransferObjects\ProductPricingData;
+use Core\Products\DataTransferObjects\ProductProvisioningRulesData;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductAddon;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Models\ProductOption;
 use Core\Products\Models\ProductPricing;
+use Core\Products\Models\ProductProvisioningRules;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
 
 class ProductService
 {
-    private const RELATIONS = ['category', 'pricing', 'options', 'addons'];
+    private const RELATIONS = ['category', 'pricing', 'options', 'addons', 'provisioningRules'];
 
     public function create(ProductData $data): Product
     {
@@ -31,6 +33,7 @@ class ProductService
             $this->syncPricing($product, $data->pricing);
             $this->syncOptions($product, $data->options);
             $this->syncAddons($product, $data->addons);
+            $this->syncProvisioningRules($product, $data->provisioningRules);
 
             return $product->fresh(self::RELATIONS) ?? $product;
         });
@@ -51,6 +54,7 @@ class ProductService
             $this->syncPricing($product, $data->pricing);
             $this->syncOptions($product, $data->options);
             $this->syncAddons($product, $data->addons);
+            $this->syncProvisioningRules($product, $data->provisioningRules);
 
             return $product->fresh(self::RELATIONS) ?? $product;
         });
@@ -211,6 +215,27 @@ class ProductService
         }
 
         $query->whereNotIn('key', $keepKeys)->delete();
+    }
+
+    private function syncProvisioningRules(Product $product, ?ProductProvisioningRulesData $rules): void
+    {
+        if ($rules === null) {
+            // Keep existing rules on partial updates that omit provisioning_rules.
+            // Create defaults only when the product has none yet.
+            if (! $product->provisioningRules()->exists()) {
+                ProductProvisioningRules::query()->create([
+                    'product_id' => $product->id,
+                    ...ProductProvisioningRulesData::defaults()->toAttributes(),
+                ]);
+            }
+
+            return;
+        }
+
+        ProductProvisioningRules::query()->updateOrCreate(
+            ['product_id' => $product->id],
+            $rules->toAttributes(),
+        );
     }
 
     private function assertCategoryExists(?int $categoryId): void

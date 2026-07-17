@@ -9,6 +9,7 @@ use Core\Products\Enums\ProductType;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Models\ProductPricing;
+use Core\Products\Models\ProductProvisioningRules;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -102,6 +103,19 @@ class ProductFactory extends Factory
                     'is_enabled' => true,
                 ]);
             }
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $rules
+     */
+    public function withProvisioningRules(array $rules = []): static
+    {
+        return $this->afterCreating(function (Product $product) use ($rules): void {
+            ProductProvisioningRules::factory()->create([
+                'product_id' => $product->id,
+                ...$rules,
+            ]);
         });
     }
 }

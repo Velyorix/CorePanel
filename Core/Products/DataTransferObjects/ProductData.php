@@ -29,6 +29,7 @@ readonly class ProductData
         public array $pricing = [],
         public array $options = [],
         public array $addons = [],
+        public ?ProductProvisioningRulesData $provisioningRules = null,
     ) {
     }
 
@@ -45,7 +46,8 @@ readonly class ProductData
      *     sort_order?: int|null,
      *     pricing?: list<array<string, mixed>>|null,
      *     options?: list<array<string, mixed>>|null,
-     *     addons?: list<array<string, mixed>>|null
+     *     addons?: list<array<string, mixed>>|null,
+     *     provisioning_rules?: array<string, mixed>|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -73,6 +75,24 @@ readonly class ProductData
 
         if ($module === null && $moduleCapabilities !== []) {
             throw new InvalidArgumentException('Module capabilities require a provider module to be set.');
+        }
+
+        $provisioningRules = null;
+
+        if (array_key_exists('provisioning_rules', $data)) {
+            $rulesPayload = $data['provisioning_rules'];
+
+            if ($rulesPayload !== null && ! is_array($rulesPayload)) {
+                throw new InvalidArgumentException('Provisioning rules must be an array.');
+            }
+
+            $provisioningRules = $rulesPayload === null
+                ? null
+                : ProductProvisioningRulesData::fromArray($rulesPayload);
+
+            if ($provisioningRules?->autoProvision === true && $module === null) {
+                throw new InvalidArgumentException('Auto-provisioning requires a provider module to be set.');
+            }
         }
 
         $pricing = [];
@@ -143,6 +163,7 @@ readonly class ProductData
             pricing: $pricing,
             options: $options,
             addons: $addons,
+            provisioningRules: $provisioningRules,
         );
     }
 

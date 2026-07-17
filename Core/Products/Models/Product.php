@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
@@ -193,6 +194,43 @@ class Product extends Model
     public function enabledAddons(): HasMany
     {
         return $this->addons()->where('is_enabled', true);
+    }
+
+    /**
+     * Provisioning behaviour for this product (auto-provision, welcome email, node group).
+     *
+     * @return HasOne<ProductProvisioningRules, $this>
+     */
+    public function provisioningRules(): HasOne
+    {
+        return $this->hasOne(ProductProvisioningRules::class);
+    }
+
+    public function shouldAutoProvision(): bool
+    {
+        return $this->provisioningRules?->shouldAutoProvision() ?? false;
+    }
+
+    public function shouldSendWelcomeEmail(): bool
+    {
+        return $this->provisioningRules?->shouldSendWelcomeEmail() ?? true;
+    }
+
+    public function nodeGroupKey(): ?string
+    {
+        return $this->provisioningRules?->node_group_key;
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeAutoProvisionable(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'provisioningRules',
+            fn (Builder $rules): Builder => $rules->where('auto_provision', true),
+        );
     }
 
     public function pricingFor(BillingCycle $cycle): ?ProductPricing

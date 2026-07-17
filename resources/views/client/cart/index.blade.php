@@ -82,8 +82,15 @@
                                 <h4 class="mb-2 text-body-sm font-medium">{{ __('Options') }}</h4>
                                 <ul class="space-y-1 text-small text-muted-foreground">
                                     @foreach ($item->options as $key => $value)
+                                        @php
+                                            $optionLabel = match ($key) {
+                                                'hostname' => __('Hostname'),
+                                                'domain' => __('Domain name'),
+                                                default => $key,
+                                            };
+                                        @endphp
                                         <li>
-                                            <span class="font-medium text-foreground">{{ $key }}</span>:
+                                            <span class="font-medium text-foreground">{{ $optionLabel }}</span>:
                                             @if (is_bool($value))
                                                 {{ $value ? __('Yes') : __('No') }}
                                             @elseif (is_array($value))

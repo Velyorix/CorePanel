@@ -8,10 +8,11 @@ use Core\Products\Enums\ProductOptionType;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductOption;
+use Core\Products\Support\HostnameValidator;
 use InvalidArgumentException;
 
 /**
- * Builds validated cart line payloads from the client product configurator (roadmap 10.4).
+ * Builds validated cart line payloads from the client product configurator (roadmap 10.4 / 10.9).
  */
 class ConfiguratorService
 {
@@ -112,6 +113,11 @@ class ConfiguratorService
 
         $normalized = [];
         $knownKeys = [];
+        $hostnameKey = $product->hostnameOptionKey();
+
+        if ($hostnameKey !== null) {
+            $knownKeys[$hostnameKey] = true;
+        }
 
         foreach ($product->options as $option) {
             $knownKeys[$option->key] = true;
@@ -131,6 +137,30 @@ class ConfiguratorService
             }
         }
 
+        if ($hostnameKey !== null && ! isset($normalized[$hostnameKey])) {
+            $rawHostname = $rawOptions[$hostnameKey] ?? null;
+            $hostnameValue = $this->normalizeHostnameValue(
+                $rawHostname,
+                $hostnameKey,
+                $product->hostnameOptionLabel() ?? $hostnameKey,
+                require: $requireCompleteOptions && $product->optionByKey($hostnameKey) === null,
+            );
+
+            if ($hostnameValue !== null) {
+                $normalized[$hostnameKey] = $hostnameValue;
+            }
+        }
+
+        if (
+            $requireCompleteOptions
+            && $hostnameKey !== null
+            && (! isset($normalized[$hostnameKey]) || $normalized[$hostnameKey] === '')
+        ) {
+            $label = $product->hostnameOptionLabel() ?? $hostnameKey;
+
+            throw new InvalidArgumentException("The {$label} is required.");
+        }
+
         foreach (array_keys($rawOptions) as $key) {
             if (! is_string($key) || ! isset($knownKeys[$key])) {
                 throw new InvalidArgumentException("Unknown option [{$key}].");
@@ -142,12 +172,42 @@ class ConfiguratorService
 
     private function normalizeOptionValue(ProductOption $option, mixed $rawValue): mixed
     {
-        return match ($option->type) {
+        $value = match ($option->type) {
             ProductOptionType::Text => $this->normalizeText($option, $rawValue),
             ProductOptionType::Select => $this->normalizeSelect($option, $rawValue),
             ProductOptionType::Checkbox => $this->normalizeCheckbox($rawValue),
             ProductOptionType::Quantity, ProductOptionType::Number => $this->normalizeNumeric($option, $rawValue),
         };
+
+        if (
+            is_string($value)
+            && $value !== ''
+            && HostnameValidator::looksLikeHostnameFormat(
+                isset($option->config['format']) ? (string) $option->config['format'] : null,
+                $option->key,
+            )
+        ) {
+            return HostnameValidator::assertValid($value, $option->name ?: $option->key);
+        }
+
+        return $value;
+    }
+
+    private function normalizeHostnameValue(
+        mixed $rawValue,
+        string $key,
+        string $label,
+        bool $require,
+    ): ?string {
+        if ($rawValue === null || trim((string) $rawValue) === '') {
+            if ($require) {
+                throw new InvalidArgumentException("The {$label} is required.");
+            }
+
+            return null;
+        }
+
+        return HostnameValidator::assertValid((string) $rawValue, $label);
     }
 
     private function normalizeText(ProductOption $option, mixed $rawValue): ?string

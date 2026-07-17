@@ -143,10 +143,33 @@
                     @endif
                 </x-ui.card>
 
-                @if ($product->options->isNotEmpty())
+                @if ($product->requiresHostnameInput())
+                    @php
+                        $hostnameKey = $product->hostnameOptionKey();
+                        $hostnameOption = $hostnameKey ? $product->optionByKey($hostnameKey) : null;
+                        $hostnameField = 'options['.$hostnameKey.']';
+                        $hostnameOld = old('options.'.$hostnameKey);
+                        $hostnameLabel = $hostnameOption?->name ?? $product->hostnameOptionLabel();
+                    @endphp
+                    <x-ui.card :title="$hostnameLabel">
+                        <x-ui.input
+                            :name="$hostnameField"
+                            type="text"
+                            :label="$hostnameLabel.' *'"
+                            :value="$hostnameOld"
+                            :maxlength="$hostnameOption?->config['max_length'] ?? 253"
+                            :hint="$hostnameKey === 'domain'
+                                ? __('Enter the domain name to register or manage, e.g. example.com')
+                                : __('Enter a fully qualified hostname, e.g. node-01.example.com')"
+                            required
+                        />
+                    </x-ui.card>
+                @endif
+
+                @if ($product->nonHostnameOptions()->isNotEmpty())
                     <x-ui.card :title="__('Options')">
                         <div class="space-y-4">
-                            @foreach ($product->options as $option)
+                            @foreach ($product->nonHostnameOptions() as $option)
                                 @php
                                     $field = 'options['.$option->key.']';
                                     $oldValue = old('options.'.$option->key);

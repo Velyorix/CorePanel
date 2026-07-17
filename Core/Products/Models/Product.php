@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class Product extends Model
 {
@@ -294,6 +295,46 @@ class Product extends Model
         return $this->options->first(
             fn (ProductOption $option): bool => $option->key === $key,
         );
+    }
+
+    /**
+     * Whether configure must collect a hostname / domain for this product type.
+     */
+    public function requiresHostnameInput(): bool
+    {
+        return $this->type->requiresHostname();
+    }
+
+    /**
+     * Canonical options key for hostname / domain (`hostname` or `domain`).
+     */
+    public function hostnameOptionKey(): ?string
+    {
+        return $this->type->hostnameOptionKey();
+    }
+
+    public function hostnameOptionLabel(): ?string
+    {
+        return $this->type->hostnameOptionLabel();
+    }
+
+    /**
+     * Options excluding the type-driven hostname/domain key (shown in a dedicated UI card).
+     *
+     * @return Collection<int, ProductOption>
+     */
+    public function nonHostnameOptions(): Collection
+    {
+        $this->loadMissing('options');
+        $hostnameKey = $this->hostnameOptionKey();
+
+        if ($hostnameKey === null) {
+            return $this->options;
+        }
+
+        return $this->options->reject(
+            fn (ProductOption $option): bool => $option->key === $hostnameKey,
+        )->values();
     }
 
     public function addonByKey(string $key): ?ProductAddon

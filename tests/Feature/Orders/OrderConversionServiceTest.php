@@ -77,6 +77,7 @@ class OrderConversionServiceTest extends TestCase
         $order = $this->conversionService->convertFromCheckout($cart->fresh(['items']), $draft);
 
         $this->assertSame(OrderStatus::PendingPayment, $order->status);
+        $this->assertSame(\Core\Orders\Enums\OrderSource::ClientCheckout, $order->source);
         $this->assertNotNull($order->placed_at);
         $this->assertNotNull($order->order_number);
         $this->assertSame(sprintf('ORD-%s-%06d', $order->created_at->format('Ymd'), $order->id), $order->order_number);

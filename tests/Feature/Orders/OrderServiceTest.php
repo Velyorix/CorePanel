@@ -3,10 +3,17 @@
 namespace Tests\Feature\Orders;
 
 use Core\Clients\Models\Client;
+use Core\Orders\DataTransferObjects\CartItemData;
+use Core\Orders\DataTransferObjects\CheckoutDraftData;
+use Core\Orders\Enums\CartStatus;
 use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
 use Core\Orders\Models\Order;
+use Core\Orders\Services\CartService;
+use Core\Orders\Services\OrderConversionService;
 use Core\Orders\Services\OrderService;
+use Core\Products\Enums\BillingCycle;
+use Core\Products\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -187,5 +194,86 @@ class OrderServiceTest extends TestCase
 
         $paid = $this->orderService->markPaid($pending);
         $this->assertSame(OrderStatus::Paid, $paid->status);
+    }
+
+    public function test_create_from_checkout_builds_pending_payment_order_via_state_machine(): void
+    {
+        config(['corepanel.billing.tax_preview_rate' => 0.20]);
+
+        $client = Client::factory()->create();
+        $product = Product::factory()->published()->withPricing(
+            [BillingCycle::Monthly],
+            '10.00',
+            '2.00',
+        )->create(['slug' => 'order-service-checkout']);
+
+        $cartService = app(CartService::class);
+        $cart = $cartService->getOrCreate($client, null);
+        $cartService->addItem($cart, CartItemData::fromArray([
+            'product_id' => $product->id,
+            'billing_cycle' => BillingCycle::Monthly->value,
+            'quantity' => 1,
+        ]));
+
+        $draft = CheckoutDraftData::fromArray([
+            'contact_name' => 'Checkout User',
+            'contact_email' => 'checkout@example.test',
+            'address' => '9 Rue Test',
+            'city' => 'Lille',
+            'postal_code' => '59000',
+            'country' => 'FR',
+            'payment_method' => 'manual_transfer',
+        ]);
+
+        $order = $this->orderService->createFromCheckout(
+            $cart->fresh(['items.product', 'client']),
+            $draft,
+        );
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->status);
+        $this->assertSame(OrderSource::ClientCheckout, $order->source);
+        $this->assertSame($cart->id, $order->cart_id);
+        $this->assertNotNull($order->order_number);
+        $this->assertNotNull($order->placed_at);
+        $this->assertSame('10.00', $order->subtotal_recurring);
+        $this->assertSame('2.00', $order->subtotal_setup);
+        $this->assertSame('2.40', $order->tax_amount);
+        $this->assertSame('14.40', $order->total_amount);
+        $this->assertCount(1, $order->items);
+        $this->assertSame($product->name, $order->items->first()->product_name);
+        $this->assertTrue($cart->fresh()->status === CartStatus::Converted);
+    }
+
+    public function test_conversion_facade_delegates_to_order_service(): void
+    {
+        config(['corepanel.billing.tax_preview_rate' => 0]);
+
+        $client = Client::factory()->create();
+        $product = Product::factory()->published()->withPricing()->create([
+            'slug' => 'facade-checkout',
+        ]);
+
+        $cartService = app(CartService::class);
+        $cart = $cartService->getOrCreate($client, null);
+        $cartService->addItem($cart, CartItemData::fromArray([
+            'product_id' => $product->id,
+            'billing_cycle' => BillingCycle::Monthly->value,
+        ]));
+
+        $order = app(OrderConversionService::class)->convertFromCheckout(
+            $cart->fresh(['items.product', 'client']),
+            CheckoutDraftData::fromArray([
+                'contact_name' => 'Facade User',
+                'contact_email' => 'facade@example.test',
+                'address' => '1 Street',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+            ]),
+        );
+
+        $this->assertSame(OrderStatus::PendingPayment, $order->status);
+        $this->assertSame(OrderSource::ClientCheckout, $order->source);
     }
 }

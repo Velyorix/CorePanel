@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use Core\Nodes\Models\NodeGroup;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductProvisioningRules;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,6 +25,7 @@ class ProductProvisioningRulesFactory extends Factory
             'send_welcome_email' => true,
             'welcome_email_template' => null,
             'node_group_key' => null,
+            'node_group_id' => null,
             'config' => null,
         ];
     }
@@ -42,10 +44,17 @@ class ProductProvisioningRulesFactory extends Factory
         ]);
     }
 
-    public function forNodeGroup(string $key): static
+    public function forNodeGroup(NodeGroup|string $group): static
     {
+        if ($group instanceof NodeGroup) {
+            return $this->state(fn (): array => [
+                'node_group_id' => $group->id,
+                'node_group_key' => $group->key,
+            ]);
+        }
+
         return $this->state(fn (): array => [
-            'node_group_key' => $key,
+            'node_group_key' => $group,
         ]);
     }
 }

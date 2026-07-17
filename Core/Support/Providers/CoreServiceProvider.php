@@ -12,6 +12,7 @@ use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
+use Core\Nodes\Services\NodeGroupService;
 use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
@@ -48,6 +49,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(EntitlementService::class);
         $this->app->singleton(ClientService::class);
         $this->app->singleton(ProductService::class);
+        $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

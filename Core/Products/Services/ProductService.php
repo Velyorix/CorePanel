@@ -2,6 +2,7 @@
 
 namespace Core\Products\Services;
 
+use Core\Nodes\Models\NodeGroup;
 use Core\Products\DataTransferObjects\ProductAddonData;
 use Core\Products\DataTransferObjects\ProductData;
 use Core\Products\DataTransferObjects\ProductOptionData;
@@ -232,10 +233,43 @@ class ProductService
             return;
         }
 
+        $resolved = $this->resolveNodeGroupAssignment($rules);
+
         ProductProvisioningRules::query()->updateOrCreate(
             ['product_id' => $product->id],
-            $rules->toAttributes(),
+            $resolved->toAttributes(),
         );
+    }
+
+    private function resolveNodeGroupAssignment(ProductProvisioningRulesData $rules): ProductProvisioningRulesData
+    {
+        if ($rules->nodeGroupId === null && $rules->nodeGroupKey === null) {
+            return $rules->withNodeGroup(null, null);
+        }
+
+        $group = null;
+
+        if ($rules->nodeGroupId !== null) {
+            $group = NodeGroup::query()->find($rules->nodeGroupId);
+
+            if ($group === null) {
+                throw new InvalidArgumentException('The selected node group does not exist.');
+            }
+
+            if ($rules->nodeGroupKey !== null && $rules->nodeGroupKey !== $group->key) {
+                throw new InvalidArgumentException('The node group id and key do not match.');
+            }
+        } else {
+            $group = NodeGroup::query()->where('key', $rules->nodeGroupKey)->first();
+
+            if ($group === null) {
+                throw new InvalidArgumentException(
+                    "The node group [{$rules->nodeGroupKey}] does not exist.",
+                );
+            }
+        }
+
+        return $rules->withNodeGroup($group->id, $group->key);
     }
 
     private function assertCategoryExists(?int $categoryId): void

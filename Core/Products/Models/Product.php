@@ -2,6 +2,7 @@
 
 namespace Core\Products\Models;
 
+use Core\Nodes\Models\NodeGroup;
 use Core\Products\Enums\BillingCycle;
 use Core\Products\Enums\ProductModuleCapability;
 use Core\Products\Enums\ProductStatus;
@@ -221,6 +222,13 @@ class Product extends Model
         return $this->provisioningRules?->node_group_key;
     }
 
+    public function assignedNodeGroup(): ?NodeGroup
+    {
+        $this->loadMissing('provisioningRules.nodeGroup');
+
+        return $this->provisioningRules?->nodeGroup;
+    }
+
     /**
      * @param  Builder<Product>  $query
      * @return Builder<Product>
@@ -231,6 +239,29 @@ class Product extends Model
             'provisioningRules',
             fn (Builder $rules): Builder => $rules->where('auto_provision', true),
         );
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeAssignedToNodeGroup(Builder $query, int|string|NodeGroup $group): Builder
+    {
+        return $query->whereHas('provisioningRules', function (Builder $rules) use ($group): void {
+            if ($group instanceof NodeGroup) {
+                $rules->where('node_group_id', $group->id);
+
+                return;
+            }
+
+            if (is_int($group) || ctype_digit((string) $group)) {
+                $rules->where('node_group_id', (int) $group);
+
+                return;
+            }
+
+            $rules->where('node_group_key', $group);
+        });
     }
 
     public function pricingFor(BillingCycle $cycle): ?ProductPricing

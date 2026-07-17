@@ -2,6 +2,7 @@
 
 namespace Core\Products\Models;
 
+use Core\Nodes\Models\NodeGroup;
 use Database\Factories\ProductProvisioningRulesFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ class ProductProvisioningRules extends Model
         'send_welcome_email',
         'welcome_email_template',
         'node_group_key',
+        'node_group_id',
         'config',
     ];
 
@@ -46,6 +48,14 @@ class ProductProvisioningRules extends Model
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * @return BelongsTo<NodeGroup, $this>
+     */
+    public function nodeGroup(): BelongsTo
+    {
+        return $this->belongsTo(NodeGroup::class);
+    }
+
     public function shouldAutoProvision(): bool
     {
         return $this->auto_provision;
@@ -58,7 +68,7 @@ class ProductProvisioningRules extends Model
 
     public function hasNodeGroup(): bool
     {
-        return filled($this->node_group_key);
+        return $this->node_group_id !== null || filled($this->node_group_key);
     }
 
     protected static function newFactory(): ProductProvisioningRulesFactory

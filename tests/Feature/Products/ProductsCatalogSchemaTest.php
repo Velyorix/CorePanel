@@ -12,7 +12,7 @@ class ProductsCatalogSchemaTest extends TestCase
 
     public function test_products_catalog_tables_exist(): void
     {
-        foreach (['product_categories', 'products', 'product_pricing', 'product_options', 'product_addons', 'product_provisioning_rules'] as $table) {
+        foreach (['product_categories', 'products', 'product_pricing', 'product_options', 'product_addons', 'product_provisioning_rules', 'node_groups'] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
                 "Expected table [{$table}] to exist.",
@@ -143,6 +143,7 @@ class ProductsCatalogSchemaTest extends TestCase
             'send_welcome_email',
             'welcome_email_template',
             'node_group_key',
+            'node_group_id',
             'config',
             'created_at',
             'updated_at',
@@ -150,6 +151,30 @@ class ProductsCatalogSchemaTest extends TestCase
             $this->assertTrue(
                 Schema::hasColumn('product_provisioning_rules', $column),
                 "Expected product_provisioning_rules.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_node_groups_table_and_columns_exist(): void
+    {
+        $this->assertTrue(Schema::hasTable('node_groups'));
+
+        foreach ([
+            'id',
+            'name',
+            'key',
+            'location',
+            'type',
+            'description',
+            'status',
+            'sort_order',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('node_groups', $column),
+                "Expected node_groups.{$column} to exist.",
             );
         }
     }

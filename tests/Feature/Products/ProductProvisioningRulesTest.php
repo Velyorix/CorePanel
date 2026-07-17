@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Products;
 
+use Core\Nodes\Models\NodeGroup;
 use Core\Products\DataTransferObjects\ProductData;
 use Core\Products\Enums\ProductModuleCapability;
 use Core\Products\Enums\ProductStatus;
@@ -27,6 +28,8 @@ class ProductProvisioningRulesTest extends TestCase
 
     public function test_create_persists_provisioning_rules(): void
     {
+        $group = NodeGroup::factory()->create(['key' => 'eu-west']);
+
         $product = $this->productService->create(ProductData::fromArray([
             'name' => 'Auto VPS',
             'slug' => 'auto-vps',
@@ -47,6 +50,7 @@ class ProductProvisioningRulesTest extends TestCase
         $this->assertTrue($product->shouldAutoProvision());
         $this->assertTrue($product->shouldSendWelcomeEmail());
         $this->assertSame('eu-west', $product->nodeGroupKey());
+        $this->assertSame($group->id, $product->provisioningRules->node_group_id);
         $this->assertSame('products.welcome.vps', $product->provisioningRules->welcome_email_template);
         $this->assertSame(['priority' => 'high'], $product->provisioningRules->config);
         $this->assertTrue($product->provisioningRules->hasNodeGroup());
@@ -67,6 +71,9 @@ class ProductProvisioningRulesTest extends TestCase
 
     public function test_update_changes_provisioning_rules(): void
     {
+        NodeGroup::factory()->create(['key' => 'eu-central']);
+        NodeGroup::factory()->create(['key' => 'us-east']);
+
         $product = $this->productService->create(ProductData::fromArray([
             'name' => 'Rules Update',
             'slug' => 'rules-update',
@@ -99,6 +106,8 @@ class ProductProvisioningRulesTest extends TestCase
 
     public function test_omitting_rules_on_update_keeps_existing(): void
     {
+        NodeGroup::factory()->create(['key' => 'eu-west']);
+
         $product = $this->productService->create(ProductData::fromArray([
             'name' => 'Keep Rules',
             'slug' => 'keep-rules',
@@ -153,7 +162,7 @@ class ProductProvisioningRulesTest extends TestCase
     {
         Product::factory()
             ->withModule('proxmox')
-            ->withProvisioningRules(['auto_provision' => true, 'node_group_key' => 'eu-west'])
+            ->withProvisioningRules(['auto_provision' => true])
             ->create(['slug' => 'auto-on']);
 
         Product::factory()

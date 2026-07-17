@@ -188,6 +188,72 @@ class AdminProductManagementTest extends TestCase
         $this->assertTrue($product->fresh()->status === ProductStatus::Published);
     }
 
+    public function test_admin_can_unpublish_archive_and_restore_product(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Draft,
+            'name' => 'Lifecycle Plan',
+            'slug' => 'lifecycle-plan',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.publish', $product))
+            ->assertRedirect(route('admin.products.show', $product));
+        $this->assertTrue($product->fresh()->status === ProductStatus::Published);
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.unpublish', $product))
+            ->assertRedirect(route('admin.products.show', $product));
+        $this->assertTrue($product->fresh()->status === ProductStatus::Draft);
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.publish', $product))
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.archive', $product))
+            ->assertRedirect(route('admin.products.show', $product));
+        $this->assertTrue($product->fresh()->status === ProductStatus::Archived);
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.restore', $product))
+            ->assertRedirect(route('admin.products.show', $product));
+        $this->assertTrue($product->fresh()->status === ProductStatus::Draft);
+    }
+
+    public function test_invalid_status_transition_returns_error(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Archived,
+            'slug' => 'archived-plan',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.products.show', $product))
+            ->post(route('admin.products.publish', $product))
+            ->assertRedirect(route('admin.products.show', $product))
+            ->assertSessionHasErrors('status');
+
+        $this->assertTrue($product->fresh()->status === ProductStatus::Archived);
+    }
+
+    public function test_support_cannot_publish_products(): void
+    {
+        $support = User::factory()->withRole('support')->create();
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Draft,
+            'slug' => 'support-blocked',
+        ]);
+
+        $this->actingAs($support)
+            ->post(route('admin.products.publish', $product))
+            ->assertForbidden();
+
+        $this->assertTrue($product->fresh()->status === ProductStatus::Draft);
+    }
+
     public function test_admin_can_manage_categories(): void
     {
         $admin = User::factory()->withRole('admin')->create();

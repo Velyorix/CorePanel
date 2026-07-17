@@ -4,6 +4,7 @@ use App\Http\Controllers\Client\CartController;
 use App\Http\Controllers\Client\CatalogController;
 use App\Http\Controllers\Client\CheckoutController;
 use App\Http\Controllers\Client\DashboardController;
+use App\Http\Controllers\Client\OrderController;
 use App\Http\Controllers\Client\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,9 @@ Route::middleware('client')
         Route::get('checkout/complete', [CheckoutController::class, 'complete'])->name('checkout.complete');
         Route::post('checkout/place', [CheckoutController::class, 'placeOrder'])->name('checkout.place');
         Route::get('checkout/orders/{order}', [CheckoutController::class, 'placed'])->name('checkout.placed');
+
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

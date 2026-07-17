@@ -100,6 +100,45 @@ class OrderService
     }
 
     /**
+     * Client order history — excludes drafts (roadmap 11.6).
+     *
+     * @param  array{
+     *     status?: OrderStatus|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForClient(Client $client, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'placed_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, ['order_number', 'status', 'total_amount', 'placed_at', 'created_at'], true)) {
+            $sort = 'placed_at';
+        }
+
+        $query = Order::query()
+            ->where('client_id', $client->id)
+            ->where('status', '!=', OrderStatus::Draft->value)
+            ->with(['items']);
+
+        if ($status instanceof OrderStatus) {
+            if ($status === OrderStatus::Draft) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('status', $status->value);
+            }
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
      * @param  array{
      *     currency?: string|null,
      *     payment_method?: string|null,

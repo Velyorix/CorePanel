@@ -69,6 +69,12 @@ class ClientNavigation
                         'permission' => 'client.access',
                     ],
                     [
+                        'label' => __('Orders'),
+                        'route' => 'client.orders.index',
+                        'routeIs' => ['client.orders.*', 'client.checkout.placed'],
+                        'permission' => 'client.orders.view',
+                    ],
+                    [
                         'label' => __('Services'),
                         'route' => null,
                         'permission' => 'client.services.view',

@@ -69,11 +69,14 @@
             </x-ui.card>
 
             <div class="flex flex-wrap gap-2">
-                <x-ui.button :href="route('client.catalog.index')" variant="primary">
-                    {{ __('Continue shopping') }}
+                <x-ui.button :href="route('client.orders.show', $order)" variant="primary">
+                    {{ __('View order') }}
                 </x-ui.button>
-                <x-ui.button :href="route('client.dashboard')" variant="secondary">
-                    {{ __('Back to dashboard') }}
+                <x-ui.button :href="route('client.orders.index')" variant="secondary">
+                    {{ __('Order history') }}
+                </x-ui.button>
+                <x-ui.button :href="route('client.catalog.index')" variant="secondary">
+                    {{ __('Continue shopping') }}
                 </x-ui.button>
             </div>
         </div>

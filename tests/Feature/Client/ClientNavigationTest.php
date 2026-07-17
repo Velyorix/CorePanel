@@ -51,6 +51,7 @@ class ClientNavigationTest extends TestCase
             __('Dashboard'),
             __('Catalog'),
             __('Cart'),
+            __('Orders'),
             __('Services'),
             __('Invoices'),
             __('Payments'),
@@ -87,6 +88,7 @@ class ClientNavigationTest extends TestCase
         $this->assertContains(__('Themes'), $labels);
         $this->assertNotContains(__('Services'), $labels);
         $this->assertNotContains(__('Invoices'), $labels);
+        $this->assertNotContains(__('Orders'), $labels);
         $this->assertNotContains(__('Profile'), $labels);
     }
 
@@ -161,5 +163,19 @@ class ClientNavigationTest extends TestCase
         $this->assertNotNull($cartItem);
         $this->assertFalse($cartItem['placeholder']);
         $this->assertSame(route('client.cart.index'), $cartItem['url']);
+    }
+
+    public function test_orders_item_links_to_client_orders_route(): void
+    {
+        $client = User::factory()->withRole('client')->create();
+        $sections = app(ClientNavigation::class)->forUser($client);
+
+        $ordersItem = collect($sections)
+            ->flatMap(fn (array $section) => $section['items'])
+            ->firstWhere('label', __('Orders'));
+
+        $this->assertNotNull($ordersItem);
+        $this->assertFalse($ordersItem['placeholder']);
+        $this->assertSame(route('client.orders.index'), $ordersItem['url']);
     }
 }

@@ -3,10 +3,12 @@
 namespace Core\Products\Services;
 
 use Core\Products\DataTransferObjects\ProductData;
+use Core\Products\DataTransferObjects\ProductOptionData;
 use Core\Products\DataTransferObjects\ProductPricingData;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
+use Core\Products\Models\ProductOption;
 use Core\Products\Models\ProductPricing;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -23,8 +25,9 @@ class ProductService
             $product = Product::query()->create($data->toAttributes());
 
             $this->syncPricing($product, $data->pricing);
+            $this->syncOptions($product, $data->options);
 
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         });
     }
 
@@ -41,8 +44,9 @@ class ProductService
             $product->update($data->toAttributes());
 
             $this->syncPricing($product, $data->pricing);
+            $this->syncOptions($product, $data->options);
 
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         });
     }
 
@@ -54,7 +58,7 @@ class ProductService
     public function publish(Product $product): Product
     {
         if ($product->status === ProductStatus::Published) {
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         }
 
         if (! $product->status->canTransitionTo(ProductStatus::Published)) {
@@ -67,7 +71,7 @@ class ProductService
     public function unpublish(Product $product): Product
     {
         if ($product->status === ProductStatus::Draft) {
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         }
 
         if ($product->status !== ProductStatus::Published) {
@@ -80,7 +84,7 @@ class ProductService
     public function archive(Product $product): Product
     {
         if ($product->status === ProductStatus::Archived) {
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         }
 
         if (! $product->status->canTransitionTo(ProductStatus::Archived)) {
@@ -96,7 +100,7 @@ class ProductService
     public function restore(Product $product): Product
     {
         if ($product->status === ProductStatus::Draft) {
-            return $product->fresh(['category', 'pricing']) ?? $product;
+            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
         }
 
         if ($product->status !== ProductStatus::Archived) {
@@ -110,7 +114,7 @@ class ProductService
     {
         $product->forceFill(['status' => $target])->save();
 
-        return $product->fresh(['category', 'pricing']) ?? $product;
+        return $product->fresh(['category', 'pricing', 'options']) ?? $product;
     }
 
     /**
@@ -141,6 +145,36 @@ class ProductService
         }
 
         $query->whereNotIn('billing_cycle', $keepCycles)->delete();
+    }
+
+    /**
+     * @param  list<ProductOptionData>  $options
+     */
+    private function syncOptions(Product $product, array $options): void
+    {
+        $keepKeys = [];
+
+        foreach ($options as $option) {
+            $keepKeys[] = $option->key;
+
+            ProductOption::query()->updateOrCreate(
+                [
+                    'product_id' => $product->id,
+                    'key' => $option->key,
+                ],
+                $option->toAttributes(),
+            );
+        }
+
+        $query = ProductOption::query()->where('product_id', $product->id);
+
+        if ($keepKeys === []) {
+            $query->delete();
+
+            return;
+        }
+
+        $query->whereNotIn('key', $keepKeys)->delete();
     }
 
     private function assertCategoryExists(?int $categoryId): void

@@ -11,6 +11,7 @@ readonly class ProductData
 {
     /**
      * @param  list<ProductPricingData>  $pricing
+     * @param  list<ProductOptionData>  $options
      */
     public function __construct(
         public string $name,
@@ -22,6 +23,7 @@ readonly class ProductData
         public ProductStatus $status = ProductStatus::Draft,
         public int $sortOrder = 0,
         public array $pricing = [],
+        public array $options = [],
     ) {
     }
 
@@ -35,7 +37,8 @@ readonly class ProductData
      *     module?: string|null,
      *     status?: string|null,
      *     sort_order?: int|null,
-     *     pricing?: list<array<string, mixed>>|null
+     *     pricing?: list<array<string, mixed>>|null,
+     *     options?: list<array<string, mixed>>|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -77,6 +80,24 @@ readonly class ProductData
             $pricing[] = $pricingData;
         }
 
+        $options = [];
+        $seenKeys = [];
+
+        foreach ($data['options'] ?? [] as $option) {
+            if (! is_array($option)) {
+                throw new InvalidArgumentException('Each product option must be an array.');
+            }
+
+            $optionData = ProductOptionData::fromArray($option);
+
+            if (isset($seenKeys[$optionData->key])) {
+                throw new InvalidArgumentException("Duplicate option key [{$optionData->key}].");
+            }
+
+            $seenKeys[$optionData->key] = true;
+            $options[] = $optionData;
+        }
+
         return new self(
             name: $name,
             slug: $slug,
@@ -87,6 +108,7 @@ readonly class ProductData
             status: $status,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             pricing: $pricing,
+            options: $options,
         );
     }
 

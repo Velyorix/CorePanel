@@ -97,12 +97,41 @@ class Product extends Model
         return $this->pricing()->where('is_enabled', true);
     }
 
+    /**
+     * Configurable options for the product configurator.
+     *
+     * @return HasMany<ProductOption, $this>
+     */
+    public function options(): HasMany
+    {
+        return $this->hasMany(ProductOption::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Required configurable options only.
+     *
+     * @return HasMany<ProductOption, $this>
+     */
+    public function requiredOptions(): HasMany
+    {
+        return $this->options()->where('required', true);
+    }
+
     public function pricingFor(BillingCycle $cycle): ?ProductPricing
     {
         $this->loadMissing('pricing');
 
         return $this->pricing->first(
             fn (ProductPricing $tier): bool => $tier->billing_cycle === $cycle,
+        );
+    }
+
+    public function optionByKey(string $key): ?ProductOption
+    {
+        $this->loadMissing('options');
+
+        return $this->options->first(
+            fn (ProductOption $option): bool => $option->key === $key,
         );
     }
 

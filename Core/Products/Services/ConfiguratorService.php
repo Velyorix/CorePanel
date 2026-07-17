@@ -17,9 +17,13 @@ class ConfiguratorService
 {
     /**
      * @param  array<string, mixed>  $input
+     * @param  bool  $requireCompleteOptions  When false, missing required options are ignored (price preview).
      */
-    public function buildCartItem(Product $product, array $input): CartItemData
-    {
+    public function buildCartItem(
+        Product $product,
+        array $input,
+        bool $requireCompleteOptions = true,
+    ): CartItemData {
         if ($product->status !== ProductStatus::Published) {
             throw new InvalidArgumentException('Only published products can be configured.');
         }
@@ -71,7 +75,11 @@ class ConfiguratorService
             );
         }
 
-        $options = $this->normalizeOptions($product, $input['options'] ?? []);
+        $options = $this->normalizeOptions(
+            $product,
+            $input['options'] ?? [],
+            $requireCompleteOptions,
+        );
         $addons = $this->normalizeAddons($product, $input['addons'] ?? []);
 
         return CartItemData::fromArray([
@@ -89,8 +97,11 @@ class ConfiguratorService
      * @param  mixed  $rawOptions
      * @return array<string, mixed>|null
      */
-    private function normalizeOptions(Product $product, mixed $rawOptions): ?array
-    {
+    private function normalizeOptions(
+        Product $product,
+        mixed $rawOptions,
+        bool $requireCompleteOptions = true,
+    ): ?array {
         if ($rawOptions === null) {
             $rawOptions = [];
         }
@@ -107,7 +118,11 @@ class ConfiguratorService
             $rawValue = $rawOptions[$option->key] ?? null;
             $value = $this->normalizeOptionValue($option, $rawValue);
 
-            if ($option->required && $this->isEmptyOptionValue($option, $value)) {
+            if (
+                $requireCompleteOptions
+                && $option->required
+                && $this->isEmptyOptionValue($option, $value)
+            ) {
                 throw new InvalidArgumentException("The option [{$option->key}] is required.");
             }
 

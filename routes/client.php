@@ -26,6 +26,7 @@ Route::middleware('client')
         Route::get('catalog/categories/{category}', [CatalogController::class, 'category'])->name('catalog.category');
         Route::get('catalog/products/{product}/configure', [CatalogController::class, 'configure'])->name('catalog.products.configure');
         Route::post('catalog/products/{product}/configure', [CatalogController::class, 'store'])->name('catalog.products.configure.store');
+        Route::post('catalog/products/{product}/configure/preview', [CatalogController::class, 'preview'])->name('catalog.products.configure.preview');
         Route::get('catalog/products/{product}', [CatalogController::class, 'show'])->name('catalog.products.show');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');

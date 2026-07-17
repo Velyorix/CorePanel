@@ -258,6 +258,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Billing (preview stubs until étape 12)
+    |--------------------------------------------------------------------------
+    */
+
+    'billing' => [
+        /*
+        | Tax rate used only for catalog configurator previews (roadmap 10.5).
+        | Real TaxCalculationService arrives in étape 12.4.
+        */
+        'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
+        'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | RBAC (CDC Tome 4 §8, Tome 5)
     |--------------------------------------------------------------------------
     */

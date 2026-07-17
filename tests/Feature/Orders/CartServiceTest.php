@@ -171,6 +171,11 @@ class CartServiceTest extends TestCase
         ]));
 
         $this->assertSame(['backup'], $item->addons);
+        $this->assertSame(
+            number_format((float) $item->unit_price, 2, '.', ''),
+            $item->unit_price,
+        );
+        $this->assertGreaterThan((float) $product->pricingFor(BillingCycle::Monthly)->price, (float) $item->unit_price);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Addon [missing] is not available');

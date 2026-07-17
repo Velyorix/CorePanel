@@ -108,12 +108,87 @@ class ClientProductConfiguratorTest extends TestCase
 
         $this->assertSame($product->id, $item->product_id);
         $this->assertSame(BillingCycle::Monthly, $item->billing_cycle);
-        $this->assertSame('19.99', $item->unit_price);
+        $this->assertSame('32.99', $item->unit_price);
+        $this->assertSame('6.00', $item->setup_fee);
         $this->assertSame([
             'hostname' => 'node-01.example.test',
             'ram_size' => '8gb',
         ], $item->options);
         $this->assertSame(['backup'], $item->addons);
+    }
+
+    public function test_price_preview_includes_options_addons_and_tax_stub(): void
+    {
+        $user = User::factory()->withRole('client')->create();
+        $product = $this->makeConfigurableProduct();
+
+        config([
+            'corepanel.billing.tax_preview_rate' => 0.20,
+            'corepanel.billing.tax_preview_label' => 'VAT (estimate)',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('client.catalog.products.configure.preview', $product->slug), [
+                'billing_cycle' => BillingCycle::Monthly->value,
+                'quantity' => 2,
+                'options' => [
+                    'hostname' => 'node-01.example.test',
+                    'ram_size' => '8gb',
+                ],
+                'addons' => ['backup'],
+            ])
+            ->assertOk()
+            ->assertJson([
+                'base_price' => '19.99',
+                'option_deltas' => '10.00',
+                'addons_recurring' => '3.00',
+                'unit_price' => '32.99',
+                'product_setup_fee' => '5.00',
+                'addons_setup_fee' => '1.00',
+                'setup_fee' => '6.00',
+                'quantity' => 2,
+                'recurring_subtotal' => '65.98',
+                'first_payment_subtotal' => '71.98',
+                'tax_rate' => '0.2000',
+                'tax_label' => 'VAT (estimate)',
+                'tax_is_estimate' => true,
+                'tax_engine' => 'stub',
+                'first_payment_tax' => '14.40',
+                'first_payment_total' => '86.38',
+            ]);
+    }
+
+    public function test_price_preview_allows_incomplete_required_options(): void
+    {
+        $user = User::factory()->withRole('client')->create();
+        $product = $this->makeConfigurableProduct();
+
+        $this->actingAs($user)
+            ->postJson(route('client.catalog.products.configure.preview', $product->slug), [
+                'billing_cycle' => BillingCycle::Monthly->value,
+                'quantity' => 1,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'base_price' => '19.99',
+                'option_deltas' => '0.00',
+                'unit_price' => '19.99',
+                'setup_fee' => '5.00',
+                'first_payment_subtotal' => '24.99',
+            ]);
+    }
+
+    public function test_configurator_page_shows_live_summary_labels(): void
+    {
+        $user = User::factory()->withRole('client')->create();
+        $product = $this->makeConfigurableProduct();
+
+        $this->actingAs($user)
+            ->get(route('client.catalog.products.configure', $product->slug))
+            ->assertOk()
+            ->assertSee(__('Unit price'))
+            ->assertSee(__('First payment total'))
+            ->assertSee(__('Tax is an estimate; final VAT is calculated at checkout.'));
     }
 
     public function test_missing_required_option_is_rejected(): void

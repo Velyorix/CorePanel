@@ -6,6 +6,29 @@
     $selectedPricing = $product->pricing->first(
         fn ($tier) => $tier->billing_cycle->value === $selectedCycle,
     );
+    $initialPreview = $pricePreview ?? [
+        'base_price' => $selectedPricing?->price ?? '0.00',
+        'option_deltas' => '0.00',
+        'addons_recurring' => '0.00',
+        'unit_price' => $selectedPricing?->price ?? '0.00',
+        'product_setup_fee' => $selectedPricing?->setup_fee ?? '0.00',
+        'addons_setup_fee' => '0.00',
+        'setup_fee' => $selectedPricing?->setup_fee ?? '0.00',
+        'quantity' => 1,
+        'recurring_subtotal' => $selectedPricing?->price ?? '0.00',
+        'first_payment_subtotal' => $selectedPricing
+            ? number_format((float) $selectedPricing->price + (float) $selectedPricing->setup_fee, 2, '.', '')
+            : '0.00',
+        'tax_rate' => '0.0000',
+        'tax_label' => __('Tax (estimate)'),
+        'tax_is_estimate' => true,
+        'recurring_tax' => '0.00',
+        'first_payment_tax' => '0.00',
+        'recurring_total' => $selectedPricing?->price ?? '0.00',
+        'first_payment_total' => $selectedPricing
+            ? number_format((float) $selectedPricing->price + (float) $selectedPricing->setup_fee, 2, '.', '')
+            : '0.00',
+    ];
 @endphp
 
 <x-layout.client
@@ -62,7 +85,15 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('client.catalog.products.configure.store', $product->slug) }}" class="space-y-6">
+    <form
+        method="POST"
+        action="{{ route('client.catalog.products.configure.store', $product->slug) }}"
+        class="space-y-6"
+        x-data="productConfiguratorPreview({
+            previewUrl: @js(route('client.catalog.products.configure.preview', $product->slug)),
+            initial: @js($initialPreview),
+        })"
+    >
         @csrf
 
         <div class="grid gap-6 lg:grid-cols-3">
@@ -217,16 +248,59 @@
                         </div>
                         <div class="flex justify-between gap-4">
                             <dt class="text-muted-foreground">{{ __('Base price') }}</dt>
-                            <dd>{{ $selectedPricing?->price ?? '—' }}</dd>
+                            <dd x-text="preview.base_price ?? '—'">{{ $initialPreview['base_price'] ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Options') }}</dt>
+                            <dd x-text="preview.option_deltas ?? '0.00'">{{ $initialPreview['option_deltas'] ?? '0.00' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Addons') }}</dt>
+                            <dd x-text="preview.addons_recurring ?? '0.00'">{{ $initialPreview['addons_recurring'] ?? '0.00' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4 font-medium">
+                            <dt>{{ __('Unit price') }}</dt>
+                            <dd x-text="preview.unit_price ?? '—'">{{ $initialPreview['unit_price'] ?? '—' }}</dd>
                         </div>
                         <div class="flex justify-between gap-4">
                             <dt class="text-muted-foreground">{{ __('Setup fee') }}</dt>
-                            <dd>{{ $selectedPricing?->setup_fee ?? '—' }}</dd>
+                            <dd x-text="preview.setup_fee ?? '—'">{{ $initialPreview['setup_fee'] ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Recurring (excl. tax)') }}</dt>
+                            <dd x-text="preview.recurring_subtotal ?? '—'">{{ $initialPreview['recurring_subtotal'] ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('First payment (excl. tax)') }}</dt>
+                            <dd x-text="preview.first_payment_subtotal ?? '—'">{{ $initialPreview['first_payment_subtotal'] ?? '—' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground" x-text="preview.tax_label || @js(__('Tax (estimate)'))"></dt>
+                            <dd x-text="preview.first_payment_tax ?? '0.00'">{{ $initialPreview['first_payment_tax'] ?? '0.00' }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4 border-t border-border pt-3 font-medium">
+                            <dt>{{ __('First payment total') }}</dt>
+                            <dd x-text="preview.first_payment_total ?? '—'">{{ $initialPreview['first_payment_total'] ?? '—' }}</dd>
                         </div>
                     </dl>
 
-                    <p class="mt-4 text-small text-muted-foreground">
-                        {{ __('Live totals with option and addon pricing arrive in the next step.') }}
+                    <p class="mt-3 text-small text-muted-foreground" x-show="preview.tax_is_estimate" x-cloak>
+                        {{ __('Tax is an estimate; final VAT is calculated at checkout.') }}
+                    </p>
+
+                    <p
+                        class="mt-2 text-small text-danger-700 dark:text-danger-400"
+                        x-show="error"
+                        x-text="error"
+                        x-cloak
+                    ></p>
+
+                    <p
+                        class="mt-2 text-small text-muted-foreground"
+                        x-show="loading"
+                        x-cloak
+                    >
+                        {{ __('Updating price…') }}
                     </p>
 
                     <div class="mt-4">

@@ -10,12 +10,18 @@ use Core\Orders\Models\CartItem;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductPricing;
+use Core\Products\Services\ProductPricingCalculator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
 
 class CartService
 {
+    public function __construct(
+        private readonly ProductPricingCalculator $pricingCalculator,
+    ) {
+    }
+
     /**
      * Resolve an open cart for a guest session and/or authenticated client.
      * Creates one when missing.
@@ -88,7 +94,9 @@ class CartService
         $pricing = $this->resolveEnabledPricing($product, $data);
         $this->assertAddonsBelongToProduct($product, $data->addons);
 
-        return DB::transaction(function () use ($cart, $product, $pricing, $data): CartItem {
+        $breakdown = $this->pricingCalculator->configuredBreakdownFromCartItem($product, $data);
+
+        return DB::transaction(function () use ($cart, $product, $pricing, $data, $breakdown): CartItem {
             $cart->refresh();
             $this->assertCartIsMutable($cart);
 
@@ -100,8 +108,8 @@ class CartService
                 'options' => $data->options,
                 'addons' => $data->addons,
                 'config_data' => $data->configData,
-                'unit_price' => $this->money($pricing->price),
-                'setup_fee' => $this->money($pricing->setup_fee),
+                'unit_price' => $breakdown['unit_price'],
+                'setup_fee' => $breakdown['setup_fee'],
             ]);
 
             $fingerprint = $candidate->configurationFingerprint();

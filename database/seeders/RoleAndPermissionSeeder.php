@@ -98,6 +98,11 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'clients.delete', 'module' => 'core', 'description' => 'Delete clients'],
             ['name' => 'clients.impersonate', 'module' => 'core', 'description' => 'Impersonate clients'],
 
+            ['name' => 'products.view', 'module' => 'products', 'description' => 'View products and categories'],
+            ['name' => 'products.create', 'module' => 'products', 'description' => 'Create products and categories'],
+            ['name' => 'products.update', 'module' => 'products', 'description' => 'Update products and categories'],
+            ['name' => 'products.delete', 'module' => 'products', 'description' => 'Delete products and categories'],
+
             ['name' => 'roles.view', 'module' => 'core', 'description' => 'View roles and permissions'],
             ['name' => 'roles.manage', 'module' => 'core', 'description' => 'Manage roles and permissions'],
 
@@ -153,6 +158,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'admin.access',
                     'users.*',
                     'clients.*',
+                    'products.*',
                     'roles.view',
                     'settings.view',
                     'settings.manage',
@@ -170,6 +176,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'permissions' => [
                     'admin.access',
                     'clients.view',
+                    'products.view',
                     'services.view',
                     'billing.invoices.view',
                     'tickets.*',

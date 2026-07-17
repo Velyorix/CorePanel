@@ -84,7 +84,21 @@ class AdminNavigation
                     [
                         'label' => __('Products'),
                         'route' => null,
-                        'permission' => null,
+                        'permission' => 'products.view',
+                        'children' => [
+                            [
+                                'label' => __('Catalog'),
+                                'route' => 'admin.products.index',
+                                'routeIs' => ['admin.products.*'],
+                                'permission' => 'products.view',
+                            ],
+                            [
+                                'label' => __('Categories'),
+                                'route' => 'admin.product-categories.index',
+                                'routeIs' => ['admin.product-categories.*'],
+                                'permission' => 'products.view',
+                            ],
+                        ],
                     ],
                     [
                         'label' => __('Services'),

@@ -1,0 +1,312 @@
+<?php
+
+namespace Core\Products\Models;
+
+use Core\Nodes\Models\NodeGroup;
+use Core\Products\Enums\BillingCycle;
+use Core\Products\Enums\ProductModuleCapability;
+use Core\Products\Enums\ProductStatus;
+use Core\Products\Enums\ProductType;
+use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Product extends Model
+{
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory;
+    use SoftDeletes;
+
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'category_id',
+        'name',
+        'slug',
+        'description',
+        'type',
+        'module',
+        'module_capabilities',
+        'status',
+        'sort_order',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'type' => ProductType::class,
+            'status' => ProductStatus::class,
+            'module_capabilities' => 'array',
+            'sort_order' => 'integer',
+        ];
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeOfType(Builder $query, ProductType $type): Builder
+    {
+        return $query->where('type', $type->value);
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeCatalog(Builder $query): Builder
+    {
+        return $query->whereIn(
+            'type',
+            array_map(
+                static fn (ProductType $type): string => $type->value,
+                ProductType::catalogTypes(),
+            ),
+        );
+    }
+
+    /**
+     * Products linked to a provider module.
+     *
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeWithModule(Builder $query, ?string $module = null): Builder
+    {
+        if ($module === null) {
+            return $query->whereNotNull('module');
+        }
+
+        return $query->where('module', $module);
+    }
+
+    public function hasModule(): bool
+    {
+        return filled($this->module);
+    }
+
+    public function usesModule(string $module): bool
+    {
+        return $this->module === $module;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function requiredCapabilities(): array
+    {
+        $capabilities = $this->module_capabilities ?? [];
+
+        return is_array($capabilities) ? array_values($capabilities) : [];
+    }
+
+    public function requiresCapability(string|ProductModuleCapability $capability): bool
+    {
+        $value = $capability instanceof ProductModuleCapability
+            ? $capability->value
+            : $capability;
+
+        return in_array($value, $this->requiredCapabilities(), true);
+    }
+
+    public function requiresAllCapabilities(string ...$capabilities): bool
+    {
+        foreach ($capabilities as $capability) {
+            if (! $this->requiresCapability($capability)) {
+                return false;
+            }
+        }
+
+        return $capabilities !== [];
+    }
+
+    /**
+     * @return BelongsTo<ProductCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    /**
+     * Pricing tiers keyed by billing cycle.
+     *
+     * @return HasMany<ProductPricing, $this>
+     */
+    public function pricing(): HasMany
+    {
+        return $this->hasMany(ProductPricing::class);
+    }
+
+    /**
+     * Enabled pricing tiers only.
+     *
+     * @return HasMany<ProductPricing, $this>
+     */
+    public function enabledPricing(): HasMany
+    {
+        return $this->pricing()->where('is_enabled', true);
+    }
+
+    /**
+     * Configurable options for the product configurator.
+     *
+     * @return HasMany<ProductOption, $this>
+     */
+    public function options(): HasMany
+    {
+        return $this->hasMany(ProductOption::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Required configurable options only.
+     *
+     * @return HasMany<ProductOption, $this>
+     */
+    public function requiredOptions(): HasMany
+    {
+        return $this->options()->where('required', true);
+    }
+
+    /**
+     * Billable addons attached to this product (separate billing from base pricing).
+     *
+     * @return HasMany<ProductAddon, $this>
+     */
+    public function addons(): HasMany
+    {
+        return $this->hasMany(ProductAddon::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Enabled addons only.
+     *
+     * @return HasMany<ProductAddon, $this>
+     */
+    public function enabledAddons(): HasMany
+    {
+        return $this->addons()->where('is_enabled', true);
+    }
+
+    /**
+     * Provisioning behaviour for this product (auto-provision, welcome email, node group).
+     *
+     * @return HasOne<ProductProvisioningRules, $this>
+     */
+    public function provisioningRules(): HasOne
+    {
+        return $this->hasOne(ProductProvisioningRules::class);
+    }
+
+    public function shouldAutoProvision(): bool
+    {
+        return $this->provisioningRules?->shouldAutoProvision() ?? false;
+    }
+
+    public function shouldSendWelcomeEmail(): bool
+    {
+        return $this->provisioningRules?->shouldSendWelcomeEmail() ?? true;
+    }
+
+    public function nodeGroupKey(): ?string
+    {
+        return $this->provisioningRules?->node_group_key;
+    }
+
+    public function assignedNodeGroup(): ?NodeGroup
+    {
+        $this->loadMissing('provisioningRules.nodeGroup');
+
+        return $this->provisioningRules?->nodeGroup;
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeAutoProvisionable(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'provisioningRules',
+            fn (Builder $rules): Builder => $rules->where('auto_provision', true),
+        );
+    }
+
+    /**
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeAssignedToNodeGroup(Builder $query, int|string|NodeGroup $group): Builder
+    {
+        return $query->whereHas('provisioningRules', function (Builder $rules) use ($group): void {
+            if ($group instanceof NodeGroup) {
+                $rules->where('node_group_id', $group->id);
+
+                return;
+            }
+
+            if (is_int($group) || ctype_digit((string) $group)) {
+                $rules->where('node_group_id', (int) $group);
+
+                return;
+            }
+
+            $rules->where('node_group_key', $group);
+        });
+    }
+
+    public function pricingFor(BillingCycle $cycle): ?ProductPricing
+    {
+        $this->loadMissing('pricing');
+
+        return $this->pricing->first(
+            fn (ProductPricing $tier): bool => $tier->billing_cycle === $cycle,
+        );
+    }
+
+    /**
+     * @return list<BillingCycle>
+     */
+    public function enabledBillingCycles(): array
+    {
+        $this->loadMissing('pricing');
+
+        return $this->pricing
+            ->where('is_enabled', true)
+            ->map(fn (ProductPricing $tier): BillingCycle => $tier->billing_cycle)
+            ->values()
+            ->all();
+    }
+
+    public function optionByKey(string $key): ?ProductOption
+    {
+        $this->loadMissing('options');
+
+        return $this->options->first(
+            fn (ProductOption $option): bool => $option->key === $key,
+        );
+    }
+
+    public function addonByKey(string $key): ?ProductAddon
+    {
+        $this->loadMissing('addons');
+
+        return $this->addons->first(
+            fn (ProductAddon $addon): bool => $addon->key === $key,
+        );
+    }
+
+    protected static function newFactory(): ProductFactory
+    {
+        return ProductFactory::new();
+    }
+}

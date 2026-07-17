@@ -13,6 +13,7 @@ use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeGroupService;
+use Core\Orders\Services\CartService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\ProductCategoryService;
@@ -58,6 +59,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProductCategoryService::class);
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
+        $this->app->singleton(CartService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

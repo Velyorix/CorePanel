@@ -34,6 +34,30 @@ enum OrderStatus: string
     }
 
     /**
+     * Lifecycle graph for OrderService (roadmap 11.2).
+     * Roadmap "pending" maps to PendingPayment.
+     *
+     * @return list<self>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::Draft => [self::PendingPayment, self::Cancelled],
+            self::PendingPayment => [self::Paid, self::Cancelled],
+            self::Paid, self::Cancelled => [],
+        };
+    }
+
+    public function canTransitionTo(self $target): bool
+    {
+        if ($this === $target) {
+            return false;
+        }
+
+        return in_array($target, $this->allowedTransitions(), true);
+    }
+
+    /**
      * @return list<string>
      */
     public static function values(): array

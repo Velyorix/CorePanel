@@ -17,6 +17,7 @@ use Core\Orders\Services\CartService;
 use Core\Orders\Services\CartSummary;
 use Core\Orders\Services\CheckoutDraftService;
 use Core\Orders\Services\OrderConversionService;
+use Core\Orders\Services\OrderService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogPricePreview;
@@ -72,6 +73,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CartSummary::class);
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
+        $this->app->singleton(OrderService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

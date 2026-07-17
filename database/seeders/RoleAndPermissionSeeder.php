@@ -106,6 +106,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'products.update', 'module' => 'products', 'description' => 'Update products and categories'],
             ['name' => 'products.delete', 'module' => 'products', 'description' => 'Delete products and categories'],
 
+            ['name' => 'orders.view', 'module' => 'orders', 'description' => 'View orders'],
+            ['name' => 'orders.manage', 'module' => 'orders', 'description' => 'Manage order status and manual actions'],
+
             ['name' => 'roles.view', 'module' => 'core', 'description' => 'View roles and permissions'],
             ['name' => 'roles.manage', 'module' => 'core', 'description' => 'Manage roles and permissions'],
 
@@ -162,6 +165,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'users.*',
                     'clients.*',
                     'products.*',
+                    'orders.*',
                     'roles.view',
                     'settings.view',
                     'settings.manage',
@@ -180,6 +184,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'admin.access',
                     'clients.view',
                     'products.view',
+                    'orders.view',
                     'services.view',
                     'billing.invoices.view',
                     'tickets.*',

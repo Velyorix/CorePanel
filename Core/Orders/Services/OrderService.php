@@ -14,6 +14,7 @@ use Core\Orders\Models\Cart;
 use Core\Orders\Models\CartItem;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
@@ -26,6 +27,76 @@ class OrderService
     public function __construct(
         private readonly CartSummary $cartSummary,
     ) {
+    }
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: OrderStatus|null,
+     *     source?: OrderSource|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $source = $filters['source'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'order_number',
+            'status',
+            'source',
+            'total_amount',
+            'placed_at',
+            'created_at',
+        ], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Order::query()->with(['client', 'items']);
+
+        if ($status instanceof OrderStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if ($source instanceof OrderSource) {
+            $query->where('source', $source->value);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($search, $term): void {
+                $builder
+                    ->where('order_number', 'like', $term)
+                    ->orWhere('contact_name', 'like', $term)
+                    ->orWhere('contact_email', 'like', $term)
+                    ->orWhere('company_name', 'like', $term)
+                    ->orWhereHas('client', function ($clientQuery) use ($term): void {
+                        $clientQuery
+                            ->where('company_name', 'like', $term)
+                            ->orWhereHas('owner', function ($ownerQuery) use ($term): void {
+                                $ownerQuery
+                                    ->where('name', 'like', $term)
+                                    ->orWhere('email', 'like', $term);
+                            });
+                    });
+
+                if (ctype_digit($search)) {
+                    $builder->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     /**

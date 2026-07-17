@@ -172,8 +172,9 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Orders'),
-                        'route' => null,
-                        'permission' => null,
+                        'route' => 'admin.orders.index',
+                        'routeIs' => ['admin.orders.*'],
+                        'permission' => 'orders.view',
                     ],
                     [
                         'label' => __('Modules'),

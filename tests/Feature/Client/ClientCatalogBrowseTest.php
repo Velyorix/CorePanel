@@ -91,7 +91,7 @@ class ClientCatalogBrowseTest extends TestCase
             ->assertSee('Published Cloud')
             ->assertSee($published->type->label())
             ->assertSee(__('Configure'))
-            ->assertSee(__('Product configuration and add to cart will be available soon.'));
+            ->assertSee(route('client.catalog.products.configure', 'published-cloud'), false);
     }
 
     public function test_hidden_category_and_draft_product_return_not_found(): void

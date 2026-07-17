@@ -95,6 +95,41 @@ class CatalogService
         return $product;
     }
 
+    public function findPublishedProductForConfigure(string $slug): Product
+    {
+        $product = $this->publishedCatalogQuery()
+            ->where('slug', $slug)
+            ->with([
+                'category',
+                'options' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+                'addons' => fn ($query) => $query
+                    ->where('is_enabled', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('id'),
+                'pricing' => fn ($query) => $query
+                    ->where('is_enabled', true)
+                    ->orderBy('billing_cycle'),
+            ])
+            ->first();
+
+        if ($product === null) {
+            throw (new ModelNotFoundException)->setModel(Product::class, [$slug]);
+        }
+
+        if (
+            $product->category !== null
+            && $product->category->status !== ProductCategoryStatus::Active
+        ) {
+            throw (new ModelNotFoundException)->setModel(Product::class, [$slug]);
+        }
+
+        if ($product->pricing->isEmpty()) {
+            throw (new ModelNotFoundException)->setModel(Product::class, [$slug]);
+        }
+
+        return $product;
+    }
+
     /**
      * @return Builder<Product>
      */

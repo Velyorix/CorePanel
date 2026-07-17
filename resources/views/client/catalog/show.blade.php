@@ -36,6 +36,12 @@
         <x-ui.breadcrumb :items="$breadcrumbItems" />
     </x-slot:breadcrumbs>
 
+    @if (session('status'))
+        <div class="mb-6">
+            <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>
+        </div>
+    @endif
+
     <div class="mb-6 flex flex-wrap items-center gap-2">
         @if ($product->category)
             <x-ui.button :href="route('client.catalog.category', $product->category->slug)" variant="secondary" size="sm">
@@ -97,12 +103,15 @@
             @endif
 
             <div class="mt-6">
-                <x-ui.button variant="primary" disabled title="{{ __('Configurator arrives in a later step.') }}">
-                    {{ __('Configure') }}
-                </x-ui.button>
-                <p class="mt-2 text-small text-muted-foreground">
-                    {{ __('Product configuration and add to cart will be available soon.') }}
-                </p>
+                @if ($product->pricing->isNotEmpty())
+                    <x-ui.button :href="route('client.catalog.products.configure', $product->slug)" variant="primary">
+                        {{ __('Configure') }}
+                    </x-ui.button>
+                @else
+                    <p class="text-small text-muted-foreground">
+                        {{ __('This product has no enabled pricing yet.') }}
+                    </p>
+                @endif
             </div>
         </x-ui.card>
     </div>

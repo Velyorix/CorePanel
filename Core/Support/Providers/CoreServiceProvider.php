@@ -17,6 +17,7 @@ use Core\Orders\Services\CartService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogService;
+use Core\Products\Services\ConfiguratorService;
 use Core\Products\Services\ProductCategoryService;
 use Core\Products\Services\ProductPricingCalculator;
 use Core\Products\Services\ProductService;
@@ -59,6 +60,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProductService::class);
         $this->app->singleton(ProductCategoryService::class);
         $this->app->singleton(CatalogService::class);
+        $this->app->singleton(ConfiguratorService::class);
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(CartService::class);

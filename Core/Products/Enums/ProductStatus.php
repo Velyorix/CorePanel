@@ -24,4 +24,25 @@ enum ProductStatus: string
             self::Archived => __('Archived'),
         };
     }
+
+    /**
+     * @return list<self>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::Draft => [self::Published, self::Archived],
+            self::Published => [self::Draft, self::Archived],
+            self::Archived => [self::Draft],
+        };
+    }
+
+    public function canTransitionTo(self $target): bool
+    {
+        if ($this === $target) {
+            return false;
+        }
+
+        return in_array($target, $this->allowedTransitions(), true);
+    }
 }

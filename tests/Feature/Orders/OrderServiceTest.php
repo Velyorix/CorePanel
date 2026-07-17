@@ -347,6 +347,29 @@ class OrderServiceTest extends TestCase
         Event::assertDispatchedTimes(OrderCancelled::class, 1);
     }
 
+    public function test_cancel_pending_payment_dispatches_order_cancelled_once(): void
+    {
+        Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);
+
+        $pending = $this->orderService->markPendingPayment(
+            $this->orderService->createDraft(Client::factory()->create()),
+        );
+
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+
+        $cancelled = $this->orderService->cancel($pending, 'Customer changed mind');
+
+        Event::assertDispatchedTimes(OrderCancelled::class, 1);
+        Event::assertDispatched(
+            OrderCancelled::class,
+            fn (OrderCancelled $event): bool => $event->order->is($cancelled),
+        );
+        Event::assertNotDispatched(OrderPaid::class);
+
+        $this->orderService->cancel($cancelled->fresh() ?? $cancelled);
+        Event::assertDispatchedTimes(OrderCancelled::class, 1);
+    }
+
     public function test_create_from_checkout_dispatches_order_created_once(): void
     {
         Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);

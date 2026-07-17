@@ -148,6 +148,37 @@ class AdminOrderManagementTest extends TestCase
         $this->assertSame(OrderStatus::Draft, $draft->fresh()->status);
     }
 
+    public function test_admin_cannot_cancel_paid_order(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $paid = Order::factory()->paid()->create();
+
+        $this->actingAs($admin)
+            ->from(route('admin.orders.show', $paid))
+            ->post(route('admin.orders.cancel', $paid), [
+                'reason' => 'Should fail',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(OrderStatus::Paid, $paid->fresh()->status);
+        $this->assertNull($paid->fresh()->cancelled_at);
+    }
+
+    public function test_admin_cannot_mark_pending_payment_on_cancelled_order(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $cancelled = Order::factory()->cancelled()->create();
+
+        $this->actingAs($admin)
+            ->from(route('admin.orders.show', $cancelled))
+            ->post(route('admin.orders.mark-pending-payment', $cancelled))
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(OrderStatus::Cancelled, $cancelled->fresh()->status);
+    }
+
     public function test_orders_index_filters_by_status_and_search(): void
     {
         $admin = User::factory()->withRole('admin')->create();

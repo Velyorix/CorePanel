@@ -51,6 +51,7 @@ class ProductsCatalogSchemaTest extends TestCase
             'description',
             'type',
             'module',
+            'module_capabilities',
             'status',
             'sort_order',
             'created_at',

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Core\Products\Enums\BillingCycle;
+use Core\Products\Enums\ProductModuleCapability;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Enums\ProductType;
 use Core\Products\Models\Product;
@@ -32,6 +33,7 @@ class ProductFactory extends Factory
             'description' => fake()->optional()->paragraph(),
             'type' => ProductType::Other,
             'module' => null,
+            'module_capabilities' => null,
             'status' => ProductStatus::Draft,
             'sort_order' => fake()->numberBetween(0, 100),
         ];
@@ -41,6 +43,24 @@ class ProductFactory extends Factory
     {
         return $this->state(fn (): array => [
             'type' => $type,
+        ]);
+    }
+
+    /**
+     * @param  list<string|ProductModuleCapability>  $capabilities
+     */
+    public function withModule(string $module, array $capabilities = []): static
+    {
+        $normalized = array_map(
+            static fn ($capability): string => $capability instanceof ProductModuleCapability
+                ? $capability->value
+                : (string) $capability,
+            $capabilities,
+        );
+
+        return $this->state(fn (): array => [
+            'module' => $module,
+            'module_capabilities' => $normalized === [] ? null : array_values($normalized),
         ]);
     }
 

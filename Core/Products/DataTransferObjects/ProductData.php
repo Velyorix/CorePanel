@@ -2,6 +2,7 @@
 
 namespace Core\Products\DataTransferObjects;
 
+use Core\Products\Enums\ProductModuleCapability;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Enums\ProductType;
 use Illuminate\Support\Str;
@@ -13,6 +14,7 @@ readonly class ProductData
      * @param  list<ProductPricingData>  $pricing
      * @param  list<ProductOptionData>  $options
      * @param  list<ProductAddonData>  $addons
+     * @param  list<string>  $moduleCapabilities
      */
     public function __construct(
         public string $name,
@@ -21,6 +23,7 @@ readonly class ProductData
         public ?string $description = null,
         public ProductType $type = ProductType::Other,
         public ?string $module = null,
+        public array $moduleCapabilities = [],
         public ProductStatus $status = ProductStatus::Draft,
         public int $sortOrder = 0,
         public array $pricing = [],
@@ -37,6 +40,7 @@ readonly class ProductData
      *     description?: string|null,
      *     type?: string|null,
      *     module?: string|null,
+     *     module_capabilities?: list<string|ProductModuleCapability>|null,
      *     status?: string|null,
      *     sort_order?: int|null,
      *     pricing?: list<array<string, mixed>>|null,
@@ -63,6 +67,13 @@ readonly class ProductData
 
         $status = ProductStatus::tryFrom((string) ($data['status'] ?? ProductStatus::Draft->value))
             ?? ProductStatus::Draft;
+
+        $module = self::normalizeModule($data['module'] ?? null);
+        $moduleCapabilities = self::normalizeCapabilities($data['module_capabilities'] ?? []);
+
+        if ($module === null && $moduleCapabilities !== []) {
+            throw new InvalidArgumentException('Module capabilities require a provider module to be set.');
+        }
 
         $pricing = [];
         $seenCycles = [];
@@ -125,7 +136,8 @@ readonly class ProductData
             categoryId: isset($data['category_id']) ? (int) $data['category_id'] : null,
             description: self::nullableString($data['description'] ?? null),
             type: $type,
-            module: self::nullableString($data['module'] ?? null),
+            module: $module,
+            moduleCapabilities: $moduleCapabilities,
             status: $status,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             pricing: $pricing,
@@ -146,9 +158,74 @@ readonly class ProductData
             'description' => $this->description,
             'type' => $this->type->value,
             'module' => $this->module,
+            'module_capabilities' => $this->moduleCapabilities === [] ? null : $this->moduleCapabilities,
             'status' => $this->status->value,
             'sort_order' => $this->sortOrder,
         ];
+    }
+
+    private static function normalizeModule(mixed $value): ?string
+    {
+        $module = self::nullableString($value);
+
+        if ($module === null) {
+            return null;
+        }
+
+        $module = Str::lower($module);
+
+        if (! preg_match('/^[a-z0-9]+(?:[_-][a-z0-9]+)*$/', $module)) {
+            throw new InvalidArgumentException(
+                'The module must be a lowercase slug (letters, numbers, hyphens, underscores).',
+            );
+        }
+
+        return $module;
+    }
+
+    /**
+     * @param  mixed  $capabilities
+     * @return list<string>
+     */
+    private static function normalizeCapabilities(mixed $capabilities): array
+    {
+        if ($capabilities === null) {
+            return [];
+        }
+
+        if (! is_array($capabilities)) {
+            throw new InvalidArgumentException('Module capabilities must be an array.');
+        }
+
+        $normalized = [];
+        $seen = [];
+
+        foreach ($capabilities as $capability) {
+            if ($capability instanceof ProductModuleCapability) {
+                $value = $capability->value;
+            } elseif (is_string($capability)) {
+                $value = trim($capability);
+            } else {
+                throw new InvalidArgumentException('Each module capability must be a string.');
+            }
+
+            if ($value === '') {
+                throw new InvalidArgumentException('Module capabilities cannot be empty.');
+            }
+
+            if (! preg_match('/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/', $value)) {
+                throw new InvalidArgumentException("Invalid module capability [{$value}].");
+            }
+
+            if (isset($seen[$value])) {
+                throw new InvalidArgumentException("Duplicate module capability [{$value}].");
+            }
+
+            $seen[$value] = true;
+            $normalized[] = $value;
+        }
+
+        return $normalized;
     }
 
     private static function requiredString(mixed $value, string $field): string

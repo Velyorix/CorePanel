@@ -3,6 +3,7 @@
 namespace Core\Products\Models;
 
 use Core\Products\Enums\BillingCycle;
+use Core\Products\Enums\ProductModuleCapability;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Enums\ProductType;
 use Database\Factories\ProductFactory;
@@ -29,6 +30,7 @@ class Product extends Model
         'description',
         'type',
         'module',
+        'module_capabilities',
         'status',
         'sort_order',
     ];
@@ -41,6 +43,7 @@ class Product extends Model
         return [
             'type' => ProductType::class,
             'status' => ProductStatus::class,
+            'module_capabilities' => 'array',
             'sort_order' => 'integer',
         ];
     }
@@ -67,6 +70,61 @@ class Product extends Model
                 ProductType::catalogTypes(),
             ),
         );
+    }
+
+    /**
+     * Products linked to a provider module.
+     *
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeWithModule(Builder $query, ?string $module = null): Builder
+    {
+        if ($module === null) {
+            return $query->whereNotNull('module');
+        }
+
+        return $query->where('module', $module);
+    }
+
+    public function hasModule(): bool
+    {
+        return filled($this->module);
+    }
+
+    public function usesModule(string $module): bool
+    {
+        return $this->module === $module;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function requiredCapabilities(): array
+    {
+        $capabilities = $this->module_capabilities ?? [];
+
+        return is_array($capabilities) ? array_values($capabilities) : [];
+    }
+
+    public function requiresCapability(string|ProductModuleCapability $capability): bool
+    {
+        $value = $capability instanceof ProductModuleCapability
+            ? $capability->value
+            : $capability;
+
+        return in_array($value, $this->requiredCapabilities(), true);
+    }
+
+    public function requiresAllCapabilities(string ...$capabilities): bool
+    {
+        foreach ($capabilities as $capability) {
+            if (! $this->requiresCapability($capability)) {
+                return false;
+            }
+        }
+
+        return $capabilities !== [];
     }
 
     /**

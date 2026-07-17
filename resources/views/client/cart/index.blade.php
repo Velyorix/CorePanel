@@ -156,52 +156,10 @@
             </div>
 
             <div class="space-y-6">
-                <x-ui.card :title="__('Order summary')">
-                    <dl class="space-y-3 text-body-sm">
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">{{ __('Items') }}</dt>
-                            <dd>{{ $summary['item_count'] }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">{{ __('Recurring (excl. tax)') }}</dt>
-                            <dd>{{ $summary['recurring_subtotal'] }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">{{ __('Setup fees') }}</dt>
-                            <dd>{{ $summary['setup_subtotal'] }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">{{ __('First payment (excl. tax)') }}</dt>
-                            <dd>{{ $summary['first_payment_subtotal'] }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt class="text-muted-foreground">{{ $summary['tax_label'] }}</dt>
-                            <dd>{{ $summary['first_payment_tax'] }}</dd>
-                        </div>
-                        <div class="flex justify-between gap-4 border-t border-border pt-3 font-medium">
-                            <dt>{{ __('First payment total') }}</dt>
-                            <dd>{{ $summary['first_payment_total'] }}</dd>
-                        </div>
-                    </dl>
-
-                    @if ($summary['tax_is_estimate'])
-                        <p class="mt-3 text-small text-muted-foreground">
-                            {{ __('Tax is an estimate; final VAT is calculated at checkout.') }}
-                        </p>
-                    @endif
-
-                    <div class="mt-6 flex flex-col gap-2">
-                        <x-ui.button type="button" variant="primary" disabled>
-                            {{ __('Proceed to checkout') }}
-                        </x-ui.button>
-                        <p class="text-center text-small text-muted-foreground">
-                            {{ __('Checkout arrives in the next step.') }}
-                        </p>
-                        <x-ui.button :href="route('client.catalog.index')" variant="secondary">
-                            {{ __('Continue shopping') }}
-                        </x-ui.button>
-                    </div>
-                </x-ui.card>
+                @include('client.partials.order-summary', [
+                    'summary' => $summary,
+                    'showCheckoutCta' => true,
+                ])
             </div>
         </div>
     @endif

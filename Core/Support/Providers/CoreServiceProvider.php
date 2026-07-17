@@ -15,6 +15,7 @@ use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeGroupService;
 use Core\Orders\Services\CartService;
 use Core\Orders\Services\CartSummary;
+use Core\Orders\Services\CheckoutDraftService;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogPricePreview;
@@ -68,6 +69,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(CartService::class);
         $this->app->singleton(CartSummary::class);
+        $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

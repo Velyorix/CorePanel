@@ -81,6 +81,7 @@ class ClientCartTest extends TestCase
             ->assertSee('9.00')
             ->assertSee('53.98')
             ->assertSee(__('Proceed to checkout'))
+            ->assertSee(route('client.checkout.index'), false)
             ->assertSee(__('Tax is an estimate; final VAT is calculated at checkout.'));
     }
 

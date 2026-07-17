@@ -273,6 +273,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Checkout stubs (roadmap 10.7)
+    |--------------------------------------------------------------------------
+    |
+    | Payment methods and coupons are UI placeholders until étapes 12 / 14 / 20.
+    |
+    */
+
+    'checkout' => [
+        'coupon_enabled' => (bool) env('COREPANEL_CHECKOUT_COUPON_ENABLED', true),
+        'payment_methods' => [
+            [
+                'key' => 'manual_transfer',
+                'label' => 'Bank transfer',
+                'enabled' => true,
+                'hint' => null,
+            ],
+            [
+                'key' => 'card',
+                'label' => 'Credit card',
+                'enabled' => false,
+                'hint' => 'Coming soon',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | RBAC (CDC Tome 4 §8, Tome 5)
     |--------------------------------------------------------------------------
     */

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Client\CartController;
 use App\Http\Controllers\Client\CatalogController;
+use App\Http\Controllers\Client\CheckoutController;
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,11 @@ Route::middleware('client')
         Route::patch('cart/items/{item}', [CartController::class, 'updateQuantity'])->name('cart.items.update');
         Route::delete('cart/items/{item}', [CartController::class, 'destroyItem'])->name('cart.items.destroy');
         Route::delete('cart', [CartController::class, 'clear'])->name('cart.clear');
+
+        Route::get('checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+        Route::post('checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+        Route::patch('checkout/coupon', [CheckoutController::class, 'applyCoupon'])->name('checkout.coupon.apply');
+        Route::get('checkout/complete', [CheckoutController::class, 'complete'])->name('checkout.complete');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

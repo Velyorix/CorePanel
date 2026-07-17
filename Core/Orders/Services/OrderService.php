@@ -7,6 +7,9 @@ use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Core\Orders\Enums\CartStatus;
 use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
+use Core\Orders\Events\OrderCancelled;
+use Core\Orders\Events\OrderCreated;
+use Core\Orders\Events\OrderPaid;
 use Core\Orders\Models\Cart;
 use Core\Orders\Models\CartItem;
 use Core\Orders\Models\Order;
@@ -16,7 +19,7 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Order lifecycle state machine + checkout conversion (roadmap 11.2 / 11.3).
+ * Order lifecycle state machine + checkout conversion (roadmap 11.2 / 11.3 / 11.4).
  */
 class OrderService
 {
@@ -287,7 +290,16 @@ class OrderService
                 ...$extra,
             ])->save();
 
-            return $order->fresh(['items', 'client']) ?? $order;
+            $fresh = $order->fresh(['items', 'client']) ?? $order;
+
+            match ($target) {
+                OrderStatus::PendingPayment => event(new OrderCreated($fresh)),
+                OrderStatus::Paid => event(new OrderPaid($fresh)),
+                OrderStatus::Cancelled => event(new OrderCancelled($fresh)),
+                default => null,
+            };
+
+            return $fresh;
         });
     }
 

@@ -8,6 +8,9 @@ use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Core\Orders\Enums\CartStatus;
 use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
+use Core\Orders\Events\OrderCancelled;
+use Core\Orders\Events\OrderCreated;
+use Core\Orders\Events\OrderPaid;
 use Core\Orders\Models\Order;
 use Core\Orders\Services\CartService;
 use Core\Orders\Services\OrderConversionService;
@@ -15,6 +18,7 @@ use Core\Orders\Services\OrderService;
 use Core\Products\Enums\BillingCycle;
 use Core\Products\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -275,5 +279,129 @@ class OrderServiceTest extends TestCase
 
         $this->assertSame(OrderStatus::PendingPayment, $order->status);
         $this->assertSame(OrderSource::ClientCheckout, $order->source);
+    }
+
+    public function test_create_draft_does_not_dispatch_lifecycle_events(): void
+    {
+        Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);
+
+        $this->orderService->createDraft(Client::factory()->create());
+
+        Event::assertNotDispatched(OrderCreated::class);
+        Event::assertNotDispatched(OrderPaid::class);
+        Event::assertNotDispatched(OrderCancelled::class);
+    }
+
+    public function test_mark_pending_payment_dispatches_order_created_once(): void
+    {
+        Event::fake([OrderCreated::class]);
+
+        $order = $this->orderService->markPendingPayment(
+            $this->orderService->createDraft(Client::factory()->create()),
+        );
+
+        Event::assertDispatched(
+            OrderCreated::class,
+            fn (OrderCreated $event): bool => $event->order->is($order),
+        );
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+
+        $this->orderService->markPendingPayment($order->fresh() ?? $order);
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+    }
+
+    public function test_mark_paid_dispatches_order_paid_once(): void
+    {
+        Event::fake([OrderPaid::class]);
+
+        $order = $this->orderService->markPaid(
+            $this->orderService->markPendingPayment(
+                $this->orderService->createDraft(Client::factory()->create()),
+            ),
+        );
+
+        Event::assertDispatched(
+            OrderPaid::class,
+            fn (OrderPaid $event): bool => $event->order->is($order),
+        );
+        Event::assertDispatchedTimes(OrderPaid::class, 1);
+
+        $this->orderService->markPaid($order->fresh() ?? $order);
+        Event::assertDispatchedTimes(OrderPaid::class, 1);
+    }
+
+    public function test_cancel_dispatches_order_cancelled_without_order_created_when_from_draft(): void
+    {
+        Event::fake([OrderCreated::class, OrderCancelled::class]);
+
+        $order = $this->orderService->cancel(
+            $this->orderService->createDraft(Client::factory()->create()),
+            'Abandoned draft',
+        );
+
+        Event::assertNotDispatched(OrderCreated::class);
+        Event::assertDispatched(
+            OrderCancelled::class,
+            fn (OrderCancelled $event): bool => $event->order->is($order),
+        );
+        Event::assertDispatchedTimes(OrderCancelled::class, 1);
+    }
+
+    public function test_create_from_checkout_dispatches_order_created_once(): void
+    {
+        Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);
+        config(['corepanel.billing.tax_preview_rate' => 0]);
+
+        $client = Client::factory()->create();
+        $product = Product::factory()->published()->withPricing()->create([
+            'slug' => 'event-checkout',
+        ]);
+
+        $cartService = app(CartService::class);
+        $cart = $cartService->getOrCreate($client, null);
+        $cartService->addItem($cart, CartItemData::fromArray([
+            'product_id' => $product->id,
+            'billing_cycle' => BillingCycle::Monthly->value,
+        ]));
+
+        $order = $this->orderService->createFromCheckout(
+            $cart->fresh(['items.product', 'client']),
+            CheckoutDraftData::fromArray([
+                'contact_name' => 'Event User',
+                'contact_email' => 'event@example.test',
+                'address' => '1 Street',
+                'city' => 'Paris',
+                'postal_code' => '75001',
+                'country' => 'FR',
+                'payment_method' => 'manual_transfer',
+            ]),
+        );
+
+        Event::assertDispatched(
+            OrderCreated::class,
+            fn (OrderCreated $event): bool => $event->order->is($order),
+        );
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+        Event::assertNotDispatched(OrderPaid::class);
+        Event::assertNotDispatched(OrderCancelled::class);
+    }
+
+    public function test_full_lifecycle_dispatches_created_then_paid(): void
+    {
+        Event::fake([OrderCreated::class, OrderPaid::class, OrderCancelled::class]);
+
+        $paid = $this->orderService->markPaid(
+            $this->orderService->markPendingPayment(
+                $this->orderService->createDraft(Client::factory()->create()),
+            ),
+        );
+
+        Event::assertDispatchedTimes(OrderCreated::class, 1);
+        Event::assertDispatchedTimes(OrderPaid::class, 1);
+        Event::assertNotDispatched(OrderCancelled::class);
+        Event::assertDispatched(
+            OrderPaid::class,
+            fn (OrderPaid $event): bool => $event->order->is($paid),
+        );
     }
 }

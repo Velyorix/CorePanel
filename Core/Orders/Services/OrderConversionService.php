@@ -4,6 +4,7 @@ namespace Core\Orders\Services;
 
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Core\Orders\Enums\CartStatus;
+use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
 use Core\Orders\Models\Cart;
 use Core\Orders\Models\CartItem;
@@ -14,8 +15,8 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Converts an open cart + checkout draft into a pending_payment order (roadmap 10.8).
- * Full OrderService state machine arrives in étape 11.
+ * Converts an open cart + checkout draft into a pending_payment order (roadmap 10.8 / 11.1).
+ * Full OrderService state machine arrives in étape 11.2.
  */
 class OrderConversionService
 {
@@ -71,6 +72,7 @@ class OrderConversionService
             $order = Order::query()->create([
                 'client_id' => $cart->client_id,
                 'cart_id' => $cart->id,
+                'source' => OrderSource::ClientCheckout,
                 'status' => OrderStatus::Draft,
                 'currency' => $cart->currency,
                 'payment_method' => $draft->paymentMethod,
@@ -96,6 +98,7 @@ class OrderConversionService
             }
 
             $order->forceFill([
+                'order_number' => $this->generateOrderNumber($order),
                 'status' => OrderStatus::PendingPayment,
                 'placed_at' => now(),
             ])->save();
@@ -113,6 +116,8 @@ class OrderConversionService
         return OrderItem::query()->create([
             'order_id' => $order->id,
             'product_id' => $item->product_id,
+            'product_name' => $item->product?->name,
+            'product_slug' => $item->product?->slug,
             'billing_cycle' => $item->billing_cycle,
             'custom_interval_days' => $item->custom_interval_days,
             'quantity' => $item->quantity,
@@ -123,5 +128,10 @@ class OrderConversionService
             'setup_fee' => $item->setup_fee,
             'line_total' => $item->lineSubtotal(),
         ]);
+    }
+
+    private function generateOrderNumber(Order $order): string
+    {
+        return sprintf('ORD-%s-%06d', $order->created_at?->format('Ymd') ?? now()->format('Ymd'), $order->id);
     }
 }

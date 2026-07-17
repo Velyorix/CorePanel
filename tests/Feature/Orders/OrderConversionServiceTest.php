@@ -78,6 +78,8 @@ class OrderConversionServiceTest extends TestCase
 
         $this->assertSame(OrderStatus::PendingPayment, $order->status);
         $this->assertNotNull($order->placed_at);
+        $this->assertNotNull($order->order_number);
+        $this->assertSame(sprintf('ORD-%s-%06d', $order->created_at->format('Ymd'), $order->id), $order->order_number);
         $this->assertSame($client->id, $order->client_id);
         $this->assertSame($cart->id, $order->cart_id);
         $this->assertSame('manual_transfer', $order->payment_method);
@@ -90,6 +92,8 @@ class OrderConversionServiceTest extends TestCase
 
         $item = $order->items->first();
         $this->assertSame($product->id, $item->product_id);
+        $this->assertSame($product->name, $item->product_name);
+        $this->assertSame($product->slug, $item->product_slug);
         $this->assertSame(2, $item->quantity);
         $this->assertSame('19.99', $item->unit_price);
         $this->assertSame('5.00', $item->setup_fee);

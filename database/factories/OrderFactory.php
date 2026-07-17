@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use Core\Clients\Models\Client;
+use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
 use Core\Orders\Models\Order;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,7 +21,10 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
+            'order_number' => null,
             'client_id' => Client::factory(),
+            'created_by' => null,
+            'source' => OrderSource::ClientCheckout,
             'cart_id' => null,
             'status' => OrderStatus::Draft,
             'currency' => 'EUR',
@@ -35,11 +39,14 @@ class OrderFactory extends Factory
             'country' => 'FR',
             'postal_code' => fake()->postcode(),
             'phone' => fake()->optional()->phoneNumber(),
+            'notes' => null,
             'subtotal_recurring' => '0.00',
             'subtotal_setup' => '0.00',
             'tax_amount' => '0.00',
             'total_amount' => '0.00',
             'placed_at' => null,
+            'paid_at' => null,
+            'cancelled_at' => null,
         ];
     }
 
@@ -48,6 +55,27 @@ class OrderFactory extends Factory
         return $this->state(fn (): array => [
             'status' => OrderStatus::PendingPayment,
             'placed_at' => now(),
+            'order_number' => 'ORD-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
+        ]);
+    }
+
+    public function paid(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => OrderStatus::Paid,
+            'placed_at' => now()->subDay(),
+            'paid_at' => now(),
+            'order_number' => 'ORD-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
+        ]);
+    }
+
+    public function cancelled(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => OrderStatus::Cancelled,
+            'placed_at' => now()->subDay(),
+            'cancelled_at' => now(),
+            'order_number' => 'ORD-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
         ]);
     }
 

@@ -117,6 +117,26 @@ class Product extends Model
         return $this->options()->where('required', true);
     }
 
+    /**
+     * Billable addons attached to this product (separate billing from base pricing).
+     *
+     * @return HasMany<ProductAddon, $this>
+     */
+    public function addons(): HasMany
+    {
+        return $this->hasMany(ProductAddon::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Enabled addons only.
+     *
+     * @return HasMany<ProductAddon, $this>
+     */
+    public function enabledAddons(): HasMany
+    {
+        return $this->addons()->where('is_enabled', true);
+    }
+
     public function pricingFor(BillingCycle $cycle): ?ProductPricing
     {
         $this->loadMissing('pricing');
@@ -132,6 +152,15 @@ class Product extends Model
 
         return $this->options->first(
             fn (ProductOption $option): bool => $option->key === $key,
+        );
+    }
+
+    public function addonByKey(string $key): ?ProductAddon
+    {
+        $this->loadMissing('addons');
+
+        return $this->addons->first(
+            fn (ProductAddon $addon): bool => $addon->key === $key,
         );
     }
 

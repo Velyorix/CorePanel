@@ -12,6 +12,7 @@ readonly class ProductData
     /**
      * @param  list<ProductPricingData>  $pricing
      * @param  list<ProductOptionData>  $options
+     * @param  list<ProductAddonData>  $addons
      */
     public function __construct(
         public string $name,
@@ -24,6 +25,7 @@ readonly class ProductData
         public int $sortOrder = 0,
         public array $pricing = [],
         public array $options = [],
+        public array $addons = [],
     ) {
     }
 
@@ -38,7 +40,8 @@ readonly class ProductData
      *     status?: string|null,
      *     sort_order?: int|null,
      *     pricing?: list<array<string, mixed>>|null,
-     *     options?: list<array<string, mixed>>|null
+     *     options?: list<array<string, mixed>>|null,
+     *     addons?: list<array<string, mixed>>|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -81,7 +84,7 @@ readonly class ProductData
         }
 
         $options = [];
-        $seenKeys = [];
+        $seenOptionKeys = [];
 
         foreach ($data['options'] ?? [] as $option) {
             if (! is_array($option)) {
@@ -90,12 +93,30 @@ readonly class ProductData
 
             $optionData = ProductOptionData::fromArray($option);
 
-            if (isset($seenKeys[$optionData->key])) {
+            if (isset($seenOptionKeys[$optionData->key])) {
                 throw new InvalidArgumentException("Duplicate option key [{$optionData->key}].");
             }
 
-            $seenKeys[$optionData->key] = true;
+            $seenOptionKeys[$optionData->key] = true;
             $options[] = $optionData;
+        }
+
+        $addons = [];
+        $seenAddonKeys = [];
+
+        foreach ($data['addons'] ?? [] as $addon) {
+            if (! is_array($addon)) {
+                throw new InvalidArgumentException('Each product addon must be an array.');
+            }
+
+            $addonData = ProductAddonData::fromArray($addon);
+
+            if (isset($seenAddonKeys[$addonData->key])) {
+                throw new InvalidArgumentException("Duplicate addon key [{$addonData->key}].");
+            }
+
+            $seenAddonKeys[$addonData->key] = true;
+            $addons[] = $addonData;
         }
 
         return new self(
@@ -109,6 +130,7 @@ readonly class ProductData
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             pricing: $pricing,
             options: $options,
+            addons: $addons,
         );
     }
 

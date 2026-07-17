@@ -2,11 +2,13 @@
 
 namespace Core\Products\Services;
 
+use Core\Products\DataTransferObjects\ProductAddonData;
 use Core\Products\DataTransferObjects\ProductData;
 use Core\Products\DataTransferObjects\ProductOptionData;
 use Core\Products\DataTransferObjects\ProductPricingData;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
+use Core\Products\Models\ProductAddon;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Models\ProductOption;
 use Core\Products\Models\ProductPricing;
@@ -16,6 +18,8 @@ use RuntimeException;
 
 class ProductService
 {
+    private const RELATIONS = ['category', 'pricing', 'options', 'addons'];
+
     public function create(ProductData $data): Product
     {
         $this->assertCategoryExists($data->categoryId);
@@ -26,8 +30,9 @@ class ProductService
 
             $this->syncPricing($product, $data->pricing);
             $this->syncOptions($product, $data->options);
+            $this->syncAddons($product, $data->addons);
 
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         });
     }
 
@@ -45,8 +50,9 @@ class ProductService
 
             $this->syncPricing($product, $data->pricing);
             $this->syncOptions($product, $data->options);
+            $this->syncAddons($product, $data->addons);
 
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         });
     }
 
@@ -58,7 +64,7 @@ class ProductService
     public function publish(Product $product): Product
     {
         if ($product->status === ProductStatus::Published) {
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         }
 
         if (! $product->status->canTransitionTo(ProductStatus::Published)) {
@@ -71,7 +77,7 @@ class ProductService
     public function unpublish(Product $product): Product
     {
         if ($product->status === ProductStatus::Draft) {
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         }
 
         if ($product->status !== ProductStatus::Published) {
@@ -84,7 +90,7 @@ class ProductService
     public function archive(Product $product): Product
     {
         if ($product->status === ProductStatus::Archived) {
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         }
 
         if (! $product->status->canTransitionTo(ProductStatus::Archived)) {
@@ -100,7 +106,7 @@ class ProductService
     public function restore(Product $product): Product
     {
         if ($product->status === ProductStatus::Draft) {
-            return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+            return $product->fresh(self::RELATIONS) ?? $product;
         }
 
         if ($product->status !== ProductStatus::Archived) {
@@ -114,7 +120,7 @@ class ProductService
     {
         $product->forceFill(['status' => $target])->save();
 
-        return $product->fresh(['category', 'pricing', 'options']) ?? $product;
+        return $product->fresh(self::RELATIONS) ?? $product;
     }
 
     /**
@@ -167,6 +173,36 @@ class ProductService
         }
 
         $query = ProductOption::query()->where('product_id', $product->id);
+
+        if ($keepKeys === []) {
+            $query->delete();
+
+            return;
+        }
+
+        $query->whereNotIn('key', $keepKeys)->delete();
+    }
+
+    /**
+     * @param  list<ProductAddonData>  $addons
+     */
+    private function syncAddons(Product $product, array $addons): void
+    {
+        $keepKeys = [];
+
+        foreach ($addons as $addon) {
+            $keepKeys[] = $addon->key;
+
+            ProductAddon::query()->updateOrCreate(
+                [
+                    'product_id' => $product->id,
+                    'key' => $addon->key,
+                ],
+                $addon->toAttributes(),
+            );
+        }
+
+        $query = ProductAddon::query()->where('product_id', $product->id);
 
         if ($keepKeys === []) {
             $query->delete();

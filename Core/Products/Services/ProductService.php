@@ -15,6 +15,8 @@ use Core\Products\Models\ProductCategory;
 use Core\Products\Models\ProductOption;
 use Core\Products\Models\ProductPricing;
 use Core\Products\Models\ProductProvisioningRules;
+use Core\Products\Enums\ProductType;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
@@ -22,6 +24,66 @@ use RuntimeException;
 class ProductService
 {
     private const RELATIONS = ['category', 'pricing', 'options', 'addons', 'provisioningRules'];
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: ProductStatus|null,
+     *     type?: ProductType|null,
+     *     category_id?: int|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $type = $filters['type'] ?? null;
+        $categoryId = $filters['category_id'] ?? null;
+        $sort = $filters['sort'] ?? 'sort_order';
+        $dir = ($filters['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
+
+        if (! in_array($sort, ['name', 'slug', 'type', 'status', 'sort_order', 'created_at'], true)) {
+            $sort = 'sort_order';
+        }
+
+        $query = Product::query()->with('category');
+
+        if ($status instanceof ProductStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if ($type instanceof ProductType) {
+            $query->where('type', $type->value);
+        }
+
+        if ($categoryId !== null) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($search, $term): void {
+                $builder
+                    ->where('name', 'like', $term)
+                    ->orWhere('slug', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhere('module', 'like', $term);
+
+                if (ctype_digit($search)) {
+                    $builder->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
 
     public function create(ProductData $data): Product
     {

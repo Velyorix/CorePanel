@@ -13,10 +13,15 @@ use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeGroupService;
+use Core\Products\Models\Product;
+use Core\Products\Models\ProductCategory;
+use Core\Products\Services\ProductCategoryService;
 use Core\Products\Services\ProductPricingCalculator;
 use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
+use Core\Permissions\Policies\ProductCategoryPolicy;
+use Core\Permissions\Policies\ProductPolicy;
 use Core\Permissions\Policies\RolePolicy;
 use Core\Permissions\Policies\UserPolicy;
 use Core\Permissions\Services\GateRegistrar;
@@ -50,6 +55,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(EntitlementService::class);
         $this->app->singleton(ClientService::class);
         $this->app->singleton(ProductService::class);
+        $this->app->singleton(ProductCategoryService::class);
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(GateRegistrar::class);
@@ -63,6 +69,8 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Client::class, ClientPolicy::class);
+        Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
 
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();

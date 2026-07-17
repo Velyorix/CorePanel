@@ -9,6 +9,9 @@ use App\Http\Controllers\Admin\ClientNoteController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\ProductCategoryController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductStatusController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +63,26 @@ Route::middleware('admin')
 
         Route::post('clients/{client}/notes', [ClientNoteController::class, 'store'])->name('clients.notes.store');
         Route::delete('clients/{client}/notes/{note}', [ClientNoteController::class, 'destroy'])->name('clients.notes.destroy');
+
+        Route::get('products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+        Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+        Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::post('products/{product}/publish', [ProductStatusController::class, 'publish'])->name('products.publish');
+        Route::post('products/{product}/unpublish', [ProductStatusController::class, 'unpublish'])->name('products.unpublish');
+        Route::post('products/{product}/archive', [ProductStatusController::class, 'archive'])->name('products.archive');
+        Route::post('products/{product}/restore', [ProductStatusController::class, 'restore'])->name('products.restore');
+
+        Route::get('product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+        Route::get('product-categories/create', [ProductCategoryController::class, 'create'])->name('product-categories.create');
+        Route::post('product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+        Route::get('product-categories/{productCategory}', [ProductCategoryController::class, 'show'])->name('product-categories.show');
+        Route::get('product-categories/{productCategory}/edit', [ProductCategoryController::class, 'edit'])->name('product-categories.edit');
+        Route::put('product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+        Route::delete('product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

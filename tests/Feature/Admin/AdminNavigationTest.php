@@ -54,6 +54,8 @@ class AdminNavigationTest extends TestCase
             __('Roles'),
             __('Permissions'),
             __('Products'),
+            __('Catalog'),
+            __('Categories'),
             __('Services'),
             __('Billing'),
             __('Invoices'),
@@ -76,6 +78,8 @@ class AdminNavigationTest extends TestCase
         $dashboardItem = $flatItems->firstWhere('label', __('Dashboard'));
         $rolesItem = $flatItems->firstWhere('label', __('Roles'));
         $clientsItem = $flatItems->firstWhere('label', __('Clients'));
+        $catalogItem = $flatItems->firstWhere('label', __('Catalog'));
+        $categoriesItem = $flatItems->firstWhere('label', __('Categories'));
 
         $this->assertNotNull($dashboardItem);
         $this->assertFalse($dashboardItem['placeholder']);
@@ -88,6 +92,14 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($clientsItem);
         $this->assertFalse($clientsItem['placeholder']);
         $this->assertSame(route('admin.clients.index'), $clientsItem['url']);
+
+        $this->assertNotNull($catalogItem);
+        $this->assertFalse($catalogItem['placeholder']);
+        $this->assertSame(route('admin.products.index'), $catalogItem['url']);
+
+        $this->assertNotNull($categoriesItem);
+        $this->assertFalse($categoriesItem['placeholder']);
+        $this->assertSame(route('admin.product-categories.index'), $categoriesItem['url']);
     }
 
     public function test_navigation_hides_items_without_permission(): void
@@ -103,6 +115,8 @@ class AdminNavigationTest extends TestCase
 
         $this->assertContains(__('Clients'), $labels);
         $this->assertContains(__('Tickets'), $labels);
+        $this->assertContains(__('Products'), $labels);
+        $this->assertContains(__('Catalog'), $labels);
         $this->assertNotContains(__('Roles'), $labels);
         $this->assertNotContains(__('Permissions'), $labels);
         $this->assertNotContains(__('Users'), $labels);
@@ -132,6 +146,6 @@ class AdminNavigationTest extends TestCase
 
         $this->assertStringContainsString(__('Coming soon'), $html);
         $this->assertStringContainsString('aria-disabled="true"', $html);
-        $this->assertStringContainsString(__('Products'), $html);
+        $this->assertStringContainsString(__('Services'), $html);
     }
 }

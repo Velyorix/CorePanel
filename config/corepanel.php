@@ -263,8 +263,8 @@ return [
 
     'billing' => [
         /*
-        | Tax rate used only for catalog/cart price previews
-        | Real TaxCalculationService arrives in étape 12.4.
+        | Tax rate used only for catalog/cart price previews.
+        | Full TaxCalculationService is not implemented yet.
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
         'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
@@ -285,10 +285,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Checkout stubs (roadmap 10.7)
+    | Checkout stubs
     |--------------------------------------------------------------------------
     |
-    | Payment methods and coupons are UI placeholders until étapes 12 / 14 / 20.
+    | Payment methods and coupons are UI placeholders until billing and
+    | payment integrations are wired in.
     |
     */
 
@@ -312,7 +313,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | RBAC (CDC Tome 4 §8, Tome 5)
+    | RBAC
     |--------------------------------------------------------------------------
     */
 
@@ -340,7 +341,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | UI theme (CDC Tome 13 §13)
+    | UI theme
     |--------------------------------------------------------------------------
     |
     | Class-strategy dark mode. Preference is stored in localStorage and applied
@@ -355,7 +356,7 @@ return [
         ],
 
         /*
-        | Component showcase at /dev/components (étape 4.8).
+        | Component showcase at /dev/components.
         | null = enabled only when APP_ENV=local.
         */
         'showcase' => [

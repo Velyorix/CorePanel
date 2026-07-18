@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Billing + quotes schema (roadmap 12.1).
+     * Billing + quotes schema.
      *
      * `quote_items` mirrors `invoice_items` for devis → facture conversion.
      * `service_id` on line items is an unsigned FK placeholder.

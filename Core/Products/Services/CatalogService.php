@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
- * Client-facing catalog browse (roadmap 10.3).
+ * Client-facing catalog browse.
  * Only Active categories and Published products are visible.
  */
 class CatalogService

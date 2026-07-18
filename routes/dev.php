@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Component showcase and other local tooling. Access is gated in the
-| controller (local / COREPANEL_UI_SHOWCASE) — CDC Étape 4.8.
+| controller (local / COREPANEL_UI_SHOWCASE).
 |
 */
 

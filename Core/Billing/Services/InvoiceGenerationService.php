@@ -15,7 +15,7 @@ use RuntimeException;
 
 /**
  * Generates draft invoices from paid orders.
- * Invoice numbering; tax recalculation.
+ * Does not assign invoice numbers or recalculate tax.
  */
 class InvoiceGenerationService
 {

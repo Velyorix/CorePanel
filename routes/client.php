@@ -14,8 +14,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Préfixe : /client
-| Middleware EnsureClient — étape 6
-| CDC : Tome 7
+| Middleware EnsureClient
 |
 */
 

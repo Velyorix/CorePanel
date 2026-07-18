@@ -3,7 +3,7 @@
     :page-heading="__('Dashboard')"
 >
     <x-slot:subtitle>
-        {{ __('Quick overview of your services, billing, and support activity. Live metrics arrive in a later étape.') }}
+        {{ __('Quick overview of your services, billing, and support activity. Live metrics arrive in a later release.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>

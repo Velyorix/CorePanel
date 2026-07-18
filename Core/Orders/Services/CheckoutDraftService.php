@@ -8,8 +8,8 @@ use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Illuminate\Contracts\Session\Session;
 
 /**
- * Session-backed checkout draft (roadmap 10.7).
- * Order conversion arrives in étape 10.8; real coupons/gateways later.
+ * Session-backed checkout draft.
+ * Order conversion uses OrderConversionService; coupons and payment gateways are stubs for now.
  */
 class CheckoutDraftService
 {

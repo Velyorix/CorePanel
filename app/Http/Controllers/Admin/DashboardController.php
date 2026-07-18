@@ -81,22 +81,22 @@ class DashboardController extends Controller
             [
                 'key' => 'revenue_daily',
                 'label' => __('Revenue by day'),
-                'description' => __('Chart placeholder — wired in a later étape.'),
+                'description' => __('Chart placeholder — wired in a later release.'),
             ],
             [
                 'key' => 'services_created',
                 'label' => __('Service creation'),
-                'description' => __('Chart placeholder — wired in a later étape.'),
+                'description' => __('Chart placeholder — wired in a later release.'),
             ],
             [
                 'key' => 'support_tickets',
                 'label' => __('Support tickets'),
-                'description' => __('Chart placeholder — wired in a later étape.'),
+                'description' => __('Chart placeholder — wired in a later release.'),
             ],
             [
                 'key' => 'infrastructure',
                 'label' => __('Infrastructure usage'),
-                'description' => __('Chart placeholder — wired in a later étape.'),
+                'description' => __('Chart placeholder — wired in a later release.'),
             ],
         ];
     }

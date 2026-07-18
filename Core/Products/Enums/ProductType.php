@@ -43,7 +43,7 @@ enum ProductType: string
     }
 
     /**
-     * Canonical option key used for hostname / domain capture on configure (roadmap 10.9).
+     * Canonical option key used for hostname / domain capture on configure.
      */
     public function hostnameOptionKey(): ?string
     {

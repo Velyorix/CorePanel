@@ -78,7 +78,7 @@ class Order extends Model
     }
 
     /**
-     * Staff user who created the order (admin-on-behalf, roadmap 11.7).
+     * Staff user who created the order (admin-on-behalf).
      *
      * @return BelongsTo<User, $this>
      */
@@ -104,7 +104,7 @@ class Order extends Model
     }
 
     /**
-     * Invoice generated from this order (roadmap 12.2).
+     * Invoice generated from this order.
      *
      * @return HasOne<Invoice, $this>
      */

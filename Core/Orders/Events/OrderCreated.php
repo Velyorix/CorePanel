@@ -8,7 +8,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Fired when an order becomes pending_payment (placed), roadmap 11.4.
+ * Fired when an order becomes pending_payment (placed).
  */
 class OrderCreated implements ShouldDispatchAfterCommit
 {

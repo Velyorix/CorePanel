@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * End-to-end smoke coverage for the Étape 3 MR test plan.
+ * End-to-end smoke coverage for RBAC permissions and role assignment.
  */
 class RbacAcceptanceSmokeTest extends TestCase
 {

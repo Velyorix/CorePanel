@@ -24,8 +24,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Préfixe : /admin
-| Middleware EnsureAdmin — étape 5
-| CDC : Tome 6
+| Middleware EnsureAdmin
 |
 */
 

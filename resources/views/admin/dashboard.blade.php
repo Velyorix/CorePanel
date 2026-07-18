@@ -3,7 +3,7 @@
     :page-heading="__('Dashboard')"
 >
     <x-slot:subtitle>
-        {{ __('Global overview of platform activity. Live metrics arrive in a later étape.') }}
+        {{ __('Global overview of platform activity. Live metrics arrive in a later release.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>

@@ -23,8 +23,7 @@
     </head>
     <body class="min-h-full bg-background font-sans text-body text-foreground antialiased">
         {{--
-            Admin panel shell (CDC Tome 13 §4 + §9.2, Tome 6)
-            Sidebar | Topbar | Breadcrumbs | Main
+            Admin panel shell — sidebar, topbar, breadcrumbs, main
         --}}
         <div
             class="flex min-h-screen"

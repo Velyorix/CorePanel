@@ -5,8 +5,8 @@ namespace Core\Orders\Services;
 use Core\Orders\Models\Cart;
 
 /**
- * Aggregates snapshotted cart line totals with tax preview stub (roadmap 10.6).
- * Real multi-country VAT arrives in étape 12.4.
+ * Aggregates snapshotted cart line totals with tax preview stub.
+ * Full multi-country VAT calculation is not implemented yet.
  */
 class CartSummary
 {
@@ -93,7 +93,7 @@ class CartSummary
     }
 
     /**
-     * Summarize pre-priced lines (admin order builder, roadmap 11.7).
+     * Summarize pre-priced lines (admin order builder).
      *
      * @param  list<array{unit_price: string|float, setup_fee: string|float, quantity: int}>  $pricedLines
      * @return array{

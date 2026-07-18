@@ -5,8 +5,7 @@ namespace Core\Billing\Services;
 use Core\Settings\Models\Setting;
 
 /**
- * Mutable billing preferences with config fallbacks (roadmap 12.3).
- * Admin UI for these settings arrives in 12.16.
+ * Mutable billing preferences with config fallbacks.
  */
 class BillingSettings
 {

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
- * Schema smoke for billing + quotes migrations (roadmap 12.1).
+ * Schema smoke for billing + quotes migrations.
  */
 class BillingSchemaTest extends TestCase
 {

@@ -10,8 +10,8 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Configurable invoice numbering (roadmap 12.3).
- * Does not change invoice status — issue/unpaid workflow arrives later.
+ * Configurable invoice numbering.
+ * Assigns numbers only — does not change invoice status.
  */
 class InvoiceNumberService
 {

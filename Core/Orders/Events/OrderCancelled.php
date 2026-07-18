@@ -8,7 +8,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Fired when an order is cancelled, roadmap 11.4.
+ * Fired when an order is cancelled.
  */
 class OrderCancelled implements ShouldDispatchAfterCommit
 {

@@ -14,7 +14,7 @@ class ProductTypeClassificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_product_type_enum_exposes_roadmap_types(): void
+    public function test_product_type_enum_exposes_expected_types(): void
     {
         $this->assertSame([
             'hosting',

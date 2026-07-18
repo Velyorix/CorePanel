@@ -23,9 +23,8 @@
     </head>
     <body class="min-h-full bg-background font-sans text-body text-foreground antialiased">
         {{--
-            Client area shell (CDC Tome 13 §4 + §10.2, Tome 7)
-            Sidebar | Topbar | Breadcrumbs | Main
-            Navigation menu = étape 6.2 · mobile drawer = 6.6
+            Client area shell — sidebar, topbar, breadcrumbs, main
+            Navigation menu and mobile drawer are defined in partials.
         --}}
         <div
             class="flex min-h-screen"

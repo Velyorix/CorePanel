@@ -23,8 +23,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * End-to-end client order flow (roadmap 10.10).
- * Slice coverage for 10.1–10.9 lives in dedicated Feature tests.
+ * End-to-end client order flow.
+ * Narrower client Feature tests cover individual slices.
  */
 class ClientOrderFlowTest extends TestCase
 {

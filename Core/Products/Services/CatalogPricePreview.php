@@ -6,8 +6,8 @@ use Core\Orders\DataTransferObjects\CartItemData;
 use Core\Products\Models\Product;
 
 /**
- * Client configurator price preview with tax estimate stub (roadmap 10.5).
- * Real multi-country VAT arrives in étape 12.4.
+ * Client configurator price preview with tax estimate stub.
+ * Full multi-country VAT calculation is not implemented yet.
  */
 class CatalogPricePreview
 {

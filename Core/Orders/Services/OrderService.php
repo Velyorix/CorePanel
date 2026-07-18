@@ -25,7 +25,7 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Order lifecycle state machine + checkout conversion (roadmap 11.2 / 11.3 / 11.4).
+ * Order lifecycle state machine and checkout conversion.
  */
 class OrderService
 {
@@ -106,7 +106,7 @@ class OrderService
     }
 
     /**
-     * Client order history — excludes drafts (roadmap 11.6).
+     * Client order history — excludes drafts.
      *
      * @param  array{
      *     status?: OrderStatus|null,
@@ -214,7 +214,7 @@ class OrderService
     }
 
     /**
-     * Create a pending_payment order from an open client cart + checkout draft (roadmap 11.3).
+     * Create a pending_payment order from an open client cart and checkout draft.
      */
     public function createFromCheckout(Cart $cart, CheckoutDraftData $draft): Order
     {
@@ -304,7 +304,7 @@ class OrderService
     }
 
     /**
-     * Create an order on behalf of a client without touching their open cart (roadmap 11.7).
+     * Create an order on behalf of a client without touching their open cart.
      *
      * @param  list<CartItemData>  $items
      */
@@ -412,7 +412,7 @@ class OrderService
     }
 
     /**
-     * draft → pending_payment (roadmap "pending").
+     * Transition draft → pending_payment (placed).
      */
     public function markPendingPayment(Order $order): Order
     {

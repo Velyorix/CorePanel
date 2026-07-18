@@ -15,6 +15,8 @@ use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
 use Core\Billing\Services\NullRenewableBillableSource;
 use Core\Billing\Services\ClientCreditService;
+use Core\Billing\Services\CouponService;
+use Core\Billing\Services\DiscountCalculator;
 use Core\Billing\Services\PaymentGatewayRegistry;
 use Core\Billing\Services\PaymentService;
 use Core\Billing\Services\QuoteNumberService;
@@ -101,6 +103,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(QuoteNumberService::class);
         $this->app->singleton(QuoteService::class);
         $this->app->singleton(ClientCreditService::class);
+        $this->app->singleton(DiscountCalculator::class);
+        $this->app->singleton(CouponService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

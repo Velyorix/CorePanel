@@ -3,6 +3,7 @@
 namespace Core\Orders\Models;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\Coupon;
 use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
 use Core\Orders\Enums\OrderSource;
@@ -32,6 +33,7 @@ class Order extends Model
         'currency',
         'payment_method',
         'coupon_code',
+        'coupon_id',
         'contact_name',
         'contact_email',
         'company_name',
@@ -44,6 +46,7 @@ class Order extends Model
         'notes',
         'subtotal_recurring',
         'subtotal_setup',
+        'discount_amount',
         'tax_amount',
         'total_amount',
         'placed_at',
@@ -61,6 +64,7 @@ class Order extends Model
             'source' => OrderSource::class,
             'subtotal_recurring' => 'decimal:2',
             'subtotal_setup' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'placed_at' => 'datetime',
@@ -75,6 +79,14 @@ class Order extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * @return BelongsTo<Coupon, $this>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**

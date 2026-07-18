@@ -25,6 +25,7 @@ class Invoice extends Model
         'invoice_number',
         'client_id',
         'order_id',
+        'coupon_id',
         'created_by',
         'status',
         'currency',
@@ -39,6 +40,7 @@ class Invoice extends Model
         'phone',
         'notes',
         'subtotal',
+        'discount_amount',
         'tax_amount',
         'total_amount',
         'issued_at',
@@ -55,6 +57,7 @@ class Invoice extends Model
         return [
             'status' => InvoiceStatus::class,
             'subtotal' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'issued_at' => 'datetime',
@@ -78,6 +81,14 @@ class Invoice extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<\Core\Billing\Models\Coupon, $this>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**

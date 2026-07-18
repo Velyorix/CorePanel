@@ -53,19 +53,22 @@ class InvoiceGenerationService
         return DB::transaction(function () use ($order, $createdBy): Invoice {
             $address = TaxAddress::fromOrder($order);
 
-            $lineInputs = $order->items
-                ->map(fn (OrderItem $item): TaxLineInput => new TaxLineInput(
-                    $this->money((float) $item->line_total),
-                ))
-                ->values()
-                ->all();
+            $grossSubtotal = $this->money(
+                $order->items->sum(fn (OrderItem $item): float => (float) $item->line_total),
+            );
+            $discount = $this->money((float) ($order->discount_amount ?? 0));
+            $taxable = $this->money(max(0, (float) $grossSubtotal - (float) $discount));
 
-            $tax = $this->taxCalculation->calculateDocument($lineInputs, $address);
+            $tax = $this->taxCalculation->calculateDocument(
+                [new TaxLineInput($taxable)],
+                $address,
+            );
 
             $invoice = Invoice::query()->create([
                 'invoice_number' => null,
                 'client_id' => $order->client_id,
                 'order_id' => $order->id,
+                'coupon_id' => $order->coupon_id,
                 'created_by' => $createdBy?->id ?? $order->created_by,
                 'status' => InvoiceStatus::Draft,
                 'currency' => $order->currency ?? 'EUR',
@@ -79,17 +82,34 @@ class InvoiceGenerationService
                 'postal_code' => $order->postal_code,
                 'phone' => $order->phone,
                 'notes' => $order->notes,
-                'subtotal' => $tax->subtotal,
+                'subtotal' => $grossSubtotal,
+                'discount_amount' => $discount,
                 'tax_amount' => $tax->taxAmount,
-                'total_amount' => $tax->total,
+                'total_amount' => $this->money((float) $taxable + (float) $tax->taxAmount),
                 'issued_at' => null,
                 'due_at' => null,
                 'paid_at' => null,
                 'cancelled_at' => null,
             ]);
 
-            foreach ($order->items->values() as $index => $item) {
-                $this->createInvoiceItemFromOrder($invoice, $item, $tax->lines[$index]->taxAmount);
+            $grossFloat = (float) $grossSubtotal;
+            $taxFloat = (float) $tax->taxAmount;
+            $allocated = 0.0;
+            $items = $order->items->values();
+            $lastIndex = $items->count() - 1;
+
+            foreach ($items as $index => $item) {
+                if ($grossFloat <= 0 || $taxFloat <= 0) {
+                    $lineTax = '0.00';
+                } elseif ($index === $lastIndex) {
+                    $lineTax = $this->money($taxFloat - $allocated);
+                } else {
+                    $share = ((float) $item->line_total / $grossFloat) * $taxFloat;
+                    $lineTax = $this->money($share);
+                    $allocated += (float) $lineTax;
+                }
+
+                $this->createInvoiceItemFromOrder($invoice, $item, $lineTax);
             }
 
             return $invoice->fresh(['items', 'client', 'order']) ?? $invoice;

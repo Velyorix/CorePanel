@@ -8,8 +8,7 @@ use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Illuminate\Contracts\Session\Session;
 
 /**
- * Session-backed checkout draft.
- * Order conversion uses OrderConversionService; coupons and payment gateways are stubs for now.
+ * Session-backed checkout draft for client billing details and payment method.
  */
 class CheckoutDraftService
 {

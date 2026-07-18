@@ -37,6 +37,7 @@ class InvoiceFactory extends Factory
             'phone' => fake()->optional()->phoneNumber(),
             'notes' => null,
             'subtotal' => '0.00',
+            'discount_amount' => '0.00',
             'tax_amount' => '0.00',
             'total_amount' => '0.00',
             'issued_at' => null,

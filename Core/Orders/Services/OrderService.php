@@ -4,6 +4,11 @@ namespace Core\Orders\Services;
 
 use Core\Auth\Models\User;
 use Core\Billing\DataTransferObjects\TaxAddress;
+use Core\Billing\Exceptions\InvalidCouponException;
+use Core\Billing\Models\Coupon;
+use Core\Billing\Services\CouponService;
+use Core\Billing\Services\DiscountCalculator;
+use Core\Billing\Services\TaxCalculationService;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CartItemData;
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
@@ -33,6 +38,9 @@ class OrderService
     public function __construct(
         private readonly CartSummary $cartSummary,
         private readonly ProductPricingCalculator $pricingCalculator,
+        private readonly CouponService $couponService,
+        private readonly DiscountCalculator $discountCalculator,
+        private readonly TaxCalculationService $taxCalculation,
     ) {
     }
 
@@ -150,6 +158,7 @@ class OrderService
      *     currency?: string|null,
      *     payment_method?: string|null,
      *     coupon_code?: string|null,
+     *     coupon_id?: int|null,
      *     contact_name?: string|null,
      *     contact_email?: string|null,
      *     company_name?: string|null,
@@ -165,6 +174,7 @@ class OrderService
      *     cart_id?: int|null,
      *     subtotal_recurring?: string|float|null,
      *     subtotal_setup?: string|float|null,
+     *     discount_amount?: string|float|null,
      *     tax_amount?: string|float|null,
      *     total_amount?: string|float|null
      * }  $attributes
@@ -192,6 +202,7 @@ class OrderService
             'currency' => $attributes['currency'] ?? 'EUR',
             'payment_method' => $attributes['payment_method'] ?? null,
             'coupon_code' => $attributes['coupon_code'] ?? null,
+            'coupon_id' => $attributes['coupon_id'] ?? null,
             'contact_name' => $attributes['contact_name'] ?? null,
             'contact_email' => $attributes['contact_email'] ?? null,
             'company_name' => $attributes['company_name'] ?? null,
@@ -206,6 +217,7 @@ class OrderService
             'notes' => $attributes['notes'] ?? null,
             'subtotal_recurring' => $attributes['subtotal_recurring'] ?? '0.00',
             'subtotal_setup' => $attributes['subtotal_setup'] ?? '0.00',
+            'discount_amount' => $attributes['discount_amount'] ?? '0.00',
             'tax_amount' => $attributes['tax_amount'] ?? '0.00',
             'total_amount' => $attributes['total_amount'] ?? '0.00',
             'placed_at' => null,
@@ -266,18 +278,16 @@ class OrderService
             );
         }
 
-        $summary = $this->cartSummary->summarize(
-            $cart,
-            TaxAddress::fromDraft($draft),
-        );
+        [$summary, $coupon] = $this->resolveCheckoutTotals($cart, $client, $draft);
 
-        return DB::transaction(function () use ($cart, $client, $draft, $summary): Order {
+        return DB::transaction(function () use ($cart, $client, $draft, $summary, $coupon): Order {
             $order = $this->createDraft($client, [
                 'source' => OrderSource::ClientCheckout,
                 'cart_id' => $cart->id,
                 'currency' => $cart->currency,
                 'payment_method' => $draft->paymentMethod,
-                'coupon_code' => $draft->couponCode,
+                'coupon_code' => $coupon?->code ?? $this->couponService->normalizeCode($draft->couponCode),
+                'coupon_id' => $coupon?->id,
                 'contact_name' => $draft->contactName,
                 'contact_email' => $draft->contactEmail,
                 'company_name' => $draft->companyName,
@@ -289,6 +299,7 @@ class OrderService
                 'phone' => $draft->phone,
                 'subtotal_recurring' => $summary['recurring_subtotal'],
                 'subtotal_setup' => $summary['setup_subtotal'],
+                'discount_amount' => $summary['discount_amount'],
                 'tax_amount' => $summary['first_payment_tax'],
                 'total_amount' => $summary['first_payment_total'],
             ]);
@@ -297,7 +308,18 @@ class OrderService
                 $this->createOrderItem($order, $item);
             }
 
-            $order = $this->markPendingPayment($order->fresh(['items', 'client']) ?? $order);
+            $order = $order->fresh(['items', 'client']) ?? $order;
+
+            if ($coupon !== null && (float) $summary['discount_amount'] > 0) {
+                $this->couponService->redeem(
+                    $coupon,
+                    $client,
+                    $order,
+                    $summary['discount_amount'],
+                );
+            }
+
+            $order = $this->markPendingPayment($order);
 
             $cart->forceFill([
                 'status' => CartStatus::Converted,
@@ -361,24 +383,47 @@ class OrderService
                 $pricedLines[] = $this->priceCartItemData($itemData);
             }
 
-            $summary = $this->cartSummary->summarizePricedLines(
-                array_map(
-                    static fn (array $line): array => [
-                        'unit_price' => $line['unit_price'],
-                        'setup_fee' => $line['setup_fee'],
-                        'quantity' => $line['data']->quantity,
-                    ],
-                    $pricedLines,
-                ),
-                TaxAddress::fromDraft($draft),
+            $mappedLines = array_map(
+                static fn (array $line): array => [
+                    'unit_price' => $line['unit_price'],
+                    'setup_fee' => $line['setup_fee'],
+                    'quantity' => $line['data']->quantity,
+                    'product_id' => $line['product']->id,
+                ],
+                $pricedLines,
+            );
+
+            $address = TaxAddress::fromDraft($draft);
+            $resolvedCurrency = $currency ?? 'EUR';
+            $baseSummary = $this->cartSummary->summarizePricedLines(
+                $mappedLines,
+                $address,
+                null,
+                null,
+                $resolvedCurrency,
+            );
+
+            $coupon = $this->resolveCouponOrFail(
+                $draft->couponCode,
+                $client,
+                currency: $resolvedCurrency,
+                productIds: array_column($mappedLines, 'product_id'),
+            );
+
+            $summary = $this->applyCouponToSummary(
+                $baseSummary,
+                $coupon,
+                $address,
+                $resolvedCurrency,
             );
 
             $order = $this->createDraft($client, [
                 'source' => OrderSource::Admin,
                 'created_by' => $creator->id,
-                'currency' => $currency ?? 'EUR',
+                'currency' => $resolvedCurrency,
                 'payment_method' => $draft->paymentMethod,
-                'coupon_code' => $draft->couponCode,
+                'coupon_code' => $coupon?->code ?? $this->couponService->normalizeCode($draft->couponCode),
+                'coupon_id' => $coupon?->id,
                 'contact_name' => $draft->contactName,
                 'contact_email' => $draft->contactEmail,
                 'company_name' => $draft->companyName,
@@ -391,6 +436,7 @@ class OrderService
                 'notes' => $notes,
                 'subtotal_recurring' => $summary['recurring_subtotal'],
                 'subtotal_setup' => $summary['setup_subtotal'],
+                'discount_amount' => $summary['discount_amount'],
                 'tax_amount' => $summary['first_payment_tax'],
                 'total_amount' => $summary['first_payment_total'],
             ]);
@@ -407,6 +453,15 @@ class OrderService
             }
 
             $order = $order->fresh(['items', 'client']) ?? $order;
+
+            if ($coupon !== null && (float) $summary['discount_amount'] > 0) {
+                $this->couponService->redeem(
+                    $coupon,
+                    $client,
+                    $order,
+                    $summary['discount_amount'],
+                );
+            }
 
             if ($submitAsPending) {
                 $order = $this->markPendingPayment($order);
@@ -570,6 +625,99 @@ class OrderService
             'setup_fee' => $setupFee,
             'line_total' => $lineTotal,
         ]);
+    }
+
+    /**
+     * @return array{0: array<string, mixed>, 1: Coupon|null}
+     */
+    private function resolveCheckoutTotals(Cart $cart, Client $client, CheckoutDraftData $draft): array
+    {
+        $address = TaxAddress::fromDraft($draft);
+        $base = $this->cartSummary->summarize($cart, $address, null);
+        $coupon = $this->resolveCouponOrFail(
+            $draft->couponCode,
+            $client,
+            $cart,
+            $cart->currency,
+        );
+
+        return [$this->applyCouponToSummary($base, $coupon, $address, $cart->currency), $coupon];
+    }
+
+    /**
+     * @param  list<int>|null  $productIds
+     */
+    private function resolveCouponOrFail(
+        ?string $code,
+        Client $client,
+        ?Cart $cart = null,
+        ?string $currency = null,
+        ?array $productIds = null,
+    ): ?Coupon {
+        $normalized = $this->couponService->normalizeCode($code);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        $coupon = $this->couponService->findByCode($normalized);
+
+        if ($coupon === null) {
+            throw new InvalidArgumentException(__('Invalid coupon code.'));
+        }
+
+        try {
+            $this->couponService->validateForOrder(
+                $coupon,
+                $client,
+                $cart,
+                $currency,
+                $productIds,
+            );
+        } catch (InvalidCouponException $exception) {
+            throw new InvalidArgumentException($exception->getMessage(), 0, $exception);
+        }
+
+        return $coupon;
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     * @return array<string, mixed>
+     */
+    private function applyCouponToSummary(
+        array $summary,
+        ?Coupon $coupon,
+        TaxAddress $address,
+        ?string $currency,
+    ): array {
+        if ($coupon === null) {
+            $summary['discount_amount'] = '0.00';
+            $summary['discounted_subtotal'] = $summary['first_payment_subtotal'];
+            $summary['coupon_code'] = null;
+
+            return $summary;
+        }
+
+        $discount = $this->discountCalculator->calculate(
+            (string) $summary['first_payment_subtotal'],
+            $coupon,
+            $currency,
+        );
+        $tax = $this->taxCalculation->calculateLine($discount->discountedSubtotal, $address);
+
+        $summary['discount_amount'] = $discount->discountAmount;
+        $summary['discounted_subtotal'] = $discount->discountedSubtotal;
+        $summary['coupon_code'] = $coupon->code;
+        $summary['first_payment_tax'] = $tax->taxAmount;
+        $summary['first_payment_total'] = number_format(
+            round((float) $discount->discountedSubtotal + (float) $tax->taxAmount, 2),
+            2,
+            '.',
+            '',
+        );
+
+        return $summary;
     }
 
     /**

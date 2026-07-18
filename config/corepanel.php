@@ -333,10 +333,10 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Checkout stubs
+    | Checkout
     |--------------------------------------------------------------------------
     |
-    | Payment methods and coupons are UI stubs for checkout.
+    | Coupon UI toggle and available payment methods for client checkout.
     |
     */
 

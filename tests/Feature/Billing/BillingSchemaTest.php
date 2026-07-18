@@ -25,6 +25,8 @@ class BillingSchemaTest extends TestCase
             'billing_sequences',
             'tax_rules',
             'client_credit_transactions',
+            'coupons',
+            'coupon_redemptions',
         ] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
@@ -257,5 +259,38 @@ class BillingSchemaTest extends TestCase
             Schema::hasColumn('clients', 'credit_balance'),
             'Expected clients.credit_balance to exist.',
         );
+    }
+
+    public function test_coupons_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'code',
+            'type',
+            'value',
+            'currency',
+            'applies_to',
+            'max_uses',
+            'uses_count',
+            'max_uses_per_client',
+            'starts_at',
+            'expires_at',
+            'client_id',
+            'product_ids',
+            'recurring_cycles',
+            'active',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('coupons', $column),
+                "Expected coupons.{$column} to exist.",
+            );
+        }
+
+        foreach (['coupon_id', 'discount_amount'] as $column) {
+            $this->assertTrue(Schema::hasColumn('orders', $column));
+            $this->assertTrue(Schema::hasColumn('invoices', $column));
+        }
     }
 }

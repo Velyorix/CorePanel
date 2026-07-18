@@ -91,6 +91,8 @@ class OrderController extends Controller
                 '.',
                 '',
             ),
+            'discount_amount' => $order->discount_amount ?? '0.00',
+            'coupon_code' => $order->coupon_code,
             'tax_label' => __('Tax'),
             'first_payment_tax' => $order->tax_amount,
             'first_payment_total' => $order->total_amount,

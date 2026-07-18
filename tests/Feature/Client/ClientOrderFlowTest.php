@@ -49,6 +49,8 @@ class ClientOrderFlowTest extends TestCase
 
     public function test_client_completes_full_order_flow_from_catalog_with_options_and_addons(): void
     {
+        \Core\Billing\Models\Coupon::factory()->percent('WELCOME10', '10.00')->create();
+
         [$user, $client] = $this->makeClientUser();
         $product = $this->makeFlowProduct();
 
@@ -153,8 +155,9 @@ class ClientOrderFlowTest extends TestCase
         $this->assertSame('WELCOME10', $order->coupon_code);
         $this->assertSame('32.99', $order->subtotal_recurring);
         $this->assertSame('6.00', $order->subtotal_setup);
-        $this->assertSame('7.80', $order->tax_amount);
-        $this->assertSame('46.79', $order->total_amount);
+        $this->assertSame('3.90', $order->discount_amount);
+        $this->assertSame('7.02', $order->tax_amount);
+        $this->assertSame('42.11', $order->total_amount);
         $this->assertNotNull($order->placed_at);
 
         $this->assertCount(1, $order->items);
@@ -177,7 +180,8 @@ class ClientOrderFlowTest extends TestCase
             ->assertOk()
             ->assertSee(__('Pending payment'))
             ->assertSee($product->name)
-            ->assertSee('46.79');
+            ->assertSee('3.90')
+            ->assertSee('42.11');
     }
 
     public function test_configured_prices_flow_from_preview_through_cart_to_pending_order(): void

@@ -27,7 +27,9 @@ class PaymentServiceTest extends TestCase
         parent::setUp();
 
         $this->gateway = new FakePaymentGateway;
-        app(PaymentGatewayRegistry::class)->register($this->gateway);
+        $registry = app(PaymentGatewayRegistry::class);
+        $registry->flush();
+        $registry->register($this->gateway);
         $this->payments = app(PaymentService::class);
     }
 

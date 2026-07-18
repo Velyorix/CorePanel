@@ -299,6 +299,21 @@ return [
             'invoice_days_before' => (int) env('COREPANEL_BILLING_RENEWAL_DAYS_BEFORE', 7),
             'schedule' => env('COREPANEL_BILLING_RENEWAL_SCHEDULE', 'daily'),
         ],
+
+        /*
+        | Manual offline gateway (bank transfer / cheque).
+        | Payments stay pending until staff confirms via PaymentService::complete().
+        */
+        'manual_transfer' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_MANUAL_TRANSFER_ENABLED', true),
+            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer'),
+            'reference_prefix' => env('COREPANEL_BILLING_MANUAL_TRANSFER_REFERENCE_PREFIX', 'PAY'),
+            'beneficiary' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BENEFICIARY'),
+            'iban' => env('COREPANEL_BILLING_MANUAL_TRANSFER_IBAN'),
+            'bic' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BIC'),
+            'bank_name' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BANK_NAME'),
+            'instructions' => env('COREPANEL_BILLING_MANUAL_TRANSFER_INSTRUCTIONS'),
+        ],
     ],
 
     /*

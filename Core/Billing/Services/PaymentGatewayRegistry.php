@@ -47,4 +47,9 @@ class PaymentGatewayRegistry
     {
         return array_keys($this->gateways);
     }
+
+    public function flush(): void
+    {
+        $this->gateways = [];
+    }
 }

@@ -23,6 +23,7 @@ class PaymentGatewayRegistryTest extends TestCase
     public function test_register_and_resolve_gateways(): void
     {
         $registry = app(PaymentGatewayRegistry::class);
+        $registry->flush();
         $gateway = new FakePaymentGateway;
 
         $registry->register($gateway);
@@ -35,15 +36,19 @@ class PaymentGatewayRegistryTest extends TestCase
 
     public function test_get_unknown_gateway_throws(): void
     {
+        $registry = app(PaymentGatewayRegistry::class);
+        $registry->flush();
+
         $this->expectException(UnknownPaymentGatewayException::class);
         $this->expectExceptionMessage('Unknown payment gateway [missing].');
 
-        app(PaymentGatewayRegistry::class)->get('missing');
+        $registry->get('missing');
     }
 
     public function test_register_overwrites_same_key(): void
     {
         $registry = app(PaymentGatewayRegistry::class);
+        $registry->flush();
         $first = new FakePaymentGateway(label: 'First');
         $second = new FakePaymentGateway(label: 'Second');
 

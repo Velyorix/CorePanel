@@ -9,6 +9,7 @@ use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
 use Core\Billing\Contracts\RenewableBillableSource;
+use Core\Billing\Gateways\ManualTransferGateway;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
@@ -92,6 +93,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);
         $this->app->singleton(RenewalInvoiceService::class);
         $this->app->singleton(PaymentGatewayRegistry::class);
+        $this->app->singleton(ManualTransferGateway::class);
         $this->app->singleton(PaymentService::class);
         $this->app->singleton(GateRegistrar::class);
     }
@@ -110,5 +112,11 @@ class CoreServiceProvider extends ServiceProvider
 
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();
+
+        if ((bool) config('corepanel.billing.manual_transfer.enabled', true)) {
+            $this->app->make(PaymentGatewayRegistry::class)->register(
+                $this->app->make(ManualTransferGateway::class),
+            );
+        }
     }
 }

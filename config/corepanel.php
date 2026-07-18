@@ -22,10 +22,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Identifiant stable de l'installation — généré une fois à l'install wizard
-    | (étape 7). Utilisé pour la validation licence CorePanel.org.
+    |  Utilisé pour la validation licence CorePanel.org.
     | Ne jamais régénérer sauf réinstallation volontaire.
     |
-    | Voir : internal-docs/cdc/API-COREPANEL-ORG.md §6.4
     |
     */
 
@@ -63,7 +62,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Licence (comportement local — logique en étape 7)
+    | Licence (comportement local)
     |--------------------------------------------------------------------------
     */
 
@@ -130,7 +129,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Password policy (CDC Tome 4 §3.3)
+    | Password policy
     |--------------------------------------------------------------------------
     */
 
@@ -142,7 +141,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication (CDC Tome 4 §10)
+    | Authentication
     |--------------------------------------------------------------------------
     */
 
@@ -154,7 +153,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Account lockout (CDC Tome 4 §13)
+        | Account lockout
         |----------------------------------------------------------------------
         |
         | Locks the user account after repeated failed login attempts.
@@ -171,7 +170,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Authentication audit (CDC Tome 4 §11)
+        | Authentication audit
         |----------------------------------------------------------------------
         */
 
@@ -181,7 +180,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Session tracking (CDC Tome 4 §4.2)
+        | Session tracking
         |----------------------------------------------------------------------
         |
         | Laravel sessions are stored via SESSION_DRIVER (redis recommended).
@@ -196,7 +195,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Registration (CDC — open or invite-only)
+        | Registration
         |----------------------------------------------------------------------
         |
         | mode: open   — public /register
@@ -212,7 +211,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Client invitations (CDC Tome 7 §9)
+        | Client invitations
         |----------------------------------------------------------------------
         */
         'client_invitations' => [
@@ -221,7 +220,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Password reset (CDC Tome 4 §10)
+        | Password reset
         |----------------------------------------------------------------------
         */
 
@@ -246,7 +245,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Clients (CDC Tome 3 §5, Tome 6 §5–6)
+    | Clients
     |--------------------------------------------------------------------------
     */
 
@@ -258,17 +257,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Billing (preview stubs until étape 12)
+    | Billing
     |--------------------------------------------------------------------------
     */
 
     'billing' => [
         /*
-        | Tax rate used only for catalog/cart price previews (roadmap 10.5–10.6).
+        | Tax rate used only for catalog/cart price previews
         | Real TaxCalculationService arrives in étape 12.4.
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
         'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
+
+        /*
+        | Invoice numbering
+        | Runtime prefix override: settings key billing.invoice.prefix via BillingSettings.
+        | Sequence counter lives in billing_sequences (locked under concurrency).
+        */
+        'invoice_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_INVOICE_PREFIX', 'INV'),
+            'padding' => (int) env('COREPANEL_BILLING_INVOICE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_INVOICE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_INVOICE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_INVOICE_SEPARATOR', '-'),
+        ],
     ],
 
     /*

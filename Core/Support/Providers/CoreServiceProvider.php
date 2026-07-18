@@ -13,6 +13,8 @@ use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
 use Core\Billing\Services\NullRenewableBillableSource;
+use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\PaymentService;
 use Core\Billing\Services\RenewalInvoiceService;
 use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
@@ -89,6 +91,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(InvoiceNumberService::class);
         $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);
         $this->app->singleton(RenewalInvoiceService::class);
+        $this->app->singleton(PaymentGatewayRegistry::class);
+        $this->app->singleton(PaymentService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

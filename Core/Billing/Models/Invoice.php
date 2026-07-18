@@ -4,6 +4,7 @@ namespace Core\Billing\Models;
 
 use Core\Auth\Models\User;
 use Core\Billing\Enums\InvoiceStatus;
+use Core\Billing\Enums\PaymentStatus;
 use Core\Clients\Models\Client;
 use Core\Orders\Models\Order;
 use Database\Factories\InvoiceFactory;
@@ -93,6 +94,48 @@ class Invoice extends Model
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function completedPayments(): HasMany
+    {
+        return $this->payments()->where('status', PaymentStatus::Completed);
+    }
+
+    public function amountPaid(): string
+    {
+        $sum = (float) $this->completedPayments()->sum('amount');
+
+        return number_format(round($sum, 2), 2, '.', '');
+    }
+
+    public function amountDue(): string
+    {
+        $due = max(0, (float) $this->total_amount - (float) $this->amountPaid());
+
+        return number_format(round($due, 2), 2, '.', '');
+    }
+
+    public function isFullyPaid(): bool
+    {
+        return (float) $this->total_amount > 0
+            && (float) $this->amountDue() <= 0.00001;
+    }
+
+    public function isPayable(): bool
+    {
+        return in_array($this->status, [InvoiceStatus::Unpaid, InvoiceStatus::Overdue], true)
+            && (float) $this->amountDue() > 0;
     }
 
     protected static function newFactory(): InvoiceFactory

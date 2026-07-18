@@ -63,4 +63,35 @@ class InvoiceFactory extends Factory
             'due_at' => now()->addDays(14),
         ]);
     }
+
+    public function overdue(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => InvoiceStatus::Overdue,
+            'invoice_number' => 'INV-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
+            'issued_at' => now()->subDays(30),
+            'due_at' => now()->subDays(7),
+        ]);
+    }
+
+    public function paid(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => InvoiceStatus::Paid,
+            'invoice_number' => 'INV-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
+            'issued_at' => now()->subDays(7),
+            'due_at' => now()->addDays(7),
+            'paid_at' => now(),
+        ]);
+    }
+
+    public function cancelled(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => InvoiceStatus::Cancelled,
+            'invoice_number' => 'INV-'.now()->format('Ymd').'-'.fake()->unique()->numerify('######'),
+            'issued_at' => now()->subDay(),
+            'cancelled_at' => now(),
+        ]);
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace Core\Orders\Services;
 
+use Core\Auth\Models\User;
+use Core\Billing\DataTransferObjects\TaxAddress;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CartItemData;
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
@@ -15,7 +17,6 @@ use Core\Orders\Models\Cart;
 use Core\Orders\Models\CartItem;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
-use Core\Auth\Models\User;
 use Core\Products\Enums\ProductStatus;
 use Core\Products\Models\Product;
 use Core\Products\Services\ProductPricingCalculator;
@@ -265,7 +266,10 @@ class OrderService
             );
         }
 
-        $summary = $this->cartSummary->summarize($cart);
+        $summary = $this->cartSummary->summarize(
+            $cart,
+            TaxAddress::fromDraft($draft),
+        );
 
         return DB::transaction(function () use ($cart, $client, $draft, $summary): Order {
             $order = $this->createDraft($client, [
@@ -366,6 +370,7 @@ class OrderService
                     ],
                     $pricedLines,
                 ),
+                TaxAddress::fromDraft($draft),
             );
 
             $order = $this->createDraft($client, [

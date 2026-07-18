@@ -3,7 +3,7 @@
     :page-heading="__('Dashboard')"
 >
     <x-slot:subtitle>
-        {{ __('Global overview of platform activity. Live metrics arrive in a later release.') }}
+        {{ __('Global overview of platform activity.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>
@@ -19,7 +19,7 @@
 
     <div class="mb-6">
         <x-ui.alert variant="info" :title="__('Skeleton dashboard')">
-            {{ __('KPI values and charts are placeholders until billing, services, and observability are connected.') }}
+            {{ __('KPI values and charts are placeholders.') }}
         </x-ui.alert>
     </div>
 

@@ -2,31 +2,38 @@
 
 namespace Core\Products\Services;
 
+use Core\Billing\DataTransferObjects\TaxAddress;
+use Core\Billing\Services\TaxCalculationService;
 use Core\Orders\DataTransferObjects\CartItemData;
 use Core\Products\Models\Product;
 
 /**
- * Client configurator price preview with tax estimate stub.
- * Full multi-country VAT calculation is not implemented yet.
+ * Client configurator price preview with tax estimate.
  */
 class CatalogPricePreview
 {
     public function __construct(
         private readonly ProductPricingCalculator $calculator,
+        private readonly TaxCalculationService $taxCalculation,
     ) {
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function fromCartItem(Product $product, CartItemData $item): array
+    public function fromCartItem(Product $product, CartItemData $item, ?TaxAddress $address = null): array
     {
         $breakdown = $this->calculator->configuredBreakdownFromCartItem($product, $item);
-        $taxRate = $this->taxPreviewRate();
-        $taxLabel = $this->taxPreviewLabel();
+        $resolvedAddress = $address ?? new TaxAddress(null);
 
-        $recurringTax = $this->money((float) $breakdown['recurring_subtotal'] * $taxRate);
-        $firstTax = $this->money((float) $breakdown['first_payment_subtotal'] * $taxRate);
+        $recurringTax = $this->taxCalculation->calculateLine(
+            (string) $breakdown['recurring_subtotal'],
+            $resolvedAddress,
+        );
+        $firstTax = $this->taxCalculation->calculateLine(
+            (string) $breakdown['first_payment_subtotal'],
+            $resolvedAddress,
+        );
 
         return [
             'currency' => null,
@@ -40,41 +47,23 @@ class CatalogPricePreview
             'setup_fee' => $breakdown['setup_fee'],
             'recurring_subtotal' => $breakdown['recurring_subtotal'],
             'first_payment_subtotal' => $breakdown['first_payment_subtotal'],
-            'tax_rate' => number_format($taxRate, 4, '.', ''),
-            'tax_label' => $taxLabel,
-            'tax_is_estimate' => true,
-            'tax_engine' => 'stub',
-            'recurring_tax' => $recurringTax,
-            'first_payment_tax' => $firstTax,
+            'tax_rate' => $firstTax->taxRate,
+            'tax_label' => $firstTax->taxLabel,
+            'tax_is_estimate' => $firstTax->application === 'fallback',
+            'tax_engine' => $firstTax->application === 'fallback' ? 'stub' : 'tax_rules',
+            'recurring_tax' => $recurringTax->taxAmount,
+            'first_payment_tax' => $firstTax->taxAmount,
             'recurring_total' => $this->money(
-                (float) $breakdown['recurring_subtotal'] + (float) $recurringTax,
+                (float) $breakdown['recurring_subtotal'] + (float) $recurringTax->taxAmount,
             ),
             'first_payment_total' => $this->money(
-                (float) $breakdown['first_payment_subtotal'] + (float) $firstTax,
+                (float) $breakdown['first_payment_subtotal'] + (float) $firstTax->taxAmount,
             ),
         ];
     }
 
-    private function taxPreviewRate(): float
-    {
-        $rate = (float) config('corepanel.billing.tax_preview_rate', 0);
-
-        return max(0, $rate);
-    }
-
-    private function taxPreviewLabel(): string
-    {
-        $label = config('corepanel.billing.tax_preview_label');
-
-        if (is_string($label) && $label !== '') {
-            return $label;
-        }
-
-        return (string) __('Tax (estimate)');
-    }
-
     private function money(float $amount): string
     {
-        return number_format($amount, 2, '.', '');
+        return number_format(round($amount, 2), 2, '.', '');
     }
 }

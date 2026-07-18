@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Models\Invoice;
+use Core\Billing\Models\TaxRule;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Clients\Models\Client;
 use Core\Orders\Enums\OrderStatus;
@@ -112,6 +113,7 @@ class InvoiceGenerationServiceTest extends TestCase
         $this->assertSame('24.99', $invoice->subtotal);
         $this->assertSame('5.00', $invoice->tax_amount);
         $this->assertSame('29.99', $invoice->total_amount);
+        $this->assertSame('5.00', $invoice->items->first()->tax_amount);
     }
 
     public function test_create_from_order_maps_order_items_to_invoice_items(): void
@@ -140,9 +142,35 @@ class InvoiceGenerationServiceTest extends TestCase
         $this->assertSame(['backup'], $item->addons);
         $this->assertSame('10.00', $item->unit_price);
         $this->assertSame('2.00', $item->setup_fee);
-        $this->assertSame('0.00', $item->tax_amount);
+        $this->assertSame('4.40', $item->tax_amount);
         $this->assertSame('22.00', $item->line_total);
         $this->assertNull($item->service_id);
+    }
+
+    public function test_create_from_order_applies_reverse_charge_for_eu_b2b(): void
+    {
+        TaxRule::factory()->deStandard()->create();
+
+        $order = $this->makePaidOrder([
+            'company_name' => 'German GmbH',
+            'vat_number' => 'DE123456789',
+            'country' => 'DE',
+            'subtotal_recurring' => '100.00',
+            'subtotal_setup' => '0.00',
+            'tax_amount' => '19.00',
+            'total_amount' => '119.00',
+        ], [
+            'unit_price' => '100.00',
+            'setup_fee' => '0.00',
+            'line_total' => '100.00',
+        ]);
+
+        $invoice = $this->invoiceGeneration->createFromOrder($order);
+
+        $this->assertSame('100.00', $invoice->subtotal);
+        $this->assertSame('0.00', $invoice->tax_amount);
+        $this->assertSame('100.00', $invoice->total_amount);
+        $this->assertSame('0.00', $invoice->items->first()->tax_amount);
     }
 
     public function test_create_from_order_is_idempotent_for_same_order(): void

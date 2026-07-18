@@ -292,6 +292,8 @@ class ClientCheckoutTest extends TestCase
         $user = User::factory()->withRole('client')->create();
         $client = Client::factory()->create([
             'user_id' => $user->id,
+            'country' => 'FR',
+            'vat_number' => null,
             ...$clientAttributes,
         ]);
         $client->users()->attach($user->id, [

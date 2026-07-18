@@ -11,6 +11,7 @@ use Core\Clients\Services\ClientService;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
+use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
@@ -75,6 +76,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(CartService::class);
+        $this->app->singleton(TaxCalculationService::class);
         $this->app->singleton(CartSummary::class);
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);

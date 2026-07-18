@@ -80,9 +80,16 @@ class ClientCartTest extends TestCase
             ->assertSee('44.98')
             ->assertSee('9.00')
             ->assertSee('53.98')
+            ->assertSee(__('VAT :rate%', ['rate' => '20']))
             ->assertSee(__('Proceed to checkout'))
             ->assertSee(route('client.checkout.index'), false)
-            ->assertSee(__('Tax is an estimate; final VAT is calculated at checkout.'));
+            ->assertDontSee(__('Tax is an estimate; final VAT is calculated at checkout.'));
+
+        $summary = app(CartSummary::class)->summarize(
+            app(CartService::class)->getOrCreate($client, null)->fresh(['items.product', 'client']),
+        );
+        $this->assertSame('tax_rules', $summary['tax_engine']);
+        $this->assertFalse($summary['tax_is_estimate']);
     }
 
     public function test_client_can_update_cart_item_quantity(): void
@@ -181,7 +188,11 @@ class ClientCartTest extends TestCase
         $user = User::factory()->withRole('client')->create(
             $email !== null ? ['email' => $email] : [],
         );
-        $client = Client::factory()->create(['user_id' => $user->id]);
+        $client = Client::factory()->create([
+            'user_id' => $user->id,
+            'country' => 'FR',
+            'vat_number' => null,
+        ]);
         $client->users()->attach($user->id, [
             'role' => ClientMembershipRole::Owner->value,
         ]);

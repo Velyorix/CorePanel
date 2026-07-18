@@ -23,6 +23,7 @@ class BillingSchemaTest extends TestCase
             'quotes',
             'quote_items',
             'billing_sequences',
+            'tax_rules',
         ] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
@@ -215,6 +216,16 @@ class BillingSchemaTest extends TestCase
             $this->assertTrue(
                 Schema::hasColumn('billing_sequences', $column),
                 "Expected billing_sequences.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_tax_rules_have_expected_columns(): void
+    {
+        foreach (['id', 'country', 'rate', 'type', 'active', 'created_at', 'updated_at'] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('tax_rules', $column),
+                "Expected tax_rules.{$column} to exist.",
             );
         }
     }

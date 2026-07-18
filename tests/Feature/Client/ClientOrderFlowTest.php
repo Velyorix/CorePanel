@@ -290,6 +290,7 @@ class ClientOrderFlowTest extends TestCase
             'city' => 'Paris',
             'postal_code' => '75001',
             'country' => 'FR',
+            'vat_number' => null,
         ]);
         $client->users()->attach($user->id, [
             'role' => ClientMembershipRole::Owner->value,

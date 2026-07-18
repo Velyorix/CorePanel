@@ -3,7 +3,7 @@
     :page-heading="__('Order #:id', ['id' => $order->id])"
 >
     <x-slot:subtitle>
-        {{ __('Your order is pending payment. Payment processing arrives in a later step.') }}
+        {{ __('Your order is pending payment.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>

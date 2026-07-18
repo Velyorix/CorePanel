@@ -2,14 +2,20 @@
 
 namespace Core\Orders\Services;
 
+use Core\Billing\DataTransferObjects\TaxAddress;
+use Core\Billing\Services\TaxCalculationService;
 use Core\Orders\Models\Cart;
 
 /**
- * Aggregates snapshotted cart line totals with tax preview stub.
- * Full multi-country VAT calculation is not implemented yet.
+ * Aggregates snapshotted cart line totals with tax calculation.
  */
 class CartSummary
 {
+    public function __construct(
+        private readonly TaxCalculationService $taxCalculation,
+    ) {
+    }
+
     /**
      * @return array{
      *     currency: string|null,
@@ -38,9 +44,9 @@ class CartSummary
      *     recurring_total: string
      * }
      */
-    public function summarize(Cart $cart): array
+    public function summarize(Cart $cart, ?TaxAddress $address = null): array
     {
-        $cart->loadMissing(['items.product']);
+        $cart->loadMissing(['items.product', 'client']);
 
         $recurring = 0.0;
         $setup = 0.0;
@@ -70,9 +76,12 @@ class CartSummary
         }
 
         $firstPayment = $recurring + $setup;
-        $taxRate = $this->taxPreviewRate();
-        $recurringTax = $this->money($recurring * $taxRate);
-        $firstTax = $this->money($firstPayment * $taxRate);
+        $resolvedAddress = $address ?? ($cart->client !== null
+            ? TaxAddress::fromClient($cart->client)
+            : new TaxAddress(null));
+
+        $recurringTax = $this->taxCalculation->calculateLine($this->money($recurring), $resolvedAddress);
+        $firstTax = $this->taxCalculation->calculateLine($this->money($firstPayment), $resolvedAddress);
 
         return [
             'currency' => $cart->currency,
@@ -81,14 +90,14 @@ class CartSummary
             'recurring_subtotal' => $this->money($recurring),
             'setup_subtotal' => $this->money($setup),
             'first_payment_subtotal' => $this->money($firstPayment),
-            'tax_rate' => number_format($taxRate, 4, '.', ''),
-            'tax_label' => $this->taxPreviewLabel(),
-            'tax_is_estimate' => true,
-            'tax_engine' => 'stub',
-            'recurring_tax' => $recurringTax,
-            'first_payment_tax' => $firstTax,
-            'recurring_total' => $this->money($recurring + (float) $recurringTax),
-            'first_payment_total' => $this->money($firstPayment + (float) $firstTax),
+            'tax_rate' => $firstTax->taxRate,
+            'tax_label' => $firstTax->taxLabel,
+            'tax_is_estimate' => $firstTax->application === 'fallback',
+            'tax_engine' => $firstTax->application === 'fallback' ? 'stub' : 'tax_rules',
+            'recurring_tax' => $recurringTax->taxAmount,
+            'first_payment_tax' => $firstTax->taxAmount,
+            'recurring_total' => $this->money($recurring + (float) $recurringTax->taxAmount),
+            'first_payment_total' => $this->money($firstPayment + (float) $firstTax->taxAmount),
         ];
     }
 
@@ -104,7 +113,7 @@ class CartSummary
      *     first_payment_total: string
      * }
      */
-    public function summarizePricedLines(array $pricedLines): array
+    public function summarizePricedLines(array $pricedLines, ?TaxAddress $address = null): array
     {
         $recurring = 0.0;
         $setup = 0.0;
@@ -116,35 +125,20 @@ class CartSummary
         }
 
         $firstPayment = $recurring + $setup;
-        $taxRate = $this->taxPreviewRate();
+        $resolvedAddress = $address ?? new TaxAddress(null);
+        $firstTax = $this->taxCalculation->calculateLine($this->money($firstPayment), $resolvedAddress);
 
         return [
             'recurring_subtotal' => $this->money($recurring),
             'setup_subtotal' => $this->money($setup),
             'first_payment_subtotal' => $this->money($firstPayment),
-            'first_payment_tax' => $this->money($firstPayment * $taxRate),
-            'first_payment_total' => $this->money($firstPayment + ($firstPayment * $taxRate)),
+            'first_payment_tax' => $firstTax->taxAmount,
+            'first_payment_total' => $this->money($firstPayment + (float) $firstTax->taxAmount),
         ];
-    }
-
-    private function taxPreviewRate(): float
-    {
-        return max(0, (float) config('corepanel.billing.tax_preview_rate', 0));
-    }
-
-    private function taxPreviewLabel(): string
-    {
-        $label = config('corepanel.billing.tax_preview_label');
-
-        if (is_string($label) && $label !== '') {
-            return $label;
-        }
-
-        return (string) __('Tax (estimate)');
     }
 
     private function money(float $amount): string
     {
-        return number_format($amount, 2, '.', '');
+        return number_format(round($amount, 2), 2, '.', '');
     }
 }

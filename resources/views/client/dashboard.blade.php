@@ -3,7 +3,7 @@
     :page-heading="__('Dashboard')"
 >
     <x-slot:subtitle>
-        {{ __('Quick overview of your services, billing, and support activity. Live metrics arrive in a later release.') }}
+        {{ __('Quick overview of your services, billing, and support activity.') }}
     </x-slot:subtitle>
 
     <x-slot:topbar>
@@ -26,7 +26,7 @@
 
     <div class="mb-6">
         <x-ui.alert variant="info" :title="__('Skeleton dashboard')">
-            {{ __('KPI values are placeholders until services, billing, and support modules are connected.') }}
+            {{ __('KPI values are placeholders.') }}
         </x-ui.alert>
     </div>
 

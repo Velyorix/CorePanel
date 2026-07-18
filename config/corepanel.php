@@ -263,8 +263,17 @@ return [
 
     'billing' => [
         /*
-        | Tax rate used only for catalog/cart price previews.
-        | Full TaxCalculationService is not implemented yet.
+        | Seller country and EU member list used by TaxCalculationService.
+        */
+        'seller_country' => env('COREPANEL_BILLING_SELLER_COUNTRY', 'FR'),
+        'eu_countries' => [
+            'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR',
+            'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL',
+            'PT', 'RO', 'SE', 'SI', 'SK',
+        ],
+
+        /*
+        | Fallback tax rate when billing country is unknown (catalog/cart preview).
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
         'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
@@ -288,8 +297,7 @@ return [
     | Checkout stubs
     |--------------------------------------------------------------------------
     |
-    | Payment methods and coupons are UI placeholders until billing and
-    | payment integrations are wired in.
+    | Payment methods and coupons are UI stubs for checkout.
     |
     */
 

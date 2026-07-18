@@ -8,9 +8,12 @@ use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
+use Core\Billing\Contracts\RenewableBillableSource;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
+use Core\Billing\Services\NullRenewableBillableSource;
+use Core\Billing\Services\RenewalInvoiceService;
 use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
@@ -84,6 +87,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(InvoiceNumberService::class);
+        $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);
+        $this->app->singleton(RenewalInvoiceService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

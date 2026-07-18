@@ -290,6 +290,15 @@ return [
             'reset_yearly' => (bool) env('COREPANEL_BILLING_INVOICE_RESET_YEARLY', true),
             'separator' => env('COREPANEL_BILLING_INVOICE_SEPARATOR', '-'),
         ],
+
+        /*
+        | Recurring renewal invoice generation (GenerateRenewalInvoices job).
+        */
+        'renewal' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_RENEWAL_ENABLED', true),
+            'invoice_days_before' => (int) env('COREPANEL_BILLING_RENEWAL_DAYS_BEFORE', 7),
+            'schedule' => env('COREPANEL_BILLING_RENEWAL_SCHEDULE', 'daily'),
+        ],
     ],
 
     /*

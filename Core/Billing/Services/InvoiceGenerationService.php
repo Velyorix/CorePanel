@@ -5,9 +5,11 @@ namespace Core\Billing\Services;
 use Core\Auth\Models\User;
 use Core\Billing\DataTransferObjects\TaxAddress;
 use Core\Billing\DataTransferObjects\TaxLineInput;
+use Core\Billing\DataTransferObjects\RenewalInvoiceInput;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\InvoiceItem;
+use Core\Clients\Models\Client;
 use Core\Orders\Enums\OrderStatus;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
@@ -16,7 +18,7 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Generates draft invoices from paid orders.
+ * Generates draft invoices from paid orders and service renewals.
  * Does not assign invoice numbers.
  */
 class InvoiceGenerationService
@@ -87,10 +89,109 @@ class InvoiceGenerationService
             ]);
 
             foreach ($order->items->values() as $index => $item) {
-                $this->createInvoiceItem($invoice, $item, $tax->lines[$index]->taxAmount);
+                $this->createInvoiceItemFromOrder($invoice, $item, $tax->lines[$index]->taxAmount);
             }
 
             return $invoice->fresh(['items', 'client', 'order']) ?? $invoice;
+        });
+    }
+
+    /**
+     * Create a draft renewal invoice for a service period.
+     * Idempotent: returns the existing open renewal invoice for the same service_id.
+     */
+    public function createRenewal(RenewalInvoiceInput $input, ?User $createdBy = null): Invoice
+    {
+        if ($input->serviceId < 1) {
+            throw new InvalidArgumentException('A valid service_id is required for renewal invoices.');
+        }
+
+        $existing = $this->findOpenRenewalForService($input->serviceId);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $client = Client::query()->find($input->clientId);
+
+        if ($client === null) {
+            throw new InvalidArgumentException('Cannot generate a renewal invoice for an unknown client.');
+        }
+
+        $contactName = $input->contactName;
+        $contactEmail = $input->contactEmail;
+
+        if ($contactName === null || $contactEmail === null) {
+            $client->loadMissing('owner');
+            $contactName ??= $client->owner?->name;
+            $contactEmail ??= $client->owner?->email;
+        }
+
+        if ($contactName === null || $contactEmail === null) {
+            throw new InvalidArgumentException('Contact name and email are required for renewal invoices.');
+        }
+
+        $lineTotal = $input->line->lineTotal();
+
+        return DB::transaction(function () use ($input, $createdBy, $contactName, $contactEmail, $lineTotal): Invoice {
+            $tax = $this->taxCalculation->calculateDocument(
+                [new TaxLineInput($lineTotal)],
+                $input->taxAddress(),
+            );
+
+            $invoice = Invoice::query()->create([
+                'invoice_number' => null,
+                'client_id' => $input->clientId,
+                'order_id' => null,
+                'created_by' => $createdBy?->id ?? $input->createdBy,
+                'status' => InvoiceStatus::Draft,
+                'currency' => $input->currency !== '' ? $input->currency : 'EUR',
+                'contact_name' => $contactName,
+                'contact_email' => $contactEmail,
+                'company_name' => $input->companyName,
+                'vat_number' => $input->vatNumber,
+                'address' => $input->address,
+                'city' => $input->city,
+                'country' => $input->country,
+                'postal_code' => $input->postalCode,
+                'phone' => $input->phone,
+                'notes' => $input->notes,
+                'subtotal' => $tax->subtotal,
+                'tax_amount' => $tax->taxAmount,
+                'total_amount' => $tax->total,
+                'issued_at' => null,
+                'due_at' => $input->billingPeriodEnd,
+                'paid_at' => null,
+                'cancelled_at' => null,
+            ]);
+
+            $line = $input->line;
+            $description = filled($line->description)
+                ? $line->description
+                : (filled($line->productName)
+                    ? (string) $line->productName
+                    : __('Service #:id renewal', ['id' => $input->serviceId]));
+
+            InvoiceItem::query()->create([
+                'invoice_id' => $invoice->id,
+                'product_id' => $line->productId,
+                'service_id' => $input->serviceId,
+                'description' => $description,
+                'product_name' => $line->productName,
+                'product_slug' => $line->productSlug,
+                'billing_cycle' => $line->billingCycle,
+                'custom_interval_days' => $line->customIntervalDays,
+                'quantity' => max(1, $line->quantity),
+                'options' => $line->options,
+                'addons' => $line->addons,
+                'config_data' => $line->configData,
+                'unit_price' => $this->money((float) $line->unitPrice),
+                'setup_fee' => '0.00',
+                'tax_amount' => $tax->lines[0]->taxAmount,
+                'line_total' => $lineTotal,
+            ]);
+
+            return $invoice->fresh(['items', 'client']) ?? $invoice;
         });
     }
 
@@ -102,7 +203,26 @@ class InvoiceGenerationService
             ->first();
     }
 
-    private function createInvoiceItem(Invoice $invoice, OrderItem $item, string $taxAmount): InvoiceItem
+    /**
+     * Open renewal invoice for a service (draft, unpaid, or overdue).
+     */
+    public function findOpenRenewalForService(int $serviceId): ?Invoice
+    {
+        return Invoice::query()
+            ->with(['items', 'client'])
+            ->whereIn('status', [
+                InvoiceStatus::Draft,
+                InvoiceStatus::Unpaid,
+                InvoiceStatus::Overdue,
+            ])
+            ->whereHas('items', function ($query) use ($serviceId): void {
+                $query->where('service_id', $serviceId);
+            })
+            ->orderBy('id')
+            ->first();
+    }
+
+    private function createInvoiceItemFromOrder(Invoice $invoice, OrderItem $item, string $taxAmount): InvoiceItem
     {
         $description = filled($item->product_name)
             ? (string) $item->product_name

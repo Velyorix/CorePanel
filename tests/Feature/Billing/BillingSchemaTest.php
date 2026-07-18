@@ -1,0 +1,210 @@
+<?php
+
+namespace Tests\Feature\Billing;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+/**
+ * Schema smoke for billing + quotes migrations (roadmap 12.1).
+ */
+class BillingSchemaTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_billing_tables_exist(): void
+    {
+        foreach ([
+            'invoices',
+            'invoice_items',
+            'payments',
+            'credit_notes',
+            'quotes',
+            'quote_items',
+        ] as $table) {
+            $this->assertTrue(
+                Schema::hasTable($table),
+                "Expected table [{$table}] to exist.",
+            );
+        }
+    }
+
+    public function test_invoices_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'invoice_number',
+            'client_id',
+            'order_id',
+            'created_by',
+            'status',
+            'currency',
+            'contact_name',
+            'contact_email',
+            'company_name',
+            'vat_number',
+            'address',
+            'city',
+            'country',
+            'postal_code',
+            'phone',
+            'notes',
+            'subtotal',
+            'tax_amount',
+            'total_amount',
+            'issued_at',
+            'due_at',
+            'paid_at',
+            'cancelled_at',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('invoices', $column),
+                "Expected invoices.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_invoice_items_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'invoice_id',
+            'product_id',
+            'service_id',
+            'description',
+            'product_name',
+            'product_slug',
+            'billing_cycle',
+            'custom_interval_days',
+            'quantity',
+            'options',
+            'addons',
+            'config_data',
+            'unit_price',
+            'setup_fee',
+            'tax_amount',
+            'line_total',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('invoice_items', $column),
+                "Expected invoice_items.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_payments_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'invoice_id',
+            'client_id',
+            'method',
+            'currency',
+            'amount',
+            'status',
+            'transaction_id',
+            'gateway_reference',
+            'notes',
+            'paid_at',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('payments', $column),
+                "Expected payments.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_credit_notes_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'credit_note_number',
+            'invoice_id',
+            'client_id',
+            'created_by',
+            'currency',
+            'amount',
+            'status',
+            'reason',
+            'notes',
+            'issued_at',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('credit_notes', $column),
+                "Expected credit_notes.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_quotes_and_quote_items_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'quote_number',
+            'client_id',
+            'created_by',
+            'converted_invoice_id',
+            'status',
+            'currency',
+            'contact_name',
+            'contact_email',
+            'company_name',
+            'vat_number',
+            'address',
+            'city',
+            'country',
+            'postal_code',
+            'phone',
+            'notes',
+            'subtotal',
+            'tax_amount',
+            'total_amount',
+            'valid_until',
+            'sent_at',
+            'accepted_at',
+            'converted_at',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('quotes', $column),
+                "Expected quotes.{$column} to exist.",
+            );
+        }
+
+        foreach ([
+            'id',
+            'quote_id',
+            'product_id',
+            'description',
+            'product_name',
+            'product_slug',
+            'billing_cycle',
+            'custom_interval_days',
+            'quantity',
+            'options',
+            'addons',
+            'config_data',
+            'unit_price',
+            'setup_fee',
+            'tax_amount',
+            'line_total',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('quote_items', $column),
+                "Expected quote_items.{$column} to exist.",
+            );
+        }
+    }
+}

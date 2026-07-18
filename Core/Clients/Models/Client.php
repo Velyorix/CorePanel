@@ -3,6 +3,7 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\ClientCreditTransaction;
 use Core\Billing\Models\Quote;
 use Core\Clients\Enums\ClientStatus;
 use Core\Orders\Models\Cart;
@@ -43,6 +44,7 @@ class Client extends Model
     {
         return [
             'status' => ClientStatus::class,
+            'credit_balance' => 'decimal:2',
         ];
     }
 
@@ -111,6 +113,19 @@ class Client extends Model
     public function quotes(): HasMany
     {
         return $this->hasMany(Quote::class);
+    }
+
+    /**
+     * @return HasMany<ClientCreditTransaction, $this>
+     */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(ClientCreditTransaction::class)->orderByDesc('id');
+    }
+
+    public function creditBalance(): string
+    {
+        return number_format(round((float) $this->credit_balance, 2), 2, '.', '');
     }
 
     protected static function newFactory(): ClientFactory

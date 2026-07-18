@@ -292,6 +292,21 @@ return [
         ],
 
         /*
+        | Quote numbering (assigned on send).
+        | Runtime prefix override: settings key billing.quote.prefix via BillingSettings.
+        */
+        'quote_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_QUOTE_PREFIX', 'QUO'),
+            'padding' => (int) env('COREPANEL_BILLING_QUOTE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_QUOTE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_QUOTE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_QUOTE_SEPARATOR', '-'),
+        ],
+
+        'quote_valid_days' => (int) env('COREPANEL_BILLING_QUOTE_VALID_DAYS', 30),
+        'invoice_due_days' => (int) env('COREPANEL_BILLING_INVOICE_DUE_DAYS', 14),
+
+        /*
         | Recurring renewal invoice generation (GenerateRenewalInvoices job).
         */
         'renewal' => [

@@ -2,6 +2,7 @@
 
 namespace Core\Billing\DataTransferObjects;
 
+use Core\Billing\Models\Quote;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Core\Orders\Models\Order;
@@ -39,6 +40,15 @@ final readonly class TaxAddress
             country: self::normalizeCountry($order->country),
             vatNumber: self::nullableString($order->vat_number),
             companyName: self::nullableString($order->company_name),
+        );
+    }
+
+    public static function fromQuote(Quote $quote): self
+    {
+        return new self(
+            country: self::normalizeCountry($quote->country),
+            vatNumber: self::nullableString($quote->vat_number),
+            companyName: self::nullableString($quote->company_name),
         );
     }
 

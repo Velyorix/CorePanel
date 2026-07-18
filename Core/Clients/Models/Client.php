@@ -3,6 +3,7 @@
 namespace Core\Clients\Models;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\Quote;
 use Core\Clients\Enums\ClientStatus;
 use Core\Orders\Models\Cart;
 use Core\Orders\Models\Order;
@@ -102,6 +103,14 @@ class Client extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * @return HasMany<Quote, $this>
+     */
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class);
     }
 
     protected static function newFactory(): ClientFactory

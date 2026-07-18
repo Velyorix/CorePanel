@@ -9,9 +9,9 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Client order flow cart foundation (roadmap 10.1, CDC Tome 7 / Tome 1).
+     * Client order flow cart foundation.
      * Guest carts are keyed by session_id; authenticated carts by client_id.
-     * Merge session → client happens in CartService (10.2).
+     * Merge session → client happens in CartService.
      */
     public function up(): void
     {

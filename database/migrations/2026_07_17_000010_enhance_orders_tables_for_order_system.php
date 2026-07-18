@@ -8,9 +8,6 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * Completes the orders schema for étape 11 (roadmap 11.1).
-     * Base tables were introduced in 10.8 (`2026_07_17_000009_create_orders_tables`).
      */
     public function up(): void
     {

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Configurable product options (CDC Tome 3 §7.2, roadmap 9.5).
+     * Configurable product options.
      */
     public function up(): void
     {

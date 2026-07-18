@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Formal product → node group assignment (roadmap 9.9).
+     * Formal product → node group assignment.
      */
     public function up(): void
     {

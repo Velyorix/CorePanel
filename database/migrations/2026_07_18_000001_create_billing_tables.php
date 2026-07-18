@@ -10,11 +10,9 @@ return new class extends Migration
      * Run the migrations.
      *
      * Billing + quotes schema (roadmap 12.1).
-     * CDC: Tome 3 §10, Tome 8 §4–6 / §11, Tome 1 (devis).
      *
-     * Models / services arrive in 12.2+. Invoice numbering is 12.3.
-     * `quote_items` mirrors `invoice_items` for devis → facture conversion (12.8).
-     * `service_id` on line items is an unsigned FK placeholder until étape 13 services.
+     * `quote_items` mirrors `invoice_items` for devis → facture conversion.
+     * `service_id` on line items is an unsigned FK placeholder.
      */
     public function up(): void
     {

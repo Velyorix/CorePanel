@@ -8,6 +8,7 @@ use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
+use Core\Billing\Services\InvoiceGenerationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
@@ -76,6 +77,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(OrderService::class);
+        $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

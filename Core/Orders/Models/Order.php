@@ -3,6 +3,7 @@
 namespace Core\Orders\Models;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
 use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -99,6 +101,16 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class)->orderBy('id');
+    }
+
+    /**
+     * Invoice generated from this order (roadmap 12.2).
+     *
+     * @return HasOne<Invoice, $this>
+     */
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
     }
 
     protected static function newFactory(): OrderFactory

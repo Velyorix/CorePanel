@@ -81,6 +81,7 @@ use Core\Services\Services\NullModuleActionDispatcher;
 use Core\Services\Services\ServiceControlService;
 use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
+use Core\Services\Services\ServiceUpgradeService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -123,6 +124,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);
         $this->app->singleton(ServiceActionLogger::class, DatabaseServiceActionLogger::class);
         $this->app->singleton(ServiceControlService::class);
+        $this->app->singleton(ServiceUpgradeService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(BillingAuditLogger::class);

@@ -134,6 +134,14 @@ class Invoice extends Model
         return $this->payments()->where('status', PaymentStatus::Completed);
     }
 
+    /**
+     * @return HasMany<CreditNote, $this>
+     */
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class)->orderBy('id');
+    }
+
     public function amountPaid(): string
     {
         $sum = (float) $this->completedPayments()->sum('amount');

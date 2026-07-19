@@ -303,6 +303,18 @@ return [
             'separator' => env('COREPANEL_BILLING_QUOTE_SEPARATOR', '-'),
         ],
 
+        /*
+        | Credit note numbering (assigned on issue).
+        | Runtime prefix override: settings key billing.credit_note.prefix via BillingSettings.
+        */
+        'credit_note_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_CREDIT_NOTE_PREFIX', 'CN'),
+            'padding' => (int) env('COREPANEL_BILLING_CREDIT_NOTE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_CREDIT_NOTE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_CREDIT_NOTE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_CREDIT_NOTE_SEPARATOR', '-'),
+        ],
+
         'quote_valid_days' => (int) env('COREPANEL_BILLING_QUOTE_VALID_DAYS', 30),
         'invoice_due_days' => (int) env('COREPANEL_BILLING_INVOICE_DUE_DAYS', 14),
 

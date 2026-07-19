@@ -142,6 +142,8 @@ class BillingSchemaTest extends TestCase
             'currency',
             'amount',
             'status',
+            'settlement',
+            'payment_id',
             'reason',
             'notes',
             'issued_at',

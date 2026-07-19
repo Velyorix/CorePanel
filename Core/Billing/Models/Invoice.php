@@ -4,6 +4,7 @@ namespace Core\Billing\Models;
 
 use Core\Auth\Models\User;
 use Core\Billing\Enums\InvoiceStatus;
+use Core\Billing\Enums\OverdueInvoiceAction;
 use Core\Billing\Enums\PaymentStatus;
 use Core\Clients\Models\Client;
 use Core\Orders\Models\Order;
@@ -48,6 +49,8 @@ class Invoice extends Model
         'reminder_level',
         'last_reminder_at',
         'reminders_sent',
+        'overdue_action',
+        'overdue_action_at',
         'paid_at',
         'cancelled_at',
     ];
@@ -68,6 +71,8 @@ class Invoice extends Model
             'reminder_level' => 'integer',
             'last_reminder_at' => 'datetime',
             'reminders_sent' => 'integer',
+            'overdue_action' => OverdueInvoiceAction::class,
+            'overdue_action_at' => 'datetime',
             'paid_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];

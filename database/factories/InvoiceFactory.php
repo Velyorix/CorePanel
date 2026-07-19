@@ -45,6 +45,8 @@ class InvoiceFactory extends Factory
             'reminder_level' => 0,
             'last_reminder_at' => null,
             'reminders_sent' => 0,
+            'overdue_action' => null,
+            'overdue_action_at' => null,
             'paid_at' => null,
             'cancelled_at' => null,
         ];

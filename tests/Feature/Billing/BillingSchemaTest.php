@@ -63,6 +63,8 @@ class BillingSchemaTest extends TestCase
             'reminder_level',
             'last_reminder_at',
             'reminders_sent',
+            'overdue_action',
+            'overdue_action_at',
             'paid_at',
             'cancelled_at',
             'created_at',

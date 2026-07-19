@@ -8,16 +8,19 @@ use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
+use Core\Billing\Contracts\OverdueServiceActions;
 use Core\Billing\Contracts\RenewableBillableSource;
 use Core\Billing\Gateways\ManualTransferGateway;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
 use Core\Billing\Services\InvoiceReminderService;
+use Core\Billing\Services\NullOverdueServiceActions;
 use Core\Billing\Services\NullRenewableBillableSource;
 use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CouponService;
 use Core\Billing\Services\DiscountCalculator;
+use Core\Billing\Services\OverdueSuspensionService;
 use Core\Billing\Services\ProrataCalculationService;
 use Core\Billing\Services\PaymentGatewayRegistry;
 use Core\Billing\Services\PaymentService;
@@ -109,6 +112,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CouponService::class);
         $this->app->singleton(ProrataCalculationService::class);
         $this->app->singleton(InvoiceReminderService::class);
+        $this->app->singleton(OverdueServiceActions::class, NullOverdueServiceActions::class);
+        $this->app->singleton(OverdueSuspensionService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

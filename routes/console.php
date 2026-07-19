@@ -2,6 +2,7 @@
 
 use App\Jobs\ValidateLicenseJob;
 use App\Jobs\GenerateRenewalInvoices;
+use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -31,4 +32,13 @@ $reminders = Schedule::job(new SendInvoiceReminders)->withoutOverlapping();
 match ($reminderSchedule) {
     'hourly' => $reminders->hourly(),
     default => $reminders->daily(),
+};
+
+$suspensionSchedule = (string) config('corepanel.billing.suspension.schedule', 'daily');
+
+$suspensions = Schedule::job(new ProcessOverdueSuspensions)->withoutOverlapping();
+
+match ($suspensionSchedule) {
+    'hourly' => $suspensions->hourly(),
+    default => $suspensions->daily(),
 };

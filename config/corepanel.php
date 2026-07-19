@@ -333,6 +333,20 @@ return [
         ],
 
         /*
+        | Automatic suspension / termination for overdue invoices (ProcessOverdueSuspensions).
+        | T+suspend_after_days → suspend linked services; T+terminate_after_days → terminate.
+        | Real lifecycle mutations are delegated to OverdueServiceActions (null until services engine).
+        */
+        'suspension' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_SUSPENSION_ENABLED', true),
+            'suspend_after_days' => (int) env('COREPANEL_BILLING_SUSPEND_AFTER_DAYS', 3),
+            'terminate_after_days' => (int) env('COREPANEL_BILLING_TERMINATE_AFTER_DAYS', 7),
+            'skip_if_credit_available' => (bool) env('COREPANEL_BILLING_SUSPENSION_SKIP_CREDIT', true),
+            'skip_vip_clients' => (bool) env('COREPANEL_BILLING_SUSPENSION_SKIP_VIP', true),
+            'schedule' => env('COREPANEL_BILLING_SUSPENSION_SCHEDULE', 'daily'),
+        ],
+
+        /*
         | Manual offline gateway (bank transfer / cheque).
         | Payments stay pending until staff confirms via PaymentService::complete().
         */

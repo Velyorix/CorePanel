@@ -11,6 +11,7 @@ use Core\Clients\Services\ClientService;
 use Core\Billing\Contracts\OverdueServiceActions;
 use Core\Billing\Contracts\RenewableBillableSource;
 use Core\Billing\Gateways\ManualTransferGateway;
+use Core\Billing\Services\BillingAuditLogger;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
@@ -109,6 +110,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(OrderService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
+        $this->app->singleton(BillingAuditLogger::class);
         $this->app->singleton(InvoiceNumberService::class);
         $this->app->singleton(InvoiceService::class);
         $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);

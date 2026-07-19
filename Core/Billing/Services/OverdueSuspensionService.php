@@ -7,6 +7,7 @@ use Core\Billing\Contracts\OverdueServiceActions;
 use Core\Billing\DataTransferObjects\SuspensionProcessingResult;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\OverdueInvoiceAction;
+use Core\Billing\Events\InvoiceServiceSuspended;
 use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,7 @@ class OverdueSuspensionService
     public function __construct(
         private readonly OverdueServiceActions $actions,
         private readonly ClientCreditService $credits,
+        private readonly BillingAuditLogger $auditLogger,
     ) {
     }
 
@@ -135,10 +137,28 @@ class OverdueSuspensionService
             $this->actions->suspend($invoice, $serviceId, $reason);
         }
 
+        $before = $this->auditLogger->invoiceSnapshot($invoice);
+
         $invoice->forceFill([
             'overdue_action' => OverdueInvoiceAction::Suspended,
             'overdue_action_at' => now(),
         ])->save();
+
+        $fresh = $invoice->fresh(['items', 'client']) ?? $invoice;
+
+        $this->auditLogger->log(
+            BillingAuditLogger::ACTION_INVOICE_SERVICE_SUSPENDED,
+            Invoice::class,
+            $fresh->id,
+            $before,
+            [
+                ...$this->auditLogger->invoiceSnapshot($fresh),
+                'service_ids' => $serviceIds,
+                'overdue_action' => OverdueInvoiceAction::Suspended->value,
+            ],
+        );
+
+        event(new InvoiceServiceSuspended($fresh, $serviceIds));
 
         return 'suspended';
     }

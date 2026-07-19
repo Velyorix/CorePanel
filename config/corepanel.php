@@ -289,6 +289,13 @@ return [
         ],
 
         /*
+        | Billing audit trail (invoice/payment/quote/credit lifecycle events).
+        */
+        'audit' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_AUDIT_ENABLED', true),
+        ],
+
+        /*
         | Fallback tax rate when billing country is unknown (catalog/cart preview).
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),

@@ -8,6 +8,7 @@ use Core\Billing\Enums\CreditNoteSettlement;
 use Core\Billing\Enums\CreditNoteStatus;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\PaymentStatus;
+use Core\Billing\Events\CreditNoteIssued;
 use Core\Billing\Exceptions\InvalidCreditNoteException;
 use Core\Billing\Models\CreditNote;
 use Core\Billing\Models\Invoice;
@@ -24,6 +25,7 @@ class CreditNoteService
         private readonly CreditNoteNumberService $numbers,
         private readonly ClientCreditService $credits,
         private readonly PaymentService $payments,
+        private readonly BillingAuditLogger $auditLogger,
     ) {
     }
 
@@ -100,6 +102,8 @@ class CreditNoteService
             $this->assertInvoiceEligible($invoice);
             $this->assertAmountWithinRemaining($invoice, (string) $locked->amount, excludeCreditNoteId: $locked->id);
 
+            $before = $this->auditLogger->creditNoteSnapshot($locked);
+
             $numbered = $this->numbers->assignNumber($locked);
 
             if ($settlement === CreditNoteSettlement::Wallet) {
@@ -120,7 +124,19 @@ class CreditNoteService
 
             $this->markInvoiceRefundedIfFullyCredited($invoice);
 
-            return $numbered->fresh(['invoice', 'client', 'payment']) ?? $numbered;
+            $fresh = $numbered->fresh(['invoice', 'client', 'payment']) ?? $numbered;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_CREDIT_NOTE_ISSUED,
+                CreditNote::class,
+                $fresh->id,
+                $before,
+                $this->auditLogger->creditNoteSnapshot($fresh),
+            );
+
+            event(new CreditNoteIssued($fresh));
+
+            return $fresh;
         });
     }
 

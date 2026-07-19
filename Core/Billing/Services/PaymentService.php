@@ -6,6 +6,10 @@ use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\DataTransferObjects\PaymentGatewayResult;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\PaymentStatus;
+use Core\Billing\Events\InvoicePaid;
+use Core\Billing\Events\PaymentCompleted;
+use Core\Billing\Events\PaymentFailed;
+use Core\Billing\Events\PaymentRefunded;
 use Core\Billing\Exceptions\InvalidPaymentException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
@@ -21,6 +25,7 @@ class PaymentService
 {
     public function __construct(
         private readonly PaymentGatewayRegistry $gateways,
+        private readonly BillingAuditLogger $auditLogger,
     ) {
     }
 
@@ -180,6 +185,8 @@ class PaymentService
         }
 
         return DB::transaction(function () use ($payment, $transactionId, $gatewayReference): Payment {
+            $before = $this->auditLogger->paymentSnapshot($payment);
+
             $payment->forceFill([
                 'status' => PaymentStatus::Completed,
                 'transaction_id' => $transactionId ?? $payment->transaction_id,
@@ -188,12 +195,39 @@ class PaymentService
             ])->save();
 
             $invoice = $payment->invoice()->first();
+            $wasPaid = $invoice?->status === InvoiceStatus::Paid;
 
             if ($invoice !== null) {
                 $this->applyToInvoice($invoice);
             }
 
-            return $payment->fresh(['invoice', 'client']) ?? $payment;
+            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_PAYMENT_COMPLETED,
+                Payment::class,
+                $fresh->id,
+                $before,
+                $this->auditLogger->paymentSnapshot($fresh),
+            );
+
+            event(new PaymentCompleted($fresh));
+
+            $refreshedInvoice = $invoice?->fresh();
+
+            if ($refreshedInvoice !== null && $refreshedInvoice->status === InvoiceStatus::Paid && ! $wasPaid) {
+                $this->auditLogger->log(
+                    BillingAuditLogger::ACTION_INVOICE_PAID,
+                    Invoice::class,
+                    $refreshedInvoice->id,
+                    null,
+                    $this->auditLogger->invoiceSnapshot($refreshedInvoice),
+                );
+
+                event(new InvoicePaid($refreshedInvoice));
+            }
+
+            return $fresh;
         });
     }
 
@@ -210,13 +244,27 @@ class PaymentService
             throw new InvalidPaymentException('Only pending payments can be marked failed.');
         }
 
+        $before = $this->auditLogger->paymentSnapshot($payment);
+
         $payment->forceFill([
             'status' => PaymentStatus::Failed,
             'notes' => $notes ?? $payment->notes,
             'paid_at' => null,
         ])->save();
 
-        return $payment->fresh(['invoice', 'client']) ?? $payment;
+        $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
+
+        $this->auditLogger->log(
+            BillingAuditLogger::ACTION_PAYMENT_FAILED,
+            Payment::class,
+            $fresh->id,
+            $before,
+            $this->auditLogger->paymentSnapshot($fresh),
+        );
+
+        event(new PaymentFailed($fresh));
+
+        return $fresh;
     }
 
     /**
@@ -260,6 +308,8 @@ class PaymentService
                 );
             }
 
+            $before = $this->auditLogger->paymentSnapshot($payment);
+
             $payment->forceFill([
                 'status' => PaymentStatus::Refunded,
                 'transaction_id' => $result->transactionId ?? $payment->transaction_id,
@@ -274,7 +324,19 @@ class PaymentService
                 $this->applyToInvoice($invoice);
             }
 
-            return $payment->fresh(['invoice', 'client']) ?? $payment;
+            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_PAYMENT_REFUNDED,
+                Payment::class,
+                $fresh->id,
+                $before,
+                [...$this->auditLogger->paymentSnapshot($fresh), 'refund_amount' => $refundAmount],
+            );
+
+            event(new PaymentRefunded($fresh, $refundAmount));
+
+            return $fresh;
         });
     }
 

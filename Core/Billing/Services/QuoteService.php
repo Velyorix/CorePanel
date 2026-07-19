@@ -9,6 +9,9 @@ use Core\Billing\DataTransferObjects\TaxAddress;
 use Core\Billing\DataTransferObjects\TaxLineInput;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\QuoteStatus;
+use Core\Billing\Events\QuoteAccepted;
+use Core\Billing\Events\QuoteConverted;
+use Core\Billing\Events\QuoteSent;
 use Core\Billing\Exceptions\InvalidQuoteException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\InvoiceItem;
@@ -27,6 +30,7 @@ class QuoteService
         private readonly TaxCalculationService $taxCalculation,
         private readonly QuoteNumberService $quoteNumbers,
         private readonly InvoiceNumberService $invoiceNumbers,
+        private readonly BillingAuditLogger $auditLogger,
     ) {
     }
 
@@ -231,6 +235,8 @@ class QuoteService
                 throw new InvalidQuoteException('Cannot send a quote without line items.');
             }
 
+            $before = $this->auditLogger->quoteSnapshot($locked);
+
             $numbered = $this->quoteNumbers->assignNumber($locked);
 
             $validUntil = $numbered->valid_until ?? now()->addDays(
@@ -243,7 +249,19 @@ class QuoteService
                 'valid_until' => $validUntil,
             ])->save();
 
-            return $numbered->fresh(['items', 'client']) ?? $numbered;
+            $fresh = $numbered->fresh(['items', 'client']) ?? $numbered;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_QUOTE_SENT,
+                Quote::class,
+                $fresh->id,
+                $before,
+                $this->auditLogger->quoteSnapshot($fresh),
+            );
+
+            event(new QuoteSent($fresh));
+
+            return $fresh;
         });
     }
 
@@ -257,12 +275,26 @@ class QuoteService
                 throw new InvalidQuoteException('Only sent quotes can be accepted.');
             }
 
+            $before = $this->auditLogger->quoteSnapshot($locked);
+
             $locked->forceFill([
                 'status' => QuoteStatus::Accepted,
                 'accepted_at' => now(),
             ])->save();
 
-            return $locked->fresh(['items', 'client']) ?? $locked;
+            $fresh = $locked->fresh(['items', 'client']) ?? $locked;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_QUOTE_ACCEPTED,
+                Quote::class,
+                $fresh->id,
+                $before,
+                $this->auditLogger->quoteSnapshot($fresh),
+            );
+
+            event(new QuoteAccepted($fresh));
+
+            return $fresh;
         });
     }
 
@@ -399,6 +431,8 @@ class QuoteService
                 'due_at' => now()->addDays($dueDays),
             ])->save();
 
+            $before = $this->auditLogger->quoteSnapshot($locked);
+
             $locked->forceFill([
                 'status' => QuoteStatus::Converted,
                 'converted_at' => now(),
@@ -406,7 +440,20 @@ class QuoteService
                 'accepted_at' => $locked->accepted_at ?? now(),
             ])->save();
 
-            return $invoice->fresh(['items', 'client']) ?? $invoice;
+            $freshInvoice = $invoice->fresh(['items', 'client']) ?? $invoice;
+            $freshQuote = $locked->fresh(['items', 'client']) ?? $locked;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_QUOTE_CONVERTED,
+                Quote::class,
+                $freshQuote->id,
+                $before,
+                [...$this->auditLogger->quoteSnapshot($freshQuote), 'invoice_id' => $freshInvoice->id],
+            );
+
+            event(new QuoteConverted($freshQuote, $freshInvoice));
+
+            return $freshInvoice;
         });
     }
 

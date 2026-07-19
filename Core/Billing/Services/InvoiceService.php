@@ -3,6 +3,7 @@
 namespace Core\Billing\Services;
 
 use Core\Billing\Enums\InvoiceStatus;
+use Core\Billing\Events\InvoiceIssued;
 use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,6 +18,7 @@ class InvoiceService
 {
     public function __construct(
         private readonly InvoiceNumberService $numbers,
+        private readonly BillingAuditLogger $auditLogger,
     ) {
     }
 
@@ -137,6 +139,8 @@ class InvoiceService
                 throw new InvalidArgumentException('Cannot issue an invoice without line items.');
             }
 
+            $before = $this->auditLogger->invoiceSnapshot($locked);
+
             $numbered = $this->numbers->assignNumber($locked);
 
             $dueDays = max(0, (int) config('corepanel.billing.invoice_due_days', 14));
@@ -147,7 +151,19 @@ class InvoiceService
                 'due_at' => $numbered->due_at ?? now()->addDays($dueDays),
             ])->save();
 
-            return $numbered->fresh(['items', 'client']) ?? $numbered;
+            $fresh = $numbered->fresh(['items', 'client']) ?? $numbered;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_INVOICE_ISSUED,
+                Invoice::class,
+                $fresh->id,
+                $before,
+                $this->auditLogger->invoiceSnapshot($fresh),
+            );
+
+            event(new InvoiceIssued($fresh));
+
+            return $fresh;
         });
     }
 }

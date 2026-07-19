@@ -4,6 +4,7 @@ namespace Core\Billing\Services;
 
 use Core\Auth\Models\User;
 use Core\Billing\Enums\ClientCreditTransactionType;
+use Core\Billing\Events\ClientCreditAdded;
 use Core\Billing\Exceptions\InsufficientClientCreditException;
 use Core\Billing\Exceptions\InvalidClientCreditException;
 use Core\Billing\Models\ClientCreditTransaction;
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\DB;
  */
 class ClientCreditService
 {
+    public function __construct(
+        private readonly BillingAuditLogger $auditLogger,
+    ) {
+    }
+
     public function add(
         Client $client,
         string $amount,
@@ -160,7 +166,21 @@ class ClientCreditService
                 'credit_balance' => $newBalance,
             ])->save();
 
-            return $transaction->fresh(['client', 'creator']) ?? $transaction;
+            $fresh = $transaction->fresh(['client', 'creator']) ?? $transaction;
+
+            if ($type->increasesBalance()) {
+                $this->auditLogger->log(
+                    BillingAuditLogger::ACTION_CLIENT_CREDIT_ADDED,
+                    ClientCreditTransaction::class,
+                    $fresh->id,
+                    null,
+                    $this->auditLogger->creditTransactionSnapshot($fresh),
+                );
+
+                event(new ClientCreditAdded($fresh));
+            }
+
+            return $fresh;
         });
     }
 

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Link products to server provider modules (roadmap 9.7).
+     * Link products to server provider modules.
      * `module` already exists; this adds required capability declarations.
      */
     public function up(): void

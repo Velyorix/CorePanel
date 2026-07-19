@@ -112,12 +112,20 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Invoices'),
-                        'route' => null,
+                        'route' => 'admin.invoices.index',
+                        'routeIs' => ['admin.invoices.*'],
                         'permission' => 'billing.invoices.view',
                     ],
                     [
+                        'label' => __('Quotes'),
+                        'route' => 'admin.quotes.index',
+                        'routeIs' => ['admin.quotes.*'],
+                        'permission' => 'billing.quotes.view',
+                    ],
+                    [
                         'label' => __('Payments'),
-                        'route' => null,
+                        'route' => 'admin.payments.index',
+                        'routeIs' => ['admin.payments.*'],
                         'permission' => 'billing.payments.view',
                     ],
                     [

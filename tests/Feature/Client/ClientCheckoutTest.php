@@ -133,6 +133,8 @@ class ClientCheckoutTest extends TestCase
 
     public function test_place_order_converts_cart_to_pending_payment_order(): void
     {
+        \Core\Billing\Models\Coupon::factory()->percent('WELCOME10', '10.00')->create();
+
         [$user, $client] = $this->makeClientUser([
             'address' => '12 Rue Test',
             'city' => 'Paris',
@@ -172,6 +174,9 @@ class ClientCheckoutTest extends TestCase
         $this->assertSame('WELCOME10', $order->coupon_code);
         $this->assertSame('19.99', $order->subtotal_recurring);
         $this->assertSame('5.00', $order->subtotal_setup);
+        $this->assertSame('2.50', $order->discount_amount);
+        $this->assertSame('4.50', $order->tax_amount);
+        $this->assertSame('26.99', $order->total_amount);
         $this->assertCount(1, $order->items);
         $this->assertTrue($order->cart?->status === CartStatus::Converted);
 
@@ -236,8 +241,10 @@ class ClientCheckoutTest extends TestCase
             ->assertSessionHasErrors('country');
     }
 
-    public function test_apply_coupon_stores_code_without_changing_totals(): void
+    public function test_apply_coupon_stores_code_and_applies_discount_on_summary(): void
     {
+        \Core\Billing\Models\Coupon::factory()->percent('SAVE20', '20.00')->create();
+
         [$user, $client] = $this->makeClientUser();
         $product = $this->makeProduct('coupon-vps', '10.00', '0.00');
         $this->addLine($client, $product, 1);
@@ -253,10 +260,18 @@ class ClientCheckoutTest extends TestCase
         $this->assertSame('SAVE20', $draft?->couponCode);
 
         $summary = app(\Core\Orders\Services\CartSummary::class)
-            ->summarize(app(CartService::class)->getOrCreate($client, null));
+            ->summarize(
+                app(CartService::class)->getOrCreate($client, null),
+                null,
+                $draft?->couponCode,
+            );
 
         $this->assertSame('10.00', $summary['recurring_subtotal']);
         $this->assertSame('10.00', $summary['first_payment_subtotal']);
+        $this->assertSame('2.00', $summary['discount_amount']);
+        $this->assertSame('8.00', $summary['discounted_subtotal']);
+        $this->assertSame('1.60', $summary['first_payment_tax']);
+        $this->assertSame('9.60', $summary['first_payment_total']);
     }
 
     public function test_complete_page_requires_saved_draft(): void
@@ -292,6 +307,8 @@ class ClientCheckoutTest extends TestCase
         $user = User::factory()->withRole('client')->create();
         $client = Client::factory()->create([
             'user_id' => $user->id,
+            'country' => 'FR',
+            'vat_number' => null,
             ...$clientAttributes,
         ]);
         $client->users()->attach($user->id, [

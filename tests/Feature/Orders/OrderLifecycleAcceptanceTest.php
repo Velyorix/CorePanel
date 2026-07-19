@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 /**
- * End-to-end order lifecycle smoke (roadmap 11.8).
- * Slice coverage for 11.1–11.7 lives in dedicated Feature tests.
+ * End-to-end order lifecycle smoke.
+ * Narrower order Feature tests cover individual slices.
  */
 class OrderLifecycleAcceptanceTest extends TestCase
 {

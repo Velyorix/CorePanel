@@ -36,6 +36,8 @@ class OrdersSchemaTest extends TestCase
             'currency',
             'payment_method',
             'coupon_code',
+            'coupon_id',
+            'discount_amount',
             'contact_name',
             'contact_email',
             'company_name',

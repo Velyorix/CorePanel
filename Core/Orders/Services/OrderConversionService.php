@@ -7,7 +7,7 @@ use Core\Orders\Models\Cart;
 use Core\Orders\Models\Order;
 
 /**
- * Thin facade for cart → order conversion (roadmap 10.8 / 11.3).
+ * Thin facade for cart → order conversion.
  * Lifecycle transitions live on OrderService.
  */
 class OrderConversionService

@@ -22,6 +22,17 @@
             <dt class="text-muted-foreground">{{ __('First payment (excl. tax)') }}</dt>
             <dd>{{ $summary['first_payment_subtotal'] }}</dd>
         </div>
+        @if (($summary['discount_amount'] ?? '0.00') !== '0.00')
+            <div class="flex justify-between gap-4">
+                <dt class="text-muted-foreground">
+                    {{ __('Discount') }}
+                    @if (! empty($summary['coupon_code']))
+                        <span class="text-small">({{ $summary['coupon_code'] }})</span>
+                    @endif
+                </dt>
+                <dd>-{{ $summary['discount_amount'] }}</dd>
+            </div>
+        @endif
         <div class="flex justify-between gap-4">
             <dt class="text-muted-foreground">{{ $summary['tax_label'] }}</dt>
             <dd>{{ $summary['first_payment_tax'] }}</dd>

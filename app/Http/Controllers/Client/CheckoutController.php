@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\ApplyCheckoutCouponRequest;
 use App\Http\Requests\Client\SubmitCheckoutRequest;
 use Core\Auth\Models\User;
+use Core\Billing\DataTransferObjects\TaxAddress;
+use Core\Billing\Exceptions\InvalidCouponException;
+use Core\Billing\Services\CouponService;
 use Core\Clients\DataTransferObjects\ClientData;
 use Core\Clients\Enums\ClientStatus;
 use Core\Clients\Models\Client;
@@ -31,6 +34,7 @@ class CheckoutController extends Controller
         private readonly CheckoutDraftService $checkoutDraftService,
         private readonly ClientService $clientService,
         private readonly OrderService $orderService,
+        private readonly CouponService $couponService,
     ) {
     }
 
@@ -54,7 +58,11 @@ class CheckoutController extends Controller
 
         return view('client.checkout.index', [
             'cart' => $cart,
-            'summary' => $this->cartSummary->summarize($cart),
+            'summary' => $this->cartSummary->summarize(
+                $cart,
+                $client !== null ? TaxAddress::fromClient($client) : null,
+                $draft->couponCode,
+            ),
             'draft' => $draft,
             'paymentMethods' => $this->checkoutDraftService->paymentMethods(),
             'couponEnabled' => $this->checkoutDraftService->isCouponUiEnabled(),
@@ -93,16 +101,35 @@ class CheckoutController extends Controller
 
         $user = $request->user();
         $client = $this->resolveClient($request);
+        $cart = $this->resolveCart($request);
+        $code = $request->validated('coupon_code');
+
+        if (filled($code) && $client !== null) {
+            try {
+                $coupon = $this->couponService->findByCode((string) $code);
+
+                if ($coupon === null) {
+                    throw new InvalidCouponException(__('Invalid coupon code.'));
+                }
+
+                $this->couponService->validateForOrder($coupon, $client, $cart);
+            } catch (InvalidCouponException $exception) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['coupon_code' => $exception->getMessage()]);
+            }
+        }
+
         $existing = $this->checkoutDraftService->load($request->session());
         $draft = $this->checkoutDraftService
             ->prefill($client, $user instanceof User ? $user : null, $existing)
-            ->withCouponCode($request->validated('coupon_code'));
+            ->withCouponCode($code);
 
         $this->checkoutDraftService->store($request->session(), $draft);
 
         return redirect()
             ->route('client.checkout.index')
-            ->with('status', __('Coupon saved. It will be validated when you place your order.'));
+            ->with('status', __('Coupon applied.'));
     }
 
     public function complete(Request $request): View|RedirectResponse
@@ -125,7 +152,11 @@ class CheckoutController extends Controller
         return view('client.checkout.complete', [
             'draft' => $draft,
             'cart' => $cart,
-            'summary' => $this->cartSummary->summarize($cart),
+            'summary' => $this->cartSummary->summarize(
+                $cart,
+                TaxAddress::fromDraft($draft),
+                $draft->couponCode,
+            ),
         ]);
     }
 
@@ -190,6 +221,8 @@ class CheckoutController extends Controller
                     '.',
                     '',
                 ),
+                'discount_amount' => $order->discount_amount ?? '0.00',
+                'coupon_code' => $order->coupon_code,
                 'tax_label' => __('Tax (estimate)'),
                 'first_payment_tax' => $order->tax_amount,
                 'first_payment_total' => $order->total_amount,

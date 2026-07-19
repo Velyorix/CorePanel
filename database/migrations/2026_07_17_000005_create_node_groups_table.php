@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Node groups registry (CDC Tome 10 §6, roadmap 9.9).
-     * Full nodes + node_group_relations arrive in étape 16.
+     * Node groups registry.
+     * Full nodes + node_group_relations.
      */
     public function up(): void
     {

@@ -2,14 +2,26 @@
 
 namespace Core\Orders\Services;
 
+use Core\Billing\DataTransferObjects\TaxAddress;
+use Core\Billing\Exceptions\InvalidCouponException;
+use Core\Billing\Services\CouponService;
+use Core\Billing\Services\DiscountCalculator;
+use Core\Billing\Services\TaxCalculationService;
+use Core\Clients\Models\Client;
 use Core\Orders\Models\Cart;
 
 /**
- * Aggregates snapshotted cart line totals with tax preview stub (roadmap 10.6).
- * Real multi-country VAT arrives in étape 12.4.
+ * Aggregates snapshotted cart line totals with tax and optional coupon discount.
  */
 class CartSummary
 {
+    public function __construct(
+        private readonly TaxCalculationService $taxCalculation,
+        private readonly CouponService $couponService,
+        private readonly DiscountCalculator $discountCalculator,
+    ) {
+    }
+
     /**
      * @return array{
      *     currency: string|null,
@@ -28,6 +40,9 @@ class CartSummary
      *     recurring_subtotal: string,
      *     setup_subtotal: string,
      *     first_payment_subtotal: string,
+     *     discount_amount: string,
+     *     discounted_subtotal: string,
+     *     coupon_code: string|null,
      *     tax_rate: string,
      *     tax_label: string,
      *     tax_is_estimate: bool,
@@ -38,9 +53,9 @@ class CartSummary
      *     recurring_total: string
      * }
      */
-    public function summarize(Cart $cart): array
+    public function summarize(Cart $cart, ?TaxAddress $address = null, ?string $couponCode = null): array
     {
-        $cart->loadMissing(['items.product']);
+        $cart->loadMissing(['items.product', 'client']);
 
         $recurring = 0.0;
         $setup = 0.0;
@@ -70,9 +85,33 @@ class CartSummary
         }
 
         $firstPayment = $recurring + $setup;
-        $taxRate = $this->taxPreviewRate();
-        $recurringTax = $this->money($recurring * $taxRate);
-        $firstTax = $this->money($firstPayment * $taxRate);
+        $resolvedAddress = $address ?? ($cart->client !== null
+            ? TaxAddress::fromClient($cart->client)
+            : new TaxAddress(null));
+
+        $discountAmount = '0.00';
+        $discountedSubtotal = $this->money($firstPayment);
+        $resolvedCouponCode = null;
+
+        if ($couponCode !== null && $cart->client instanceof Client) {
+            try {
+                $preview = $this->couponService->previewForOrder(
+                    $couponCode,
+                    $cart->client,
+                    $cart,
+                    $this->money($firstPayment),
+                    $cart->currency,
+                );
+                $discountAmount = $preview->discountAmount;
+                $discountedSubtotal = $preview->discountedSubtotal;
+                $resolvedCouponCode = $this->couponService->normalizeCode($couponCode);
+            } catch (InvalidCouponException) {
+                // Soft-fail for previews; OrderService hard-validates on place.
+            }
+        }
+
+        $recurringTax = $this->taxCalculation->calculateLine($this->money($recurring), $resolvedAddress);
+        $firstTax = $this->taxCalculation->calculateLine($discountedSubtotal, $resolvedAddress);
 
         return [
             'currency' => $cart->currency,
@@ -81,70 +120,106 @@ class CartSummary
             'recurring_subtotal' => $this->money($recurring),
             'setup_subtotal' => $this->money($setup),
             'first_payment_subtotal' => $this->money($firstPayment),
-            'tax_rate' => number_format($taxRate, 4, '.', ''),
-            'tax_label' => $this->taxPreviewLabel(),
-            'tax_is_estimate' => true,
-            'tax_engine' => 'stub',
-            'recurring_tax' => $recurringTax,
-            'first_payment_tax' => $firstTax,
-            'recurring_total' => $this->money($recurring + (float) $recurringTax),
-            'first_payment_total' => $this->money($firstPayment + (float) $firstTax),
+            'discount_amount' => $discountAmount,
+            'discounted_subtotal' => $discountedSubtotal,
+            'coupon_code' => $resolvedCouponCode,
+            'tax_rate' => $firstTax->taxRate,
+            'tax_label' => $firstTax->taxLabel,
+            'tax_is_estimate' => $firstTax->application === 'fallback',
+            'tax_engine' => $firstTax->application === 'fallback' ? 'stub' : 'tax_rules',
+            'recurring_tax' => $recurringTax->taxAmount,
+            'first_payment_tax' => $firstTax->taxAmount,
+            'recurring_total' => $this->money($recurring + (float) $recurringTax->taxAmount),
+            'first_payment_total' => $this->money((float) $discountedSubtotal + (float) $firstTax->taxAmount),
         ];
     }
 
     /**
-     * Summarize pre-priced lines (admin order builder, roadmap 11.7).
+     * Summarize pre-priced lines (admin order builder).
      *
-     * @param  list<array{unit_price: string|float, setup_fee: string|float, quantity: int}>  $pricedLines
+     * @param  list<array{unit_price: string|float, setup_fee: string|float, quantity: int, product_id?: int|null}>  $pricedLines
      * @return array{
      *     recurring_subtotal: string,
      *     setup_subtotal: string,
      *     first_payment_subtotal: string,
+     *     discount_amount: string,
+     *     discounted_subtotal: string,
+     *     coupon_code: string|null,
      *     first_payment_tax: string,
      *     first_payment_total: string
      * }
      */
-    public function summarizePricedLines(array $pricedLines): array
-    {
+    public function summarizePricedLines(
+        array $pricedLines,
+        ?TaxAddress $address = null,
+        ?Client $client = null,
+        ?string $couponCode = null,
+        ?string $currency = 'EUR',
+    ): array {
         $recurring = 0.0;
         $setup = 0.0;
+        $productIds = [];
 
         foreach ($pricedLines as $line) {
             $qty = max(1, (int) ($line['quantity'] ?? 1));
             $recurring += (float) ($line['unit_price'] ?? 0) * $qty;
             $setup += (float) ($line['setup_fee'] ?? 0);
+
+            if (isset($line['product_id'])) {
+                $productIds[] = (int) $line['product_id'];
+            }
         }
 
         $firstPayment = $recurring + $setup;
-        $taxRate = $this->taxPreviewRate();
+        $resolvedAddress = $address ?? new TaxAddress(null);
+        $discountAmount = '0.00';
+        $discountedSubtotal = $this->money($firstPayment);
+        $resolvedCouponCode = null;
+
+        if ($couponCode !== null && $client !== null) {
+            try {
+                $coupon = $this->couponService->findByCode($couponCode);
+
+                if ($coupon === null) {
+                    throw new InvalidCouponException(__('Invalid coupon code.'));
+                }
+
+                $this->couponService->validateForOrder(
+                    $coupon,
+                    $client,
+                    currency: $currency,
+                    productIds: $productIds,
+                );
+
+                $preview = $this->discountCalculator->calculate(
+                    $this->money($firstPayment),
+                    $coupon,
+                    $currency,
+                );
+                $discountAmount = $preview->discountAmount;
+                $discountedSubtotal = $preview->discountedSubtotal;
+                $resolvedCouponCode = $coupon->code;
+            } catch (InvalidCouponException) {
+                // Soft-fail for admin preview.
+            }
+        }
+
+        $firstTax = $this->taxCalculation->calculateLine($discountedSubtotal, $resolvedAddress);
 
         return [
             'recurring_subtotal' => $this->money($recurring),
             'setup_subtotal' => $this->money($setup),
             'first_payment_subtotal' => $this->money($firstPayment),
-            'first_payment_tax' => $this->money($firstPayment * $taxRate),
-            'first_payment_total' => $this->money($firstPayment + ($firstPayment * $taxRate)),
+            'discount_amount' => $discountAmount,
+            'discounted_subtotal' => $discountedSubtotal,
+            'coupon_code' => $resolvedCouponCode,
+            'first_payment_tax' => $firstTax->taxAmount,
+            'first_payment_total' => $this->money((float) $discountedSubtotal + (float) $firstTax->taxAmount),
         ];
-    }
-
-    private function taxPreviewRate(): float
-    {
-        return max(0, (float) config('corepanel.billing.tax_preview_rate', 0));
-    }
-
-    private function taxPreviewLabel(): string
-    {
-        $label = config('corepanel.billing.tax_preview_label');
-
-        if (is_string($label) && $label !== '') {
-            return $label;
-        }
-
-        return (string) __('Tax (estimate)');
     }
 
     private function money(float $amount): string
     {
-        return number_format($amount, 2, '.', '');
+        return number_format(round($amount, 2), 2, '.', '');
     }
 }

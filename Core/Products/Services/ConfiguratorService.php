@@ -12,7 +12,7 @@ use Core\Products\Support\HostnameValidator;
 use InvalidArgumentException;
 
 /**
- * Builds validated cart line payloads from the client product configurator (roadmap 10.4 / 10.9).
+ * Builds validated cart line payloads from the client product configurator.
  */
 class ConfiguratorService
 {

@@ -5,7 +5,7 @@ namespace Core\Admin\Notifications;
 class AdminNotificationFeed
 {
     /**
-     * Placeholder notifications shown until the notification system is wired.
+     * Sample notifications for the admin dropdown feed.
      *
      * @return list<array{key: string, title: string, message: string, time: string, unread: bool, variant: string}>
      */

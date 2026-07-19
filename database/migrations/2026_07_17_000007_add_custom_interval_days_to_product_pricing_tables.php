@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Support custom billing intervals (Tome 8 §5.1, roadmap 9.10).
+     * Support custom billing intervals.
      */
     public function up(): void
     {

@@ -22,10 +22,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Identifiant stable de l'installation — généré une fois à l'install wizard
-    | (étape 7). Utilisé pour la validation licence CorePanel.org.
+    |  Utilisé pour la validation licence CorePanel.org.
     | Ne jamais régénérer sauf réinstallation volontaire.
     |
-    | Voir : internal-docs/cdc/API-COREPANEL-ORG.md §6.4
     |
     */
 
@@ -63,7 +62,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Licence (comportement local — logique en étape 7)
+    | Licence (comportement local)
     |--------------------------------------------------------------------------
     */
 
@@ -130,7 +129,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Password policy (CDC Tome 4 §3.3)
+    | Password policy
     |--------------------------------------------------------------------------
     */
 
@@ -142,7 +141,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication (CDC Tome 4 §10)
+    | Authentication
     |--------------------------------------------------------------------------
     */
 
@@ -154,7 +153,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Account lockout (CDC Tome 4 §13)
+        | Account lockout
         |----------------------------------------------------------------------
         |
         | Locks the user account after repeated failed login attempts.
@@ -171,7 +170,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Authentication audit (CDC Tome 4 §11)
+        | Authentication audit
         |----------------------------------------------------------------------
         */
 
@@ -181,7 +180,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Session tracking (CDC Tome 4 §4.2)
+        | Session tracking
         |----------------------------------------------------------------------
         |
         | Laravel sessions are stored via SESSION_DRIVER (redis recommended).
@@ -196,7 +195,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Registration (CDC — open or invite-only)
+        | Registration
         |----------------------------------------------------------------------
         |
         | mode: open   — public /register
@@ -212,7 +211,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Client invitations (CDC Tome 7 §9)
+        | Client invitations
         |----------------------------------------------------------------------
         */
         'client_invitations' => [
@@ -221,7 +220,7 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Password reset (CDC Tome 4 §10)
+        | Password reset
         |----------------------------------------------------------------------
         */
 
@@ -246,7 +245,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Clients (CDC Tome 3 §5, Tome 6 §5–6)
+    | Clients
     |--------------------------------------------------------------------------
     */
 
@@ -258,25 +257,152 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Billing (preview stubs until étape 12)
+    | Billing
     |--------------------------------------------------------------------------
     */
 
     'billing' => [
         /*
-        | Tax rate used only for catalog/cart price previews (roadmap 10.5–10.6).
-        | Real TaxCalculationService arrives in étape 12.4.
+        | Seller country and EU member list used by TaxCalculationService.
+        */
+        'seller_country' => env('COREPANEL_BILLING_SELLER_COUNTRY', 'FR'),
+        'eu_countries' => [
+            'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR',
+            'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL',
+            'PT', 'RO', 'SE', 'SI', 'SK',
+        ],
+
+        /*
+        | Seller letterhead for invoice / quote PDFs.
+        */
+        'seller' => [
+            'name' => env('COREPANEL_BILLING_SELLER_NAME', 'CorePanel'),
+            'address' => env('COREPANEL_BILLING_SELLER_ADDRESS'),
+            'city' => env('COREPANEL_BILLING_SELLER_CITY'),
+            'postal_code' => env('COREPANEL_BILLING_SELLER_POSTAL_CODE'),
+            'country' => env('COREPANEL_BILLING_SELLER_COUNTRY', 'FR'),
+            'vat_number' => env('COREPANEL_BILLING_SELLER_VAT'),
+            'email' => env('COREPANEL_BILLING_SELLER_EMAIL'),
+            'phone' => env('COREPANEL_BILLING_SELLER_PHONE'),
+            'logo_path' => env('COREPANEL_BILLING_SELLER_LOGO_PATH'),
+            'footer' => env('COREPANEL_BILLING_SELLER_FOOTER'),
+        ],
+
+        /*
+        | Billing audit trail (invoice/payment/quote/credit lifecycle events).
+        */
+        'audit' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_AUDIT_ENABLED', true),
+        ],
+
+        /*
+        | Fallback tax rate when billing country is unknown (catalog/cart preview).
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),
         'tax_preview_label' => env('COREPANEL_BILLING_TAX_PREVIEW_LABEL'),
+
+        /*
+        | Invoice numbering
+        | Runtime prefix override: settings key billing.invoice.prefix via BillingSettings.
+        | Sequence counter lives in billing_sequences (locked under concurrency).
+        */
+        'invoice_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_INVOICE_PREFIX', 'INV'),
+            'padding' => (int) env('COREPANEL_BILLING_INVOICE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_INVOICE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_INVOICE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_INVOICE_SEPARATOR', '-'),
+        ],
+
+        /*
+        | Quote numbering (assigned on send).
+        | Runtime prefix override: settings key billing.quote.prefix via BillingSettings.
+        */
+        'quote_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_QUOTE_PREFIX', 'QUO'),
+            'padding' => (int) env('COREPANEL_BILLING_QUOTE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_QUOTE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_QUOTE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_QUOTE_SEPARATOR', '-'),
+        ],
+
+        /*
+        | Credit note numbering (assigned on issue).
+        | Runtime prefix override: settings key billing.credit_note.prefix via BillingSettings.
+        */
+        'credit_note_numbering' => [
+            'prefix' => env('COREPANEL_BILLING_CREDIT_NOTE_PREFIX', 'CN'),
+            'padding' => (int) env('COREPANEL_BILLING_CREDIT_NOTE_PADDING', 6),
+            'include_year' => (bool) env('COREPANEL_BILLING_CREDIT_NOTE_INCLUDE_YEAR', true),
+            'reset_yearly' => (bool) env('COREPANEL_BILLING_CREDIT_NOTE_RESET_YEARLY', true),
+            'separator' => env('COREPANEL_BILLING_CREDIT_NOTE_SEPARATOR', '-'),
+        ],
+
+        'quote_valid_days' => (int) env('COREPANEL_BILLING_QUOTE_VALID_DAYS', 30),
+        'invoice_due_days' => (int) env('COREPANEL_BILLING_INVOICE_DUE_DAYS', 14),
+
+        /*
+        | Recurring renewal invoice generation (GenerateRenewalInvoices job).
+        */
+        'renewal' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_RENEWAL_ENABLED', true),
+            'invoice_days_before' => (int) env('COREPANEL_BILLING_RENEWAL_DAYS_BEFORE', 7),
+            'schedule' => env('COREPANEL_BILLING_RENEWAL_SCHEDULE', 'daily'),
+        ],
+
+        /*
+        | Staged invoice payment reminders (SendInvoiceReminders job).
+        | days_offset is relative to due_at: negative = before due, positive = after.
+        | Final warning defaults to T+2 (day before suspension at T+3).
+        */
+        'reminders' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_REMINDERS_ENABLED', true),
+            'schedule' => env('COREPANEL_BILLING_REMINDERS_SCHEDULE', 'daily'),
+            'levels' => [
+                ['key' => 'before_due_7', 'days_offset' => -7],
+                ['key' => 'before_due_3', 'days_offset' => -3],
+                ['key' => 'due', 'days_offset' => 0],
+                ['key' => 'overdue', 'days_offset' => 1],
+                ['key' => 'final_warning', 'days_offset' => 2],
+            ],
+        ],
+
+        /*
+        | Automatic suspension / termination for overdue invoices (ProcessOverdueSuspensions).
+        | T+suspend_after_days → suspend linked services; T+terminate_after_days → terminate.
+        | Real lifecycle mutations are delegated to OverdueServiceActions (null until services engine).
+        */
+        'suspension' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_SUSPENSION_ENABLED', true),
+            'suspend_after_days' => (int) env('COREPANEL_BILLING_SUSPEND_AFTER_DAYS', 3),
+            'terminate_after_days' => (int) env('COREPANEL_BILLING_TERMINATE_AFTER_DAYS', 7),
+            'skip_if_credit_available' => (bool) env('COREPANEL_BILLING_SUSPENSION_SKIP_CREDIT', true),
+            'skip_vip_clients' => (bool) env('COREPANEL_BILLING_SUSPENSION_SKIP_VIP', true),
+            'schedule' => env('COREPANEL_BILLING_SUSPENSION_SCHEDULE', 'daily'),
+        ],
+
+        /*
+        | Manual offline gateway (bank transfer / cheque).
+        | Payments stay pending until staff confirms via PaymentService::complete().
+        */
+        'manual_transfer' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_MANUAL_TRANSFER_ENABLED', true),
+            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer'),
+            'reference_prefix' => env('COREPANEL_BILLING_MANUAL_TRANSFER_REFERENCE_PREFIX', 'PAY'),
+            'beneficiary' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BENEFICIARY'),
+            'iban' => env('COREPANEL_BILLING_MANUAL_TRANSFER_IBAN'),
+            'bic' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BIC'),
+            'bank_name' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BANK_NAME'),
+            'instructions' => env('COREPANEL_BILLING_MANUAL_TRANSFER_INSTRUCTIONS'),
+        ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Checkout stubs (roadmap 10.7)
+    | Checkout
     |--------------------------------------------------------------------------
     |
-    | Payment methods and coupons are UI placeholders until étapes 12 / 14 / 20.
+    | Coupon UI toggle and available payment methods for client checkout.
     |
     */
 
@@ -300,7 +426,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | RBAC (CDC Tome 4 §8, Tome 5)
+    | RBAC
     |--------------------------------------------------------------------------
     */
 
@@ -328,7 +454,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | UI theme (CDC Tome 13 §13)
+    | UI theme
     |--------------------------------------------------------------------------
     |
     | Class-strategy dark mode. Preference is stored in localStorage and applied
@@ -343,7 +469,7 @@ return [
         ],
 
         /*
-        | Component showcase at /dev/components (étape 4.8).
+        | Component showcase at /dev/components.
         | null = enabled only when APP_ENV=local.
         */
         'showcase' => [

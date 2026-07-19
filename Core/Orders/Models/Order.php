@@ -3,6 +3,8 @@
 namespace Core\Orders\Models;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\Coupon;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
 use Core\Orders\Enums\OrderSource;
 use Core\Orders\Enums\OrderStatus;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -30,6 +33,7 @@ class Order extends Model
         'currency',
         'payment_method',
         'coupon_code',
+        'coupon_id',
         'contact_name',
         'contact_email',
         'company_name',
@@ -42,6 +46,7 @@ class Order extends Model
         'notes',
         'subtotal_recurring',
         'subtotal_setup',
+        'discount_amount',
         'tax_amount',
         'total_amount',
         'placed_at',
@@ -59,6 +64,7 @@ class Order extends Model
             'source' => OrderSource::class,
             'subtotal_recurring' => 'decimal:2',
             'subtotal_setup' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'placed_at' => 'datetime',
@@ -76,7 +82,15 @@ class Order extends Model
     }
 
     /**
-     * Staff user who created the order (admin-on-behalf, roadmap 11.7).
+     * @return BelongsTo<Coupon, $this>
+     */
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * Staff user who created the order (admin-on-behalf).
      *
      * @return BelongsTo<User, $this>
      */
@@ -99,6 +113,16 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class)->orderBy('id');
+    }
+
+    /**
+     * Invoice generated from this order.
+     *
+     * @return HasOne<Invoice, $this>
+     */
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
     }
 
     protected static function newFactory(): OrderFactory

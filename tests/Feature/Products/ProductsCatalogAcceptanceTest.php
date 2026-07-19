@@ -19,7 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * End-to-end smoke coverage for the Étape 9 MR test plan (9.1–9.11).
+ * End-to-end smoke coverage for the products catalog and configurator.
  */
 class ProductsCatalogAcceptanceTest extends TestCase
 {

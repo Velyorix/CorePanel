@@ -5,7 +5,7 @@ namespace Core\Orders\Enums;
 enum OrderStatus: string
 {
     case Draft = 'draft';
-    /** Roadmap "pending" — awaiting payment after checkout (10.8 / 11.x). */
+    /** Awaiting payment after checkout. */
     case PendingPayment = 'pending_payment';
     case Paid = 'paid';
     case Cancelled = 'cancelled';
@@ -34,8 +34,7 @@ enum OrderStatus: string
     }
 
     /**
-     * Lifecycle graph for OrderService (roadmap 11.2).
-     * Roadmap "pending" maps to PendingPayment.
+     * Lifecycle graph for OrderService.
      *
      * @return list<self>
      */

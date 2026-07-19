@@ -8,6 +8,31 @@ use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
+use Core\Billing\Contracts\OverdueServiceActions;
+use Core\Billing\Contracts\RenewableBillableSource;
+use Core\Billing\Gateways\ManualTransferGateway;
+use Core\Billing\Services\BillingAuditLogger;
+use Core\Billing\Services\BillingSettings;
+use Core\Billing\Services\InvoiceGenerationService;
+use Core\Billing\Services\InvoiceNumberService;
+use Core\Billing\Services\InvoiceReminderService;
+use Core\Billing\Services\InvoiceService;
+use Core\Billing\Services\NullOverdueServiceActions;
+use Core\Billing\Services\NullRenewableBillableSource;
+use Core\Billing\Services\ClientCreditService;
+use Core\Billing\Services\CouponService;
+use Core\Billing\Services\CreditNoteNumberService;
+use Core\Billing\Services\CreditNoteService;
+use Core\Billing\Services\BillingDocumentPdfService;
+use Core\Billing\Services\DiscountCalculator;
+use Core\Billing\Services\OverdueSuspensionService;
+use Core\Billing\Services\ProrataCalculationService;
+use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\PaymentService;
+use Core\Billing\Services\QuoteNumberService;
+use Core\Billing\Services\QuoteService;
+use Core\Billing\Services\RenewalInvoiceService;
+use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
@@ -29,11 +54,17 @@ use Core\Products\Services\ProductPricingCalculator;
 use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
+use Core\Permissions\Policies\InvoicePolicy;
 use Core\Permissions\Policies\OrderPolicy;
+use Core\Permissions\Policies\PaymentPolicy;
 use Core\Permissions\Policies\ProductCategoryPolicy;
 use Core\Permissions\Policies\ProductPolicy;
+use Core\Permissions\Policies\QuotePolicy;
 use Core\Permissions\Policies\RolePolicy;
 use Core\Permissions\Policies\UserPolicy;
+use Core\Billing\Models\Invoice;
+use Core\Billing\Models\Payment;
+use Core\Billing\Models\Quote;
 use Core\Permissions\Services\GateRegistrar;
 use Core\Permissions\Services\PermissionRegistry;
 use Core\Permissions\Services\PermissionService;
@@ -72,10 +103,33 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(CartService::class);
+        $this->app->singleton(TaxCalculationService::class);
         $this->app->singleton(CartSummary::class);
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(OrderService::class);
+        $this->app->singleton(InvoiceGenerationService::class);
+        $this->app->singleton(BillingSettings::class);
+        $this->app->singleton(BillingAuditLogger::class);
+        $this->app->singleton(InvoiceNumberService::class);
+        $this->app->singleton(InvoiceService::class);
+        $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);
+        $this->app->singleton(RenewalInvoiceService::class);
+        $this->app->singleton(PaymentGatewayRegistry::class);
+        $this->app->singleton(ManualTransferGateway::class);
+        $this->app->singleton(PaymentService::class);
+        $this->app->singleton(QuoteNumberService::class);
+        $this->app->singleton(QuoteService::class);
+        $this->app->singleton(ClientCreditService::class);
+        $this->app->singleton(DiscountCalculator::class);
+        $this->app->singleton(CouponService::class);
+        $this->app->singleton(ProrataCalculationService::class);
+        $this->app->singleton(InvoiceReminderService::class);
+        $this->app->singleton(OverdueServiceActions::class, NullOverdueServiceActions::class);
+        $this->app->singleton(OverdueSuspensionService::class);
+        $this->app->singleton(CreditNoteNumberService::class);
+        $this->app->singleton(CreditNoteService::class);
+        $this->app->singleton(BillingDocumentPdfService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 
@@ -90,8 +144,17 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Quote::class, QuotePolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
 
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();
+
+        if ((bool) config('corepanel.billing.manual_transfer.enabled', true)) {
+            $this->app->make(PaymentGatewayRegistry::class)->register(
+                $this->app->make(ManualTransferGateway::class),
+            );
+        }
     }
 }

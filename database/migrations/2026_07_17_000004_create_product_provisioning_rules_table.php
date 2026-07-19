@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Product provisioning rules (roadmap 9.8).
-     * node_group_key is a stable allocation key until node_groups exist (étape 16 / 9.9).
+     * Product provisioning rules
+     * node_group_key is a stable allocation key until node_groups exist
      */
     public function up(): void
     {

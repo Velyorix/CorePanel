@@ -119,7 +119,10 @@ class RoleAndPermissionSeeder extends Seeder
 
             ['name' => 'billing.invoices.view', 'module' => 'billing', 'description' => 'View invoices'],
             ['name' => 'billing.invoices.manage', 'module' => 'billing', 'description' => 'Manage invoices'],
+            ['name' => 'billing.quotes.view', 'module' => 'billing', 'description' => 'View quotes'],
+            ['name' => 'billing.quotes.manage', 'module' => 'billing', 'description' => 'Manage quotes'],
             ['name' => 'billing.payments.view', 'module' => 'billing', 'description' => 'View payments'],
+            ['name' => 'billing.payments.manage', 'module' => 'billing', 'description' => 'Manage payments'],
 
             ['name' => 'services.view', 'module' => 'services', 'description' => 'View services'],
             ['name' => 'services.manage', 'module' => 'services', 'description' => 'Manage services'],
@@ -136,6 +139,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.services.manage', 'module' => 'core', 'description' => 'Manage own services'],
             ['name' => 'client.invoices.view', 'module' => 'core', 'description' => 'View own invoices'],
             ['name' => 'client.invoices.pay', 'module' => 'core', 'description' => 'Pay own invoices'],
+            ['name' => 'client.quotes.view', 'module' => 'core', 'description' => 'View own quotes'],
             ['name' => 'client.orders.view', 'module' => 'core', 'description' => 'View own orders'],
             ['name' => 'client.tickets.view', 'module' => 'core', 'description' => 'View own tickets'],
             ['name' => 'client.tickets.create', 'module' => 'core', 'description' => 'Create support tickets'],
@@ -188,6 +192,8 @@ class RoleAndPermissionSeeder extends Seeder
                     'orders.view',
                     'services.view',
                     'billing.invoices.view',
+                    'billing.quotes.view',
+                    'billing.payments.view',
                     'tickets.*',
                 ],
             ],

@@ -4,8 +4,12 @@ use App\Http\Controllers\Client\CartController;
 use App\Http\Controllers\Client\CatalogController;
 use App\Http\Controllers\Client\CheckoutController;
 use App\Http\Controllers\Client\DashboardController;
+use App\Http\Controllers\Client\InvoiceController;
+use App\Http\Controllers\Client\InvoicePaymentController;
 use App\Http\Controllers\Client\OrderController;
+use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\ProfileController;
+use App\Http\Controllers\Client\QuoteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,8 +18,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Préfixe : /client
-| Middleware EnsureClient — étape 6
-| CDC : Tome 7
+| Middleware EnsureClient
 |
 */
 
@@ -46,6 +49,20 @@ Route::middleware('client')
 
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+        Route::post('invoices/{invoice}/pay', [InvoicePaymentController::class, 'pay'])->name('invoices.pay');
+
+        Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+        Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
+        Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->name('quotes.pdf');
+        Route::post('quotes/{quote}/accept', [QuoteController::class, 'accept'])->name('quotes.accept');
+        Route::post('quotes/{quote}/decline', [QuoteController::class, 'decline'])->name('quotes.decline');
+
+        Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
 
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

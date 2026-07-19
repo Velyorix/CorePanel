@@ -74,6 +74,8 @@ class OrderConversionServiceTest extends TestCase
             'coupon_code' => 'SAVE10',
         ]);
 
+        \Core\Billing\Models\Coupon::factory()->percent('SAVE10', '10.00')->create();
+
         $order = $this->conversionService->convertFromCheckout($cart->fresh(['items']), $draft);
 
         $this->assertSame(OrderStatus::PendingPayment, $order->status);
@@ -87,8 +89,9 @@ class OrderConversionServiceTest extends TestCase
         $this->assertSame('SAVE10', $order->coupon_code);
         $this->assertSame('39.98', $order->subtotal_recurring);
         $this->assertSame('5.00', $order->subtotal_setup);
-        $this->assertSame('9.00', $order->tax_amount);
-        $this->assertSame('53.98', $order->total_amount);
+        $this->assertSame('4.50', $order->discount_amount);
+        $this->assertSame('8.10', $order->tax_amount);
+        $this->assertSame('48.58', $order->total_amount);
         $this->assertCount(1, $order->items);
 
         $item = $order->items->first();

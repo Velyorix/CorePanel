@@ -1,0 +1,35 @@
+<?php
+
+namespace Core\Billing\DataTransferObjects;
+
+use Core\Products\Enums\BillingCycle;
+
+final readonly class RenewalLineInput
+{
+    /**
+     * @param  array<string, mixed>|null  $options
+     * @param  list<string>|null  $addons
+     * @param  array<string, mixed>|null  $configData
+     */
+    public function __construct(
+        public string $description,
+        public string $unitPrice,
+        public int $quantity = 1,
+        public ?int $productId = null,
+        public ?string $productName = null,
+        public ?string $productSlug = null,
+        public ?BillingCycle $billingCycle = null,
+        public ?int $customIntervalDays = null,
+        public ?array $options = null,
+        public ?array $addons = null,
+        public ?array $configData = null,
+    ) {
+    }
+
+    public function lineTotal(): string
+    {
+        $qty = max(1, $this->quantity);
+
+        return number_format(round((float) $this->unitPrice * $qty, 2), 2, '.', '');
+    }
+}

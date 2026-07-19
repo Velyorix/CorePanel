@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
- * End-to-end smoke coverage for the Étape 8 MR test plan (8.1–8.9).
+ * End-to-end smoke coverage for client management workflows.
  */
 class ClientManagementAcceptanceTest extends TestCase
 {

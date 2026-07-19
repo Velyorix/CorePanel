@@ -52,7 +52,7 @@ enum BillingCycle: string
     }
 
     /**
-     * CDC Tome 8 §5.1 — hourly is optional.
+     * Hourly billing cycle is optional.
      */
     public function isOptional(): bool
     {

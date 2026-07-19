@@ -5,7 +5,7 @@ namespace Core\Products\Support;
 use InvalidArgumentException;
 
 /**
- * FQDN / domain name validation for product configure (roadmap 10.9).
+ * FQDN / domain name validation for product configure.
  */
 final class HostnameValidator
 {

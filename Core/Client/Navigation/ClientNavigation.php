@@ -81,12 +81,20 @@ class ClientNavigation
                     ],
                     [
                         'label' => __('Invoices'),
-                        'route' => null,
+                        'route' => 'client.invoices.index',
+                        'routeIs' => ['client.invoices.*'],
                         'permission' => 'client.invoices.view',
                     ],
                     [
+                        'label' => __('Quotes'),
+                        'route' => 'client.quotes.index',
+                        'routeIs' => ['client.quotes.*'],
+                        'permission' => 'client.quotes.view',
+                    ],
+                    [
                         'label' => __('Payments'),
-                        'route' => null,
+                        'route' => 'client.payments.index',
+                        'routeIs' => ['client.payments.*'],
                         'permission' => 'client.invoices.pay',
                     ],
                     [

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\ConfigureProductRequest;
 use Core\Auth\Models\User;
+use Core\Billing\DataTransferObjects\TaxAddress;
 use Core\Clients\Models\Client;
 use Core\Orders\Services\CartService;
 use Core\Products\Services\CatalogPricePreview;
@@ -120,7 +121,13 @@ class CatalogController extends Controller
             );
 
             return response()->json(
-                $this->catalogPricePreview->fromCartItem($resolved, $itemData),
+                $this->catalogPricePreview->fromCartItem(
+                    $resolved,
+                    $itemData,
+                    ($client = $this->resolveClient($request)) !== null
+                        ? TaxAddress::fromClient($client)
+                        : null,
+                ),
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json([

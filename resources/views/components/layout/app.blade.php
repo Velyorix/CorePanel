@@ -22,9 +22,8 @@
     </head>
     <body class="min-h-full bg-background font-sans text-body text-foreground antialiased">
         {{--
-            CorePanel app shell (CDC Tome 13 §4)
-            Sidebar | Topbar + Main
-            Full admin/client navigation arrives in étapes 5–6.
+            CorePanel app shell — sidebar, topbar, main
+            Full admin/client navigation is not wired here yet.
         --}}
         <div class="flex min-h-screen">
             <aside

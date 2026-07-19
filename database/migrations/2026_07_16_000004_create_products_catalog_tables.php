@@ -9,9 +9,9 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Product catalog foundation (CDC Tome 3 §7, roadmap 9.1).
+     * Product catalog foundation.
      * Pricing lives on product_pricing (one row per billing cycle).
-     * Options, addons, provisioning rules, and node groups come in later 9.x steps.
+     * Options, addons, provisioning rules, and node groups.
      */
     public function up(): void
     {

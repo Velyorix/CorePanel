@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Product addons with separate billing (CDC Tome 3 §7.3, roadmap 9.6).
+     * Product addons with separate billing.
      */
     public function up(): void
     {

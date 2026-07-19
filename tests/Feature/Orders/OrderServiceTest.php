@@ -468,7 +468,8 @@ class OrderServiceTest extends TestCase
         $this->assertSame('22.00', $order->items->first()->line_total);
         $this->assertSame('20.00', $order->subtotal_recurring);
         $this->assertSame('2.00', $order->subtotal_setup);
-        $this->assertSame('22.00', $order->total_amount);
+        $this->assertSame('4.40', $order->tax_amount);
+        $this->assertSame('26.40', $order->total_amount);
     }
 
     public function test_create_from_admin_submit_as_pending_dispatches_order_created(): void

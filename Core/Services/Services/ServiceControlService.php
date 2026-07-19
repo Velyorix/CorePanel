@@ -80,30 +80,31 @@ class ServiceControlService
             ));
         }
 
-        return DB::transaction(function () use ($service, $action, $performedBy): Service {
-            $moduleResult = $this->modules->dispatch($service, $action);
-            $moduleStatus = (string) ($moduleResult['status'] ?? 'failed');
-            /** @var array<string, mixed> $moduleResponse */
-            $moduleResponse = is_array($moduleResult['response'] ?? null)
-                ? $moduleResult['response']
-                : [];
+        $moduleResult = $this->modules->dispatch($service, $action);
+        $moduleStatus = (string) ($moduleResult['status'] ?? 'failed');
+        /** @var array<string, mixed> $moduleResponse */
+        $moduleResponse = is_array($moduleResult['response'] ?? null)
+            ? $moduleResult['response']
+            : [];
 
-            if ($moduleStatus === 'failed') {
-                $this->logger->record(
-                    $service,
-                    $action,
-                    ServiceActionLogStatus::Failed,
-                    $performedBy?->id,
-                    $moduleResponse,
-                );
+        if ($moduleStatus === 'failed') {
+            // Persist outside any transaction so the failure trail is not rolled back.
+            $this->logger->record(
+                $service,
+                $action,
+                ServiceActionLogStatus::Failed,
+                $performedBy?->id,
+                $moduleResponse,
+            );
 
-                throw new RuntimeException(sprintf(
-                    'Module action [%s] failed for service #%d.',
-                    $action->value,
-                    $service->id,
-                ));
-            }
+            throw new RuntimeException(sprintf(
+                'Module action [%s] failed for service #%d.',
+                $action->value,
+                $service->id,
+            ));
+        }
 
+        return DB::transaction(function () use ($service, $action, $performedBy, $moduleStatus, $moduleResponse): Service {
             $service = $this->applyLifecycle($service, $action);
 
             $logStatus = $moduleStatus === 'skipped'

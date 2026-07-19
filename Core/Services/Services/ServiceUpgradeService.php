@@ -25,6 +25,7 @@ use Core\Services\DataTransferObjects\ServicePlanChangeResult;
 use Core\Services\Enums\ServiceAction;
 use Core\Services\Enums\ServiceActionLogStatus;
 use Core\Services\Exceptions\InvalidServicePlanChangeException;
+use Core\Services\Exceptions\ModuleActionFailedException;
 use Core\Services\Models\Service;
 use Illuminate\Support\Facades\DB;
 
@@ -84,105 +85,110 @@ class ServiceUpgradeService
             );
         }
 
-        return DB::transaction(function () use (
-            $service,
-            $target,
-            $targetCycle,
-            $targetInterval,
-            $targetConfig,
-            $prorata,
-            $action,
-            $data,
-            $performedBy,
-        ): ServicePlanChangeResult {
-            $snapshot = [
-                'from_product_id' => $service->product_id,
-                'to_product_id' => $target->id,
-                'from_billing_cycle' => $service->billing_cycle?->value,
-                'to_billing_cycle' => $targetCycle->value,
-                'prorata' => [
-                    'direction' => $prorata->direction->value,
-                    'net_amount' => $prorata->netAmount,
-                    'unused_credit' => $prorata->unusedCredit,
-                    'new_charge' => $prorata->newCharge,
-                    'days_remaining' => $prorata->daysRemaining,
-                    'period_days' => $prorata->periodDays,
-                ],
-            ];
+        try {
+            return DB::transaction(function () use (
+                $service,
+                $target,
+                $targetCycle,
+                $targetInterval,
+                $targetConfig,
+                $prorata,
+                $action,
+                $data,
+                $performedBy,
+            ): ServicePlanChangeResult {
+                $snapshot = [
+                    'from_product_id' => $service->product_id,
+                    'to_product_id' => $target->id,
+                    'from_billing_cycle' => $service->billing_cycle?->value,
+                    'to_billing_cycle' => $targetCycle->value,
+                    'prorata' => [
+                        'direction' => $prorata->direction->value,
+                        'net_amount' => $prorata->netAmount,
+                        'unused_credit' => $prorata->unusedCredit,
+                        'new_charge' => $prorata->newCharge,
+                        'days_remaining' => $prorata->daysRemaining,
+                        'period_days' => $prorata->periodDays,
+                    ],
+                ];
 
-            $service->forceFill([
-                'product_id' => $target->id,
-                'module' => $target->module,
-                'billing_cycle' => $targetCycle,
-                'custom_interval_days' => $targetCycle->requiresCustomInterval()
-                    ? $targetInterval
-                    : null,
-                'config_data' => $targetConfig,
-            ])->save();
+                $service->forceFill([
+                    'product_id' => $target->id,
+                    'module' => $target->module,
+                    'billing_cycle' => $targetCycle,
+                    'custom_interval_days' => $targetCycle->requiresCustomInterval()
+                        ? $targetInterval
+                        : null,
+                    'config_data' => $targetConfig,
+                ])->save();
 
-            $service = $service->fresh(['client.owner', 'product']) ?? $service;
+                $service = $service->fresh(['client.owner', 'product']) ?? $service;
 
-            $moduleResult = $this->modules->dispatch($service, $action);
-            $moduleStatus = (string) ($moduleResult['status'] ?? 'failed');
-            /** @var array<string, mixed> $moduleResponse */
-            $moduleResponse = is_array($moduleResult['response'] ?? null)
-                ? $moduleResult['response']
-                : [];
+                $moduleResult = $this->modules->dispatch($service, $action);
+                $moduleStatus = (string) ($moduleResult['status'] ?? 'failed');
+                /** @var array<string, mixed> $moduleResponse */
+                $moduleResponse = is_array($moduleResult['response'] ?? null)
+                    ? $moduleResult['response']
+                    : [];
 
-            if ($moduleStatus === 'failed') {
+                if ($moduleStatus === 'failed') {
+                    throw new ModuleActionFailedException(
+                        $action,
+                        [...$snapshot, 'module' => $moduleResponse],
+                        $service->id,
+                    );
+                }
+
+                $chargeInvoice = null;
+                $creditTransaction = null;
+
+                if ($data->applyBilling) {
+                    if ($prorata->direction === ProrataDirection::Charge) {
+                        $chargeInvoice = $this->createChargeInvoice($service, $target, $targetCycle, $targetInterval, $prorata, $performedBy);
+                        $snapshot['charge_invoice_id'] = $chargeInvoice->id;
+                    } elseif ($prorata->direction === ProrataDirection::Credit) {
+                        $creditTransaction = $this->credits->add(
+                            $service->client,
+                            $prorata->netAmount,
+                            ClientCreditTransactionType::Add,
+                            description: __('Service #:id plan downgrade prorata credit', ['id' => $service->id]),
+                            reference: sprintf('service:%d:downgrade:%d', $service->id, $service->id),
+                            idempotencyKey: sprintf('service-plan-downgrade-%d-%s', $service->id, now()->format('YmdHisu')),
+                            createdBy: $performedBy,
+                        );
+                        $snapshot['credit_transaction_id'] = $creditTransaction->id;
+                    }
+                }
+
                 $this->logger->record(
                     $service,
                     $action,
-                    ServiceActionLogStatus::Failed,
+                    ServiceActionLogStatus::Success,
                     $performedBy?->id,
                     [...$snapshot, 'module' => $moduleResponse],
                 );
 
-                throw new InvalidServicePlanChangeException(sprintf(
-                    'Module action [%s] failed for service #%d.',
-                    $action->value,
-                    $service->id,
-                ));
-            }
-
-            $chargeInvoice = null;
-            $creditTransaction = null;
-
-            if ($data->applyBilling) {
-                if ($prorata->direction === ProrataDirection::Charge) {
-                    $chargeInvoice = $this->createChargeInvoice($service, $target, $targetCycle, $targetInterval, $prorata, $performedBy);
-                    $snapshot['charge_invoice_id'] = $chargeInvoice->id;
-                } elseif ($prorata->direction === ProrataDirection::Credit) {
-                    $creditTransaction = $this->credits->add(
-                        $service->client,
-                        $prorata->netAmount,
-                        ClientCreditTransactionType::Add,
-                        description: __('Service #:id plan downgrade prorata credit', ['id' => $service->id]),
-                        reference: sprintf('service:%d:downgrade:%d', $service->id, $service->id),
-                        idempotencyKey: sprintf('service-plan-downgrade-%d-%s', $service->id, now()->format('YmdHisu')),
-                        createdBy: $performedBy,
-                    );
-                    $snapshot['credit_transaction_id'] = $creditTransaction->id;
-                }
-            }
-
+                return new ServicePlanChangeResult(
+                    service: $service,
+                    action: $action,
+                    prorata: $prorata,
+                    applied: true,
+                    chargeInvoice: $chargeInvoice,
+                    creditTransaction: $creditTransaction,
+                );
+            });
+        } catch (ModuleActionFailedException $exception) {
+            // Log after rollback so the failure trail is not undone with the plan change.
             $this->logger->record(
                 $service,
-                $action,
-                ServiceActionLogStatus::Success,
+                $exception->action,
+                ServiceActionLogStatus::Failed,
                 $performedBy?->id,
-                [...$snapshot, 'module' => $moduleResponse],
+                $exception->response,
             );
 
-            return new ServicePlanChangeResult(
-                service: $service,
-                action: $action,
-                prorata: $prorata,
-                applied: true,
-                chargeInvoice: $chargeInvoice,
-                creditTransaction: $creditTransaction,
-            );
-        });
+            throw new InvalidServicePlanChangeException($exception->getMessage(), 0, $exception);
+        }
     }
 
     private function assertValidChange(Service $service, ServicePlanChangeData $data): Product

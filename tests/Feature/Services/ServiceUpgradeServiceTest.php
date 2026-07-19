@@ -115,6 +115,12 @@ class ServiceUpgradeServiceTest extends TestCase
             app(ClientCreditService::class)->balance($service->client),
         );
         $this->assertSame(0, Invoice::query()->count());
+
+        $log = ServiceActionLog::query()->where('service_id', $service->id)->latest('id')->firstOrFail();
+        $this->assertSame(ServiceAction::Downgrade, $log->action);
+        $this->assertSame(ServiceActionLogStatus::Success, $log->status);
+        $this->assertSame($current->id, $log->response['from_product_id']);
+        $this->assertSame($target->id, $log->response['to_product_id']);
     }
 
     public function test_preview_does_not_persist_changes(): void

@@ -6,8 +6,7 @@ use Core\Billing\Contracts\OverdueServiceActions;
 use Core\Billing\Models\Invoice;
 
 /**
- * Default overdue actions before the services engine is available.
- * No-op; real suspend/terminate is wired later via this contract.
+ * Default overdue actions stub kept for tests and explicit no-op binding.
  */
 class NullOverdueServiceActions implements OverdueServiceActions
 {

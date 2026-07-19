@@ -9,8 +9,10 @@ use Core\Billing\Enums\PaymentStatus;
 use Core\Billing\Exceptions\InvalidPaymentException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
-use Illuminate\Support\Facades\DB;
+use Core\Clients\Models\Client;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Persists payments and delegates provider operations to registered gateways.
@@ -20,6 +22,93 @@ class PaymentService
     public function __construct(
         private readonly PaymentGatewayRegistry $gateways,
     ) {
+    }
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: PaymentStatus|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'amount',
+            'status',
+            'method',
+            'paid_at',
+            'created_at',
+        ], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Payment::query()->with(['invoice', 'client']);
+
+        if ($status instanceof PaymentStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($term): void {
+                $builder
+                    ->where('transaction_id', 'like', $term)
+                    ->orWhere('gateway_reference', 'like', $term)
+                    ->orWhere('method', 'like', $term)
+                    ->orWhereHas('invoice', function ($invoiceQuery) use ($term): void {
+                        $invoiceQuery->where('invoice_number', 'like', $term);
+                    })
+                    ->orWhereHas('client', function ($clientQuery) use ($term): void {
+                        $clientQuery->where('company_name', 'like', $term);
+                    });
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * @param  array{
+     *     status?: PaymentStatus|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForClient(Client $client, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, ['amount', 'status', 'method', 'paid_at', 'created_at'], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Payment::query()
+            ->where('client_id', $client->id)
+            ->with(['invoice']);
+
+        if ($status instanceof PaymentStatus) {
+            $query->where('status', $status->value);
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     /**

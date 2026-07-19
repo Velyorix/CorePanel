@@ -7,10 +7,16 @@ use App\Http\Controllers\Admin\ClientStatusController;
 use App\Http\Controllers\Admin\ClientImpersonationController;
 use App\Http\Controllers\Admin\ClientNoteController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InvoiceActionController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderStatusController;
+use App\Http\Controllers\Admin\PaymentActionController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\QuoteActionController;
+use App\Http\Controllers\Admin\QuoteController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductStatusController;
@@ -92,6 +98,23 @@ Route::middleware('admin')
         Route::post('orders/{order}/mark-pending-payment', [OrderStatusController::class, 'markPendingPayment'])->name('orders.mark-pending-payment');
         Route::post('orders/{order}/mark-paid', [OrderStatusController::class, 'markPaid'])->name('orders.mark-paid');
         Route::post('orders/{order}/cancel', [OrderStatusController::class, 'cancel'])->name('orders.cancel');
+
+        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+        Route::post('invoices/{invoice}/issue', [InvoiceActionController::class, 'issue'])->name('invoices.issue');
+        Route::get('invoices/{invoice}/pdf', [InvoiceActionController::class, 'pdf'])->name('invoices.pdf');
+
+        Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
+        Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');
+        Route::post('quotes/{quote}/send', [QuoteActionController::class, 'send'])->name('quotes.send');
+        Route::post('quotes/{quote}/convert', [QuoteActionController::class, 'convert'])->name('quotes.convert');
+        Route::post('quotes/{quote}/cancel', [QuoteActionController::class, 'cancel'])->name('quotes.cancel');
+        Route::get('quotes/{quote}/pdf', [QuoteActionController::class, 'pdf'])->name('quotes.pdf');
+
+        Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::get('payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+        Route::post('payments/{payment}/complete', [PaymentActionController::class, 'complete'])->name('payments.complete');
+        Route::post('payments/{payment}/fail', [PaymentActionController::class, 'fail'])->name('payments.fail');
 
         Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
 

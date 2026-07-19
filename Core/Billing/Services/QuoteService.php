@@ -15,6 +15,7 @@ use Core\Billing\Models\InvoiceItem;
 use Core\Billing\Models\Quote;
 use Core\Billing\Models\QuoteItem;
 use Core\Clients\Models\Client;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,6 +28,104 @@ class QuoteService
         private readonly QuoteNumberService $quoteNumbers,
         private readonly InvoiceNumberService $invoiceNumbers,
     ) {
+    }
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: QuoteStatus|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'quote_number',
+            'status',
+            'total_amount',
+            'valid_until',
+            'sent_at',
+            'created_at',
+        ], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Quote::query()->with(['client', 'items']);
+
+        if ($status instanceof QuoteStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($term): void {
+                $builder
+                    ->where('quote_number', 'like', $term)
+                    ->orWhere('contact_name', 'like', $term)
+                    ->orWhere('contact_email', 'like', $term)
+                    ->orWhere('company_name', 'like', $term)
+                    ->orWhereHas('client', function ($clientQuery) use ($term): void {
+                        $clientQuery->where('company_name', 'like', $term);
+                    });
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * @param  array{
+     *     status?: QuoteStatus|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     */
+    public function paginateForClient(Client $client, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $status = $filters['status'] ?? null;
+        $sort = $filters['sort'] ?? 'sent_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'quote_number',
+            'status',
+            'total_amount',
+            'valid_until',
+            'sent_at',
+            'created_at',
+        ], true)) {
+            $sort = 'sent_at';
+        }
+
+        $query = Quote::query()
+            ->where('client_id', $client->id)
+            ->where('status', '!=', QuoteStatus::Draft->value)
+            ->with(['items']);
+
+        if ($status instanceof QuoteStatus) {
+            if ($status === QuoteStatus::Draft) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('status', $status->value);
+            }
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function create(CreateQuoteInput $input, ?User $createdBy = null): Quote

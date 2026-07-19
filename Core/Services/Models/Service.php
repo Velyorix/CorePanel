@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Service extends Model
@@ -106,6 +107,16 @@ class Service extends Model
     public function actionLogs(): HasMany
     {
         return $this->hasMany(ServiceActionLog::class)->orderBy('id');
+    }
+
+    /**
+     * Encrypted runtime config (credentials, IP, hostname, metadata).
+     *
+     * @return HasOne<ServiceConfig, $this>
+     */
+    public function config(): HasOne
+    {
+        return $this->hasOne(ServiceConfig::class);
     }
 
     protected static function newFactory(): ServiceFactory

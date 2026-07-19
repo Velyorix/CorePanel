@@ -78,6 +78,7 @@ use Core\Services\Contracts\ServiceActionLogger;
 use Core\Services\Listeners\CreateServicesOnOrderPaid;
 use Core\Services\Services\DatabaseServiceActionLogger;
 use Core\Services\Services\NullModuleActionDispatcher;
+use Core\Services\Services\ServiceConfigService;
 use Core\Services\Services\ServiceControlService;
 use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
@@ -125,6 +126,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceActionLogger::class, DatabaseServiceActionLogger::class);
         $this->app->singleton(ServiceControlService::class);
         $this->app->singleton(ServiceUpgradeService::class);
+        $this->app->singleton(ServiceConfigService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(BillingAuditLogger::class);

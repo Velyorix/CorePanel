@@ -72,6 +72,7 @@ use Core\Permissions\Services\RoleInheritanceService;
 use Core\Permissions\Services\RoleManagementService;
 use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
+use Core\Services\Services\ServiceLifecycleService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -108,6 +109,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(OrderService::class);
+        $this->app->singleton(ServiceLifecycleService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(BillingAuditLogger::class);

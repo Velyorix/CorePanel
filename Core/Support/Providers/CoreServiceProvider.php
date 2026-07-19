@@ -21,6 +21,7 @@ use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CouponService;
 use Core\Billing\Services\CreditNoteNumberService;
 use Core\Billing\Services\CreditNoteService;
+use Core\Billing\Services\BillingDocumentPdfService;
 use Core\Billing\Services\DiscountCalculator;
 use Core\Billing\Services\OverdueSuspensionService;
 use Core\Billing\Services\ProrataCalculationService;
@@ -118,6 +119,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(OverdueSuspensionService::class);
         $this->app->singleton(CreditNoteNumberService::class);
         $this->app->singleton(CreditNoteService::class);
+        $this->app->singleton(BillingDocumentPdfService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

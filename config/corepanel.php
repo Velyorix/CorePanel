@@ -273,6 +273,22 @@ return [
         ],
 
         /*
+        | Seller letterhead for invoice / quote PDFs.
+        */
+        'seller' => [
+            'name' => env('COREPANEL_BILLING_SELLER_NAME', 'CorePanel'),
+            'address' => env('COREPANEL_BILLING_SELLER_ADDRESS'),
+            'city' => env('COREPANEL_BILLING_SELLER_CITY'),
+            'postal_code' => env('COREPANEL_BILLING_SELLER_POSTAL_CODE'),
+            'country' => env('COREPANEL_BILLING_SELLER_COUNTRY', 'FR'),
+            'vat_number' => env('COREPANEL_BILLING_SELLER_VAT'),
+            'email' => env('COREPANEL_BILLING_SELLER_EMAIL'),
+            'phone' => env('COREPANEL_BILLING_SELLER_PHONE'),
+            'logo_path' => env('COREPANEL_BILLING_SELLER_LOGO_PATH'),
+            'footer' => env('COREPANEL_BILLING_SELLER_FOOTER'),
+        ],
+
+        /*
         | Fallback tax rate when billing country is unknown (catalog/cart preview).
         */
         'tax_preview_rate' => (float) env('COREPANEL_BILLING_TAX_PREVIEW_RATE', 0),

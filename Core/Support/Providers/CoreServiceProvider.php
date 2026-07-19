@@ -44,6 +44,7 @@ use Core\Orders\Services\CartSummary;
 use Core\Orders\Services\CheckoutDraftService;
 use Core\Orders\Services\OrderConversionService;
 use Core\Orders\Services\OrderService;
+use Core\Orders\Events\OrderPaid;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogPricePreview;
@@ -72,7 +73,10 @@ use Core\Permissions\Services\RoleInheritanceService;
 use Core\Permissions\Services\RoleManagementService;
 use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
+use Core\Services\Listeners\CreateServicesOnOrderPaid;
+use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -110,6 +114,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(OrderService::class);
         $this->app->singleton(ServiceLifecycleService::class);
+        $this->app->singleton(ServiceCreationService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(BillingAuditLogger::class);
@@ -158,5 +163,7 @@ class CoreServiceProvider extends ServiceProvider
                 $this->app->make(ManualTransferGateway::class),
             );
         }
+
+        Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
     }
 }

@@ -13,6 +13,7 @@ use Core\Billing\Gateways\ManualTransferGateway;
 use Core\Billing\Services\BillingSettings;
 use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
+use Core\Billing\Services\InvoiceReminderService;
 use Core\Billing\Services\NullRenewableBillableSource;
 use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CouponService;
@@ -107,6 +108,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(DiscountCalculator::class);
         $this->app->singleton(CouponService::class);
         $this->app->singleton(ProrataCalculationService::class);
+        $this->app->singleton(InvoiceReminderService::class);
         $this->app->singleton(GateRegistrar::class);
     }
 

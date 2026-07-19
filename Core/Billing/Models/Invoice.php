@@ -45,6 +45,9 @@ class Invoice extends Model
         'total_amount',
         'issued_at',
         'due_at',
+        'reminder_level',
+        'last_reminder_at',
+        'reminders_sent',
         'paid_at',
         'cancelled_at',
     ];
@@ -62,6 +65,9 @@ class Invoice extends Model
             'total_amount' => 'decimal:2',
             'issued_at' => 'datetime',
             'due_at' => 'datetime',
+            'reminder_level' => 'integer',
+            'last_reminder_at' => 'datetime',
+            'reminders_sent' => 'integer',
             'paid_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];

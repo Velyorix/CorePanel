@@ -42,6 +42,9 @@ class InvoiceFactory extends Factory
             'total_amount' => '0.00',
             'issued_at' => null,
             'due_at' => null,
+            'reminder_level' => 0,
+            'last_reminder_at' => null,
+            'reminders_sent' => 0,
             'paid_at' => null,
             'cancelled_at' => null,
         ];

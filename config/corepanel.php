@@ -316,6 +316,23 @@ return [
         ],
 
         /*
+        | Staged invoice payment reminders (SendInvoiceReminders job).
+        | days_offset is relative to due_at: negative = before due, positive = after.
+        | Final warning defaults to T+2 (day before suspension at T+3).
+        */
+        'reminders' => [
+            'enabled' => (bool) env('COREPANEL_BILLING_REMINDERS_ENABLED', true),
+            'schedule' => env('COREPANEL_BILLING_REMINDERS_SCHEDULE', 'daily'),
+            'levels' => [
+                ['key' => 'before_due_7', 'days_offset' => -7],
+                ['key' => 'before_due_3', 'days_offset' => -3],
+                ['key' => 'due', 'days_offset' => 0],
+                ['key' => 'overdue', 'days_offset' => 1],
+                ['key' => 'final_warning', 'days_offset' => 2],
+            ],
+        ],
+
+        /*
         | Manual offline gateway (bank transfer / cheque).
         | Payments stay pending until staff confirms via PaymentService::complete().
         */

@@ -2,6 +2,7 @@
 
 use App\Jobs\ValidateLicenseJob;
 use App\Jobs\GenerateRenewalInvoices;
+use App\Jobs\SendInvoiceReminders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -21,4 +22,13 @@ $renewal = Schedule::job(new GenerateRenewalInvoices)->withoutOverlapping();
 match ($renewalSchedule) {
     'hourly' => $renewal->hourly(),
     default => $renewal->daily(),
+};
+
+$reminderSchedule = (string) config('corepanel.billing.reminders.schedule', 'daily');
+
+$reminders = Schedule::job(new SendInvoiceReminders)->withoutOverlapping();
+
+match ($reminderSchedule) {
+    'hourly' => $reminders->hourly(),
+    default => $reminders->daily(),
 };

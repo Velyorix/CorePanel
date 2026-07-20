@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductStatusController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\ServiceActionController;
+use App\Http\Controllers\Admin\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -98,6 +100,16 @@ Route::middleware('admin')
         Route::post('orders/{order}/mark-pending-payment', [OrderStatusController::class, 'markPendingPayment'])->name('orders.mark-pending-payment');
         Route::post('orders/{order}/mark-paid', [OrderStatusController::class, 'markPaid'])->name('orders.mark-paid');
         Route::post('orders/{order}/cancel', [OrderStatusController::class, 'cancel'])->name('orders.cancel');
+
+        Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+        Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
+        Route::post('services/{service}/start', [ServiceActionController::class, 'start'])->name('services.start');
+        Route::post('services/{service}/stop', [ServiceActionController::class, 'stop'])->name('services.stop');
+        Route::post('services/{service}/restart', [ServiceActionController::class, 'restart'])->name('services.restart');
+        Route::post('services/{service}/suspend', [ServiceActionController::class, 'suspend'])->name('services.suspend');
+        Route::post('services/{service}/unsuspend', [ServiceActionController::class, 'unsuspend'])->name('services.unsuspend');
+        Route::post('services/{service}/terminate', [ServiceActionController::class, 'terminate'])->name('services.terminate');
+        Route::post('services/{service}/reinstall', [ServiceActionController::class, 'reinstall'])->name('services.reinstall');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

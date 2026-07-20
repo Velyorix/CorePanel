@@ -105,6 +105,11 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($ordersItem);
         $this->assertFalse($ordersItem['placeholder']);
         $this->assertSame(route('admin.orders.index'), $ordersItem['url']);
+
+        $servicesItem = $flatItems->firstWhere('label', __('Services'));
+        $this->assertNotNull($servicesItem);
+        $this->assertFalse($servicesItem['placeholder']);
+        $this->assertSame(route('admin.services.index'), $servicesItem['url']);
     }
 
     public function test_navigation_hides_items_without_permission(): void
@@ -152,6 +157,7 @@ class AdminNavigationTest extends TestCase
 
         $this->assertStringContainsString(__('Coming soon'), $html);
         $this->assertStringContainsString('aria-disabled="true"', $html);
-        $this->assertStringContainsString(__('Services'), $html);
+        $this->assertStringContainsString(__('Tickets'), $html);
+        $this->assertStringContainsString(route('admin.services.index'), $html);
     }
 }

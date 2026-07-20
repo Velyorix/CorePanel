@@ -17,7 +17,7 @@ use Core\Billing\Services\InvoiceGenerationService;
 use Core\Billing\Services\InvoiceNumberService;
 use Core\Billing\Services\InvoiceReminderService;
 use Core\Billing\Services\InvoiceService;
-use Core\Billing\Services\NullOverdueServiceActions;
+use Core\Billing\Services\LifecycleOverdueServiceActions;
 use Core\Billing\Services\NullRenewableBillableSource;
 use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CouponService;
@@ -44,6 +44,7 @@ use Core\Orders\Services\CartSummary;
 use Core\Orders\Services\CheckoutDraftService;
 use Core\Orders\Services\OrderConversionService;
 use Core\Orders\Services\OrderService;
+use Core\Orders\Events\OrderPaid;
 use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Core\Products\Services\CatalogPricePreview;
@@ -61,10 +62,12 @@ use Core\Permissions\Policies\ProductCategoryPolicy;
 use Core\Permissions\Policies\ProductPolicy;
 use Core\Permissions\Policies\QuotePolicy;
 use Core\Permissions\Policies\RolePolicy;
+use Core\Permissions\Policies\ServicePolicy;
 use Core\Permissions\Policies\UserPolicy;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
 use Core\Billing\Models\Quote;
+use Core\Services\Models\Service;
 use Core\Permissions\Services\GateRegistrar;
 use Core\Permissions\Services\PermissionRegistry;
 use Core\Permissions\Services\PermissionService;
@@ -72,6 +75,22 @@ use Core\Permissions\Services\RoleInheritanceService;
 use Core\Permissions\Services\RoleManagementService;
 use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
+use Core\Services\Contracts\ModuleAccessLinkProvider;
+use Core\Services\Contracts\ModuleActionDispatcher;
+use Core\Services\Contracts\ServiceActionLogger;
+use Core\Services\Listeners\CreateServicesOnOrderPaid;
+use Core\Services\Services\DatabaseServiceActionLogger;
+use Core\Services\Services\NullModuleAccessLinkProvider;
+use Core\Services\Services\NullModuleActionDispatcher;
+use Core\Services\Services\ServiceAccessService;
+use Core\Services\Services\ServiceActionLogService;
+use Core\Services\Services\ServiceConfigService;
+use Core\Services\Services\ServiceControlService;
+use Core\Services\Services\ServiceCreationService;
+use Core\Services\Services\ServiceLifecycleService;
+use Core\Services\Services\ServiceQueryService;
+use Core\Services\Services\ServiceUpgradeService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -108,6 +127,17 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CheckoutDraftService::class);
         $this->app->singleton(OrderConversionService::class);
         $this->app->singleton(OrderService::class);
+        $this->app->singleton(ServiceLifecycleService::class);
+        $this->app->singleton(ServiceCreationService::class);
+        $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);
+        $this->app->singleton(ModuleAccessLinkProvider::class, NullModuleAccessLinkProvider::class);
+        $this->app->singleton(ServiceActionLogger::class, DatabaseServiceActionLogger::class);
+        $this->app->singleton(ServiceControlService::class);
+        $this->app->singleton(ServiceUpgradeService::class);
+        $this->app->singleton(ServiceConfigService::class);
+        $this->app->singleton(ServiceAccessService::class);
+        $this->app->singleton(ServiceActionLogService::class);
+        $this->app->singleton(ServiceQueryService::class);
         $this->app->singleton(InvoiceGenerationService::class);
         $this->app->singleton(BillingSettings::class);
         $this->app->singleton(BillingAuditLogger::class);
@@ -125,7 +155,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CouponService::class);
         $this->app->singleton(ProrataCalculationService::class);
         $this->app->singleton(InvoiceReminderService::class);
-        $this->app->singleton(OverdueServiceActions::class, NullOverdueServiceActions::class);
+        $this->app->singleton(OverdueServiceActions::class, LifecycleOverdueServiceActions::class);
         $this->app->singleton(OverdueSuspensionService::class);
         $this->app->singleton(CreditNoteNumberService::class);
         $this->app->singleton(CreditNoteService::class);
@@ -144,6 +174,7 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::policy(Service::class, ServicePolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Quote::class, QuotePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
@@ -156,5 +187,7 @@ class CoreServiceProvider extends ServiceProvider
                 $this->app->make(ManualTransferGateway::class),
             );
         }
+
+        Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
     }
 }

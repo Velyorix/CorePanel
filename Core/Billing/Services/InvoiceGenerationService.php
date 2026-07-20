@@ -132,10 +132,31 @@ class InvoiceGenerationService
             return $existing;
         }
 
+        return $this->createOneLineServiceInvoice($input, $createdBy);
+    }
+
+    /**
+     * Create a draft one-line charge invoice for a service (upgrade prorata, etc.).
+     * Not idempotent — each call creates a new draft.
+     */
+    public function createServiceCharge(RenewalInvoiceInput $input, ?User $createdBy = null): Invoice
+    {
+        if ($input->serviceId < 1) {
+            throw new InvalidArgumentException('A valid service_id is required for service charge invoices.');
+        }
+
+        return $this->createOneLineServiceInvoice($input, $createdBy);
+    }
+
+    /**
+     * @return Invoice
+     */
+    private function createOneLineServiceInvoice(RenewalInvoiceInput $input, ?User $createdBy = null): Invoice
+    {
         $client = Client::query()->find($input->clientId);
 
         if ($client === null) {
-            throw new InvalidArgumentException('Cannot generate a renewal invoice for an unknown client.');
+            throw new InvalidArgumentException('Cannot generate a service invoice for an unknown client.');
         }
 
         $contactName = $input->contactName;
@@ -148,7 +169,7 @@ class InvoiceGenerationService
         }
 
         if ($contactName === null || $contactEmail === null) {
-            throw new InvalidArgumentException('Contact name and email are required for renewal invoices.');
+            throw new InvalidArgumentException('Contact name and email are required for service invoices.');
         }
 
         $lineTotal = $input->line->lineTotal();
@@ -190,7 +211,7 @@ class InvoiceGenerationService
                 ? $line->description
                 : (filled($line->productName)
                     ? (string) $line->productName
-                    : __('Service #:id renewal', ['id' => $input->serviceId]));
+                    : __('Service #:id charge', ['id' => $input->serviceId]));
 
             InvoiceItem::query()->create([
                 'invoice_id' => $invoice->id,

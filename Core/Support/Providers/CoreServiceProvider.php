@@ -77,6 +77,8 @@ use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
 use Core\Providers\Services\ModulePermissionRegistrar;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Providers\Stubs\StubNodeProvider;
+use Core\Providers\Stubs\StubServerProvider;
 use Core\Provisioning\Services\NodeSelectionService;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
@@ -159,6 +161,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(RenewalInvoiceService::class);
         $this->app->singleton(PaymentGatewayRegistry::class);
         $this->app->singleton(ManualTransferGateway::class);
+        $this->app->singleton(StubServerProvider::class);
+        $this->app->singleton(StubNodeProvider::class);
         $this->app->singleton(PaymentService::class);
         $this->app->singleton(QuoteNumberService::class);
         $this->app->singleton(QuoteService::class);
@@ -198,6 +202,15 @@ class CoreServiceProvider extends ServiceProvider
             $this->app->make(PaymentGatewayRegistry::class)->register(
                 $this->app->make(ManualTransferGateway::class),
             );
+        }
+
+        if ((bool) config('corepanel.provisioning.stub.enabled', false)) {
+            $registry = $this->app->make(ProviderRegistry::class);
+            $registry->registerServer($this->app->make(StubServerProvider::class));
+
+            if ((bool) config('corepanel.provisioning.stub.register_node_provider', true)) {
+                $registry->registerNode($this->app->make(StubNodeProvider::class));
+            }
         }
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);

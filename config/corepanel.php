@@ -474,6 +474,30 @@ return [
         | When a product has a node group assigned, provisioning requires an eligible node.
         */
         'require_node_for_assigned_group' => (bool) env('COREPANEL_PROVISIONING_REQUIRE_NODE', true),
+
+        /*
+        | Local / test stub provider (no remote API). Disabled by default outside local.
+        | fail_operations: list of operations that return Failed (create, suspend, …) or ['*'].
+        */
+        'stub' => [
+            'enabled' => filter_var(
+                env('COREPANEL_PROVISIONING_STUB_ENABLED', env('APP_ENV') === 'local'),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'key' => env('COREPANEL_PROVISIONING_STUB_KEY', 'stub'),
+            'label' => env('COREPANEL_PROVISIONING_STUB_LABEL', 'Stub Provider'),
+            'register_node_provider' => filter_var(
+                env('COREPANEL_PROVISIONING_STUB_REGISTER_NODE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'external_id_prefix' => env('COREPANEL_PROVISIONING_STUB_EXTERNAL_PREFIX', 'stub'),
+            'hostname_suffix' => env('COREPANEL_PROVISIONING_STUB_HOSTNAME_SUFFIX', '.stub.local'),
+            'ip_prefix' => env('COREPANEL_PROVISIONING_STUB_IP_PREFIX', '10.255.0.'),
+            'fail_operations' => array_values(array_filter(array_map(
+                trim(...),
+                explode(',', (string) env('COREPANEL_PROVISIONING_STUB_FAIL_OPERATIONS', '')),
+            ))),
+        ],
     ],
 
     /*

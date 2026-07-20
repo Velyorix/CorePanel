@@ -101,6 +101,7 @@ class ClientNavigationTest extends TestCase
 
         $this->assertStringContainsString('aria-label="'.__('Client menu').'"', $html);
         $this->assertStringContainsString(__('Services'), $html);
+        $this->assertStringContainsString(route('client.services.index'), $html);
         $this->assertStringContainsString(__('Guest users'), $html);
         $this->assertStringContainsString(__('Open ticket'), $html);
         $this->assertStringContainsString(__('Coming soon'), $html);
@@ -177,5 +178,19 @@ class ClientNavigationTest extends TestCase
         $this->assertNotNull($ordersItem);
         $this->assertFalse($ordersItem['placeholder']);
         $this->assertSame(route('client.orders.index'), $ordersItem['url']);
+    }
+
+    public function test_services_item_links_to_client_services_route(): void
+    {
+        $client = User::factory()->withRole('client')->create();
+        $sections = app(ClientNavigation::class)->forUser($client);
+
+        $servicesItem = collect($sections)
+            ->flatMap(fn (array $section) => $section['items'])
+            ->firstWhere('label', __('Services'));
+
+        $this->assertNotNull($servicesItem);
+        $this->assertFalse($servicesItem['placeholder']);
+        $this->assertSame(route('client.services.index'), $servicesItem['url']);
     }
 }

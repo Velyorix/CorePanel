@@ -76,7 +76,8 @@ class ClientNavigation
                     ],
                     [
                         'label' => __('Services'),
-                        'route' => null,
+                        'route' => 'client.services.index',
+                        'routeIs' => ['client.services.*'],
                         'permission' => 'client.services.view',
                     ],
                     [

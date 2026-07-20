@@ -71,6 +71,22 @@ class ServiceControlServiceTest extends TestCase
         $this->assertFalse(ServiceAction::Start->isAllowedFor(ServiceStatus::Suspended));
     }
 
+    public function test_client_action_matrix_excludes_lifecycle_actions(): void
+    {
+        $this->assertSame(
+            [
+                ServiceAction::Start,
+                ServiceAction::Stop,
+                ServiceAction::Restart,
+                ServiceAction::Reinstall,
+            ],
+            ServiceAction::allowedForClient(ServiceStatus::Active),
+        );
+        $this->assertSame([], ServiceAction::allowedForClient(ServiceStatus::Suspended));
+        $this->assertTrue(ServiceAction::Restart->isAllowedForClient(ServiceStatus::Active));
+        $this->assertFalse(ServiceAction::Suspend->isAllowedForClient(ServiceStatus::Active));
+    }
+
     public function test_lifecycle_actions_suspend_unsuspend_and_terminate(): void
     {
         $service = Service::factory()->active()->create();

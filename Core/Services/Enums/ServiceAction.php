@@ -67,6 +67,31 @@ enum ServiceAction: string
     }
 
     /**
+     * Client-area control actions (operational only).
+     *
+     * @return list<self>
+     */
+    public static function allowedForClient(ServiceStatus $status): array
+    {
+        $clientActions = [
+            self::Start,
+            self::Stop,
+            self::Restart,
+            self::Reinstall,
+        ];
+
+        return array_values(array_filter(
+            self::allowedFor($status),
+            fn (self $action): bool => in_array($action, $clientActions, true),
+        ));
+    }
+
+    public function isAllowedForClient(ServiceStatus $status): bool
+    {
+        return in_array($this, self::allowedForClient($status), true);
+    }
+
+    /**
      * @return list<string>
      */
     public static function values(): array

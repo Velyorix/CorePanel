@@ -10,6 +10,8 @@ use App\Http\Controllers\Client\OrderController;
 use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\QuoteController;
+use App\Http\Controllers\Client\ServiceActionController;
+use App\Http\Controllers\Client\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,6 +51,13 @@ Route::middleware('client')
 
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+        Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+        Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
+        Route::post('services/{service}/start', [ServiceActionController::class, 'start'])->name('services.start');
+        Route::post('services/{service}/stop', [ServiceActionController::class, 'stop'])->name('services.stop');
+        Route::post('services/{service}/restart', [ServiceActionController::class, 'restart'])->name('services.restart');
+        Route::post('services/{service}/reinstall', [ServiceActionController::class, 'reinstall'])->name('services.reinstall');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

@@ -14,6 +14,8 @@ enum ProductModuleCapability: string
     case ServerTerminate = 'server.terminate';
     case ServerReinstall = 'server.reinstall';
     case ServerRestart = 'server.restart';
+    case ServerConsole = 'server.console';
+    case ServerPanel = 'server.panel';
     case NodeAllocate = 'node.allocate';
     case NodeSync = 'node.sync';
 
@@ -34,6 +36,8 @@ enum ProductModuleCapability: string
             self::ServerTerminate => __('Terminate server'),
             self::ServerReinstall => __('Reinstall server'),
             self::ServerRestart => __('Restart server'),
+            self::ServerConsole => __('Web console'),
+            self::ServerPanel => __('External panel'),
             self::NodeAllocate => __('Allocate node'),
             self::NodeSync => __('Sync node'),
         };

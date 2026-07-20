@@ -102,7 +102,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Services'),
-                        'route' => null,
+                        'route' => 'admin.services.index',
+                        'routeIs' => ['admin.services.*'],
                         'permission' => 'services.view',
                     ],
                 ],

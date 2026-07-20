@@ -4,7 +4,9 @@ namespace Tests\Unit\Providers;
 
 use Core\Products\Enums\BillingCycle;
 use Core\Providers\DataTransferObjects\NodeConnectionRequest;
+use Core\Providers\DataTransferObjects\NodeOperationResponse;
 use Core\Providers\DataTransferObjects\NodeResourcesData;
+use Core\Providers\DataTransferObjects\NodeResourcesResponse;
 use Core\Providers\DataTransferObjects\ProvisioningRequest;
 use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
@@ -130,5 +132,56 @@ class ProvisioningDtosTest extends TestCase
             'cpu_usage' => 35.5,
             'capacity_available' => true,
         ], $resources->toArray());
+    }
+
+    public function test_provisioning_response_pending_and_skipped_factories(): void
+    {
+        $pending = ProvisioningResponse::pending('Queued', ['job' => 1], 'ext-pending');
+        $skipped = ProvisioningResponse::skipped('Already provisioned');
+
+        $this->assertSame(ProviderOperationStatus::Pending, $pending->status);
+        $this->assertSame('ext-pending', $pending->externalId);
+        $this->assertFalse($pending->isSuccessful());
+
+        $this->assertSame(ProviderOperationStatus::Skipped, $skipped->status);
+        $this->assertSame('Already provisioned', $skipped->message);
+        $this->assertFalse($skipped->isSuccessful());
+    }
+
+    public function test_node_operation_response_factories(): void
+    {
+        $success = NodeOperationResponse::success('Connected', ['latency_ms' => 42]);
+        $failed = NodeOperationResponse::failed('Timeout');
+
+        $this->assertSame(ProviderOperationStatus::Success, $success->status);
+        $this->assertSame('Connected', $success->message);
+        $this->assertSame(['latency_ms' => 42], $success->payload);
+
+        $this->assertSame(ProviderOperationStatus::Failed, $failed->status);
+        $this->assertSame('Timeout', $failed->message);
+    }
+
+    public function test_node_resources_response_factories(): void
+    {
+        $data = new NodeResourcesData(maxServices: 10, currentServices: 3);
+        $success = NodeResourcesResponse::success($data, ['source' => 'api']);
+        $failed = NodeResourcesResponse::failed('Unavailable');
+
+        $this->assertSame(10, $success->resources->maxServices);
+        $this->assertSame(3, $success->resources->currentServices);
+        $this->assertSame(['source' => 'api'], $success->payload);
+
+        $this->assertSame(ProviderOperationStatus::Failed, $failed->status);
+        $this->assertSame('Unavailable', $failed->message);
+    }
+
+    public function test_provider_operation_status_values(): void
+    {
+        $this->assertSame(
+            ['pending', 'success', 'failed', 'skipped'],
+            ProviderOperationStatus::values(),
+        );
+        $this->assertTrue(ProviderOperationStatus::Success->isSuccessful());
+        $this->assertFalse(ProviderOperationStatus::Failed->isSuccessful());
     }
 }

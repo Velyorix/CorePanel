@@ -7,6 +7,7 @@ use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
 use Core\Products\Enums\BillingCycle;
 use Core\Products\Models\Product;
+use Core\Provisioning\Models\ProviderResourceMapping;
 use Core\Services\Enums\ServiceStatus;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -110,13 +111,21 @@ class Service extends Model
     }
 
     /**
-     * Encrypted runtime config (credentials, IP, hostname, metadata).
-     *
      * @return HasOne<ServiceConfig, $this>
      */
     public function config(): HasOne
     {
         return $this->hasOne(ServiceConfig::class);
+    }
+
+    /**
+     * Provider resource identity mappings (module + external_id).
+     *
+     * @return HasMany<ProviderResourceMapping, $this>
+     */
+    public function providerResourceMappings(): HasMany
+    {
+        return $this->hasMany(ProviderResourceMapping::class);
     }
 
     protected static function newFactory(): ServiceFactory

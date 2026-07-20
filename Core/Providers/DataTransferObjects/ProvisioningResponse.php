@@ -52,10 +52,14 @@ final readonly class ProvisioningResponse
         );
     }
 
-    public static function skipped(?string $message = null, array $payload = []): self
-    {
+    public static function skipped(
+        ?string $message = null,
+        array $payload = [],
+        ?string $externalId = null,
+    ): self {
         return new self(
             ProviderOperationStatus::Skipped,
+            $externalId,
             message: $message,
             payload: $payload,
         );

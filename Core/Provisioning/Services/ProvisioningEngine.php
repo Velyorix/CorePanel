@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  * Orchestrates service provisioning against registered server providers.
  *
  * Flow: resolve module → mark provisioning → provider.create()
- * → persist provider fields → activate or fail.
+ * → persist mapping + provider fields → activate or fail.
  *
  * When $retryableFailures is true (queue jobs), provider Failed responses throw
  * so the worker can retry with backoff; permanent Failed is applied in job::failed().
@@ -29,6 +29,7 @@ class ProvisioningEngine
     public function __construct(
         private readonly ProviderRegistry $providers,
         private readonly ServiceLifecycleService $lifecycle,
+        private readonly ProviderResourceMappingService $mappings,
     ) {
     }
 
@@ -77,7 +78,7 @@ class ProvisioningEngine
     /**
      * Synchronously provision a service via its server provider.
      *
-     * Idempotent when the service is already active with an external_id.
+     * Idempotent when the service is already active with an external mapping / id.
      *
      * @param  bool  $retryableFailures  When true, provider Failed throws instead of marking Failed.
      */
@@ -85,8 +86,14 @@ class ProvisioningEngine
     {
         $service = $service->fresh(['product', 'client']) ?? $service;
 
-        if ($service->status === ServiceStatus::Active && filled($service->external_id)) {
+        if ($this->alreadyProvisioned($service)) {
             return ProvisioningResponse::skipped('Service already provisioned.');
+        }
+
+        $existingMapping = $this->mappings->findForService($service);
+
+        if ($existingMapping !== null) {
+            return $this->activateFromExistingMapping($service, $existingMapping->external_id);
         }
 
         $module = trim((string) ($service->module ?? ''));
@@ -114,6 +121,40 @@ class ProvisioningEngine
         return $this->applyResponse($service, $response, $retryableFailures);
     }
 
+    private function alreadyProvisioned(Service $service): bool
+    {
+        if ($service->status !== ServiceStatus::Active) {
+            return false;
+        }
+
+        return filled($service->external_id) || $this->mappings->hasMapping($service);
+    }
+
+    private function activateFromExistingMapping(Service $service, string $externalId): ProvisioningResponse
+    {
+        DB::transaction(function () use ($service, $externalId): void {
+            if ($service->external_id !== $externalId) {
+                $service->forceFill(['external_id' => $externalId])->save();
+            }
+
+            if ($service->status === ServiceStatus::Provisioning
+                || $service->status === ServiceStatus::Pending
+                || $service->status === ServiceStatus::Failed) {
+                if ($service->status !== ServiceStatus::Provisioning) {
+                    $service = $this->lifecycle->markProvisioning($service);
+                }
+
+                $this->lifecycle->markActive($service);
+            }
+        });
+
+        return ProvisioningResponse::skipped(
+            message: 'Service already mapped to provider resource.',
+            payload: ['external_id' => $externalId],
+            externalId: $externalId,
+        );
+    }
+
     private function applyResponse(
         Service $service,
         ProvisioningResponse $response,
@@ -130,8 +171,12 @@ class ProvisioningEngine
     private function applySuccess(Service $service, ProvisioningResponse $response): ProvisioningResponse
     {
         DB::transaction(function () use ($service, $response): void {
+            $this->mappings->syncFromProvisioningResponse($service, $response);
+
+            $service = $service->fresh() ?? $service;
+
             $service->forceFill(array_filter([
-                'external_id' => $response->externalId,
+                'external_id' => $response->externalId ?? $service->external_id,
                 'hostname' => $response->hostname,
                 'ip_address' => $response->ipAddress,
                 'node_id' => $response->nodeId,

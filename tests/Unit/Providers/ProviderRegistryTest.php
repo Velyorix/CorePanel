@@ -8,6 +8,12 @@ use Core\Billing\Models\Payment;
 use Core\Providers\Contracts\NodeProviderInterface;
 use Core\Providers\Contracts\PaymentGatewayInterface;
 use Core\Providers\Contracts\ServerProviderInterface;
+use Core\Providers\DataTransferObjects\NodeConnectionRequest;
+use Core\Providers\DataTransferObjects\NodeOperationResponse;
+use Core\Providers\DataTransferObjects\NodeResourcesData;
+use Core\Providers\DataTransferObjects\NodeResourcesResponse;
+use Core\Providers\DataTransferObjects\ProvisioningRequest;
+use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Services\Models\Service;
@@ -93,29 +99,29 @@ class ProviderRegistryTest extends TestCase
                 return strtoupper($this->keyValue);
             }
 
-            public function create(Service $service): array
+            public function create(ProvisioningRequest $request): ProvisioningResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return ProvisioningResponse::success();
             }
 
-            public function suspend(Service $service): array
+            public function suspend(ProvisioningRequest $request): ProvisioningResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return ProvisioningResponse::success();
             }
 
-            public function unsuspend(Service $service): array
+            public function unsuspend(ProvisioningRequest $request): ProvisioningResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return ProvisioningResponse::success();
             }
 
-            public function terminate(Service $service): array
+            public function terminate(ProvisioningRequest $request): ProvisioningResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return ProvisioningResponse::success();
             }
 
-            public function reinstall(Service $service): array
+            public function reinstall(ProvisioningRequest $request): ProvisioningResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return ProvisioningResponse::success();
             }
         };
     }
@@ -138,19 +144,19 @@ class ProviderRegistryTest extends TestCase
                 return strtoupper($this->keyValue);
             }
 
-            public function testConnection(array $node): array
+            public function testConnection(NodeConnectionRequest $node): NodeOperationResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return NodeOperationResponse::success();
             }
 
-            public function sync(array $node): array
+            public function sync(NodeConnectionRequest $node): NodeOperationResponse
             {
-                return ['status' => 'success', 'response' => []];
+                return NodeOperationResponse::success();
             }
 
-            public function getResources(array $node): array
+            public function getResources(NodeConnectionRequest $node): NodeResourcesResponse
             {
-                return ['status' => 'success', 'resources' => [], 'response' => []];
+                return NodeResourcesResponse::success(new NodeResourcesData);
             }
         };
     }

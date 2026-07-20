@@ -2,6 +2,10 @@
 
 namespace Core\Providers\Contracts;
 
+use Core\Providers\DataTransferObjects\NodeConnectionRequest;
+use Core\Providers\DataTransferObjects\NodeOperationResponse;
+use Core\Providers\DataTransferObjects\NodeResourcesResponse;
+
 /**
  * Node infrastructure contract implemented by external module providers.
  *
@@ -27,80 +31,18 @@ interface NodeProviderInterface
      * Validate API credentials and remote reachability for a node configuration.
      *
      * Called from admin "test connection" before or after a node is persisted.
-     *
-     * @param  array{
-     *     id?: int|null,
-     *     module?: string|null,
-     *     name?: string|null,
-     *     hostname: string,
-     *     ip_address?: string|null,
-     *     api_url?: string|null,
-     *     credentials?: array<string, mixed>|null,
-     *     config?: array<string, mixed>|null,
-     * }  $node
-     *
-     * @return array{
-     *     status: string,
-     *     message?: string|null,
-     *     response: array<string, mixed>
-     * }
      */
-    public function testConnection(array $node): array;
+    public function testConnection(NodeConnectionRequest $node): NodeOperationResponse;
 
     /**
      * Synchronize remote node state into CorePanel.
      *
      * Used by background sync jobs to reconcile services, capacity, and health.
-     *
-     * @param  array{
-     *     id?: int|null,
-     *     module?: string|null,
-     *     name?: string|null,
-     *     hostname: string,
-     *     ip_address?: string|null,
-     *     api_url?: string|null,
-     *     credentials?: array<string, mixed>|null,
-     *     config?: array<string, mixed>|null,
-     * }  $node
-     *
-     * @return array{
-     *     status: string,
-     *     changes?: list<array<string, mixed>>,
-     *     response: array<string, mixed>
-     * }
      */
-    public function sync(array $node): array;
+    public function sync(NodeConnectionRequest $node): NodeOperationResponse;
 
     /**
      * Fetch current capacity and utilization metrics for node selection.
-     *
-     * @param  array{
-     *     id?: int|null,
-     *     module?: string|null,
-     *     name?: string|null,
-     *     hostname: string,
-     *     ip_address?: string|null,
-     *     api_url?: string|null,
-     *     credentials?: array<string, mixed>|null,
-     *     config?: array<string, mixed>|null,
-     *     max_services?: int|null,
-     * }  $node
-     *
-     * @return array{
-     *     status: string,
-     *     resources: array{
-     *         max_services?: int|null,
-     *         current_services?: int|null,
-     *         cpu_usage?: float|null,
-     *         ram_usage?: float|null,
-     *         disk_usage?: float|null,
-     *         network_in?: float|null,
-     *         network_out?: float|null,
-     *         load_average?: float|null,
-     *         capacity_available?: bool,
-     *     },
-     *     response: array<string, mixed>
-     * }
      */
-    public function getResources(array $node): array;
+    public function getResources(NodeConnectionRequest $node): NodeResourcesResponse;
 }

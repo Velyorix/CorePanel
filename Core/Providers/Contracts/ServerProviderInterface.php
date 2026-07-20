@@ -2,7 +2,8 @@
 
 namespace Core\Providers\Contracts;
 
-use Core\Services\Models\Service;
+use Core\Providers\DataTransferObjects\ProvisioningRequest;
+use Core\Providers\DataTransferObjects\ProvisioningResponse;
 
 /**
  * Server lifecycle contract implemented by external module providers.
@@ -30,40 +31,26 @@ interface ServerProviderInterface
      *
      * Must be idempotent when the service already exists remotely
      * (same external_id or deterministic lookup).
-     *
-     * @return array{
-     *     status: string,
-     *     external_id?: string|null,
-     *     response: array<string, mixed>
-     * }
      */
-    public function create(Service $service): array;
+    public function create(ProvisioningRequest $request): ProvisioningResponse;
 
     /**
      * Suspend an active service on the external module.
-     *
-     * @return array{status: string, response: array<string, mixed>}
      */
-    public function suspend(Service $service): array;
+    public function suspend(ProvisioningRequest $request): ProvisioningResponse;
 
     /**
      * Restore a suspended service on the external module.
-     *
-     * @return array{status: string, response: array<string, mixed>}
      */
-    public function unsuspend(Service $service): array;
+    public function unsuspend(ProvisioningRequest $request): ProvisioningResponse;
 
     /**
      * Permanently remove or decommission the service on the external module.
-     *
-     * @return array{status: string, response: array<string, mixed>}
      */
-    public function terminate(Service $service): array;
+    public function terminate(ProvisioningRequest $request): ProvisioningResponse;
 
     /**
      * Reinstall or rebuild the service on the external module.
-     *
-     * @return array{status: string, response: array<string, mixed>}
      */
-    public function reinstall(Service $service): array;
+    public function reinstall(ProvisioningRequest $request): ProvisioningResponse;
 }

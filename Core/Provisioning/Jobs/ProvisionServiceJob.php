@@ -6,6 +6,7 @@ use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
+use Core\Provisioning\Services\ProvisioningRollbackService;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
@@ -117,7 +118,34 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
     private function finalizeFailure(?Throwable $exception): void
     {
         $this->markServiceFailed();
+        $this->rollbackLocalState();
         $this->recordDeadLetter($exception);
+    }
+
+    private function rollbackLocalState(): void
+    {
+        if (! (bool) config('corepanel.provisioning.rollback_on_failure', true)) {
+            return;
+        }
+
+        $service = Service::query()->find($this->serviceId);
+
+        if ($service === null) {
+            return;
+        }
+
+        try {
+            app(ProvisioningRollbackService::class)->rollbackLocalState($service, [
+                'clear_mapping' => true,
+                'clear_external_id' => true,
+                'clear_node' => false,
+            ]);
+        } catch (Throwable $error) {
+            Log::error('Unable to rollback local provisioning state after failure.', [
+                'service_id' => $this->serviceId,
+                'exception' => $error->getMessage(),
+            ]);
+        }
     }
 
     private function markServiceFailed(): void

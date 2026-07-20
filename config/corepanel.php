@@ -474,6 +474,10 @@ return [
         | When a product has a node group assigned, provisioning requires an eligible node.
         */
         'require_node_for_assigned_group' => (bool) env('COREPANEL_PROVISIONING_REQUIRE_NODE', true),
+        /*
+        | Clear orphan mapping / external_id after definitive failure (keeps node_id for retry affinity).
+        */
+        'rollback_on_failure' => (bool) env('COREPANEL_PROVISIONING_ROLLBACK_ON_FAILURE', true),
 
         /*
         | Local / test stub provider (no remote API). Disabled by default outside local.

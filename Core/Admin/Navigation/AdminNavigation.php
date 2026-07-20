@@ -106,6 +106,12 @@ class AdminNavigation
                         'routeIs' => ['admin.services.*'],
                         'permission' => 'services.view',
                     ],
+                    [
+                        'label' => __('Provisioning failures'),
+                        'route' => 'admin.provisioning-dead-letters.index',
+                        'routeIs' => ['admin.provisioning-dead-letters.*'],
+                        'permission' => 'services.view',
+                    ],
                 ],
             ],
             [

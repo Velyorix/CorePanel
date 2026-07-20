@@ -14,6 +14,16 @@ enum ProvisioningDeadLetterStatus: string
         return $this === self::PendingReview;
     }
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::PendingReview => __('Pending review'),
+            self::Requeued => __('Requeued'),
+            self::Resolved => __('Resolved'),
+            self::Discarded => __('Discarded'),
+        };
+    }
+
     /**
      * @return list<string>
      */

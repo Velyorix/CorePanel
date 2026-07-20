@@ -454,6 +454,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Provisioning
+    |--------------------------------------------------------------------------
+    |
+    | Queue retry / backoff / uniqueness for ProvisionServiceJob (Tome 9 §6.3, §17).
+    | Dead-letter handling for exhausted failures is étape 15.3.
+    |
+    */
+
+    'provisioning' => [
+        'tries' => (int) env('COREPANEL_PROVISIONING_TRIES', 3),
+        'timeout_seconds' => (int) env('COREPANEL_PROVISIONING_TIMEOUT_SECONDS', 120),
+        'unique_for_seconds' => (int) env('COREPANEL_PROVISIONING_UNIQUE_FOR_SECONDS', 3600),
+        'backoff_seconds' => array_values(array_filter(array_map(
+            static fn (string $value): int => (int) trim($value),
+            explode(',', (string) env('COREPANEL_PROVISIONING_BACKOFF_SECONDS', '30,60,120')),
+        ), static fn (int $value): bool => $value > 0)) ?: [30, 60, 120],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | UI theme
     |--------------------------------------------------------------------------
     |

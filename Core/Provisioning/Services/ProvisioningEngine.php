@@ -7,6 +7,7 @@ use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
 use Core\Services\Enums\ServiceStatus;
@@ -20,7 +21,8 @@ use Illuminate\Support\Facades\DB;
  * Flow : resolve module → mark provisioning → provider.create()
  * → persist provider fields → activate or fail.
  *
- * Queue dispatch is handled here; retry/backoff/idempotence hardening.
+ * When $retryableFailures is true (queue jobs), provider Failed responses throw
+ * retry with backoff; permanent Failed is applied in job::failed().
  */
 class ProvisioningEngine
 {
@@ -76,8 +78,10 @@ class ProvisioningEngine
      * Synchronously provision a service via its server provider.
      *
      * Idempotent when the service is already active with an external_id.
+     *
+     * @param  bool  $retryableFailures  When true, provider Failed throws instead of marking Failed.
      */
-    public function provision(Service $service): ProvisioningResponse
+    public function provision(Service $service, bool $retryableFailures = false): ProvisioningResponse
     {
         $service = $service->fresh(['product', 'client']) ?? $service;
 
@@ -107,14 +111,17 @@ class ProvisioningEngine
         $request = ProvisioningRequest::fromService($service);
         $response = $provider->create($request);
 
-        return $this->applyResponse($service, $response);
+        return $this->applyResponse($service, $response, $retryableFailures);
     }
 
-    private function applyResponse(Service $service, ProvisioningResponse $response): ProvisioningResponse
-    {
+    private function applyResponse(
+        Service $service,
+        ProvisioningResponse $response,
+        bool $retryableFailures,
+    ): ProvisioningResponse {
         return match ($response->status) {
             ProviderOperationStatus::Success => $this->applySuccess($service, $response),
-            ProviderOperationStatus::Failed => $this->applyFailure($service, $response),
+            ProviderOperationStatus::Failed => $this->applyFailure($service, $response, $retryableFailures),
             ProviderOperationStatus::Pending,
             ProviderOperationStatus::Skipped => $response,
         };
@@ -136,8 +143,15 @@ class ProvisioningEngine
         return $response;
     }
 
-    private function applyFailure(Service $service, ProvisioningResponse $response): ProvisioningResponse
-    {
+    private function applyFailure(
+        Service $service,
+        ProvisioningResponse $response,
+        bool $retryableFailures,
+    ): ProvisioningResponse {
+        if ($retryableFailures) {
+            throw ProvisioningAttemptFailedException::fromMessage($response->message);
+        }
+
         $this->lifecycle->markFailed($service);
 
         return $response;

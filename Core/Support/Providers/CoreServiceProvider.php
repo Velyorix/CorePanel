@@ -75,6 +75,7 @@ use Core\Permissions\Services\RoleInheritanceService;
 use Core\Permissions\Services\RoleManagementService;
 use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
+use Core\Providers\Services\ModulePermissionRegistrar;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Services\Contracts\ModuleAccessLinkProvider;
 use Core\Services\Contracts\ModuleActionDispatcher;
@@ -131,6 +132,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceLifecycleService::class);
         $this->app->singleton(ServiceCreationService::class);
         $this->app->singleton(ProviderRegistry::class);
+        $this->app->singleton(ModulePermissionRegistrar::class);
         $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);
         $this->app->singleton(ModuleAccessLinkProvider::class, NullModuleAccessLinkProvider::class);
         $this->app->singleton(ServiceActionLogger::class, DatabaseServiceActionLogger::class);

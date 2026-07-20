@@ -457,8 +457,8 @@ return [
     | Provisioning
     |--------------------------------------------------------------------------
     |
-    | Queue retry / backoff / uniqueness for ProvisionServiceJob (Tome 9 §6.3, §17).
-    | Dead-letter handling for exhausted failures is étape 15.3.
+    | Queue retry / backoff / uniqueness for ProvisionServiceJob.
+    | Definitive failures are stored in provisioning_dead_letters.
     |
     */
 

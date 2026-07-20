@@ -4,6 +4,7 @@ namespace Core\Provisioning\Jobs;
 
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
+use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Services\Enums\ServiceStatus;
@@ -19,7 +20,7 @@ use Throwable;
 /**
  * Queued provisioning of a single service with retry, backoff, and uniqueness.
  *
- * Dead-letter handling for exhausted failures.
+ * Exhausted or non-retryable failures are written to the provisioning dead letter store.
  */
 class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
 {
@@ -81,7 +82,7 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
                 'exception' => $exception->getMessage(),
             ]);
 
-            $this->markServiceFailed();
+            $this->finalizeFailure($exception);
             $this->fail($exception);
         } catch (ProvisioningAttemptFailedException $exception) {
             Log::warning('Provisioning attempt failed (will retry if attempts remain).', [
@@ -110,7 +111,13 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
             'exception' => $exception?->getMessage(),
         ]);
 
+        $this->finalizeFailure($exception);
+    }
+
+    private function finalizeFailure(?Throwable $exception): void
+    {
         $this->markServiceFailed();
+        $this->recordDeadLetter($exception);
     }
 
     private function markServiceFailed(): void
@@ -130,15 +137,37 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
         }
 
         try {
+            $lifecycle = app(ServiceLifecycleService::class);
+
             app(ServiceLifecycleService::class)->markFailed(
                 $service->status === ServiceStatus::Pending
-                    ? app(ServiceLifecycleService::class)->markProvisioning($service)
+                    ? $lifecycle->markProvisioning($service)
                     : $service,
             );
-        } catch (Throwable $exception) {
+        } catch (Throwable $error) {
             Log::error('Unable to mark service failed after provisioning job failure.', [
                 'service_id' => $this->serviceId,
-                'exception' => $exception->getMessage(),
+                'exception' => $error->getMessage(),
+            ]);
+        }
+    }
+
+    private function recordDeadLetter(?Throwable $exception): void
+    {
+        try {
+            app(ProvisioningDeadLetterService::class)->record(
+                serviceId: $this->serviceId,
+                exception: $exception,
+                attempts: max(1, $this->attempts()),
+                payload: [
+                    'tries' => $this->tries,
+                    'job' => self::class,
+                ],
+            );
+        } catch (Throwable $error) {
+            Log::error('Unable to record provisioning dead letter.', [
+                'service_id' => $this->serviceId,
+                'exception' => $error->getMessage(),
             ]);
         }
     }

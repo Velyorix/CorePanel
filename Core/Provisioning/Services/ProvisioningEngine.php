@@ -18,11 +18,11 @@ use Illuminate\Support\Facades\DB;
 /**
  * Orchestrates service provisioning against registered server providers.
  *
- * Flow : resolve module → mark provisioning → provider.create()
+ * Flow: resolve module → mark provisioning → provider.create()
  * → persist provider fields → activate or fail.
  *
  * When $retryableFailures is true (queue jobs), provider Failed responses throw
- * retry with backoff; permanent Failed is applied in job::failed().
+ * so the worker can retry with backoff; permanent Failed is applied in job::failed().
  */
 class ProvisioningEngine
 {

@@ -78,11 +78,13 @@ class ProvisioningEngineTest extends TestCase
 
     public function test_provision_activates_service_on_provider_success(): void
     {
+        $node = \Core\Nodes\Models\Node::factory()->create();
+
         $this->registry->registerServer($this->makeProvider('stub', ProvisioningResponse::success(
             externalId: 'ext-100',
             hostname: 'srv-100.example.test',
             ipAddress: '203.0.113.50',
-            nodeId: 7,
+            nodeId: $node->id,
         )));
 
         $service = Service::factory()->create([
@@ -100,7 +102,7 @@ class ProvisioningEngineTest extends TestCase
         $this->assertSame('ext-100', $service->external_id);
         $this->assertSame('srv-100.example.test', $service->hostname);
         $this->assertSame('203.0.113.50', $service->ip_address);
-        $this->assertSame(7, $service->node_id);
+        $this->assertSame($node->id, $service->node_id);
         $this->assertNotNull($service->provisioned_at);
     }
 

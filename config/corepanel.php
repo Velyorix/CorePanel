@@ -470,6 +470,10 @@ return [
             static fn (string $value): int => (int) trim($value),
             explode(',', (string) env('COREPANEL_PROVISIONING_BACKOFF_SECONDS', '30,60,120')),
         ), static fn (int $value): bool => $value > 0)) ?: [30, 60, 120],
+        /*
+        | When a product has a node group assigned, provisioning requires an eligible node.
+        */
+        'require_node_for_assigned_group' => (bool) env('COREPANEL_PROVISIONING_REQUIRE_NODE', true),
     ],
 
     /*

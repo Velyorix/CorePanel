@@ -7,9 +7,11 @@ use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Exceptions\NoEligibleNodeException;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
+use Core\Nodes\Models\Node;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
 use Core\Services\Services\ServiceLifecycleService;
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Orchestrates service provisioning against registered server providers.
  *
- * Flow: resolve module → mark provisioning → provider.create()
+ * Flow: resolve module → select/assign node → mark provisioning → provider.create()
  * → persist mapping + provider fields → activate or fail.
  *
  * When $retryableFailures is true (queue jobs), provider Failed responses throw
@@ -30,6 +32,7 @@ class ProvisioningEngine
         private readonly ProviderRegistry $providers,
         private readonly ServiceLifecycleService $lifecycle,
         private readonly ProviderResourceMappingService $mappings,
+        private readonly NodeSelectionService $nodeSelection,
     ) {
     }
 
@@ -114,8 +117,22 @@ class ProvisioningEngine
             throw ProvisioningException::invalidStatus($service);
         }
 
+        try {
+            $selection = $this->nodeSelection->assignToService($service);
+        } catch (NoEligibleNodeException $exception) {
+            if ($retryableFailures) {
+                throw $exception;
+            }
+
+            $this->lifecycle->markFailed($service);
+
+            throw $exception;
+        }
+
+        $service = $service->fresh(['product', 'client']) ?? $service;
+
         $provider = $this->providers->server($module);
-        $request = ProvisioningRequest::fromService($service);
+        $request = ProvisioningRequest::fromService($service, $selection->connection);
         $response = $provider->create($request);
 
         return $this->applyResponse($service, $response, $retryableFailures);
@@ -137,9 +154,11 @@ class ProvisioningEngine
                 $service->forceFill(['external_id' => $externalId])->save();
             }
 
-            if ($service->status === ServiceStatus::Provisioning
-                || $service->status === ServiceStatus::Pending
-                || $service->status === ServiceStatus::Failed) {
+            if (in_array($service->status, [
+                ServiceStatus::Provisioning,
+                ServiceStatus::Pending,
+                ServiceStatus::Failed,
+            ], true)) {
                 if ($service->status !== ServiceStatus::Provisioning) {
                     $service = $this->lifecycle->markProvisioning($service);
                 }
@@ -179,13 +198,28 @@ class ProvisioningEngine
                 'external_id' => $response->externalId ?? $service->external_id,
                 'hostname' => $response->hostname,
                 'ip_address' => $response->ipAddress,
-                'node_id' => $response->nodeId,
+                'node_id' => $this->resolvePersistedNodeId($response->nodeId, $service->node_id),
             ], static fn (mixed $value): bool => $value !== null))->save();
 
             $this->lifecycle->markActive($service->fresh() ?? $service);
         });
 
         return $response;
+    }
+
+    private function resolvePersistedNodeId(?int $fromResponse, mixed $current): ?int
+    {
+        $currentId = $current !== null ? (int) $current : null;
+
+        if ($fromResponse === null) {
+            return $currentId;
+        }
+
+        if (Node::query()->whereKey($fromResponse)->exists()) {
+            return $fromResponse;
+        }
+
+        return $currentId;
     }
 
     private function applyFailure(

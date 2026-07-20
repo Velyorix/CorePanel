@@ -3,6 +3,7 @@
 namespace Core\Services\Models;
 
 use Core\Clients\Models\Client;
+use Core\Nodes\Models\Node;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
 use Core\Products\Enums\BillingCycle;
@@ -92,6 +93,14 @@ class Service extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<Node, $this>
+     */
+    public function node(): BelongsTo
+    {
+        return $this->belongsTo(Node::class);
     }
 
     /**

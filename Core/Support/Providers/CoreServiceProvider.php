@@ -77,6 +77,7 @@ use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
 use Core\Providers\Services\ModulePermissionRegistrar;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Services\NodeSelectionService;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
@@ -137,6 +138,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProviderRegistry::class);
         $this->app->singleton(ModulePermissionRegistrar::class);
         $this->app->singleton(ProviderResourceMappingService::class);
+        $this->app->singleton(NodeSelectionService::class);
         $this->app->singleton(ProvisioningEngine::class);
         $this->app->singleton(ProvisioningDeadLetterService::class);
         $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);

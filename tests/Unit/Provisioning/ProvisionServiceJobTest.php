@@ -7,6 +7,8 @@ use Core\Providers\DataTransferObjects\ProvisioningRequest;
 use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Events\ServiceProvisioned;
+use Core\Provisioning\Events\ServiceProvisioningFailed;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
 use Core\Provisioning\Services\ProvisioningEngine;
@@ -15,6 +17,7 @@ use Core\Services\Models\Service;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -120,6 +123,8 @@ class ProvisionServiceJobTest extends TestCase
 
     public function test_failed_callback_marks_service_failed_after_retries_exhausted(): void
     {
+        Event::fake([ServiceProvisioned::class, ServiceProvisioningFailed::class]);
+
         $service = Service::factory()->provisioning()->create([
             'module' => 'stub',
         ]);
@@ -128,6 +133,28 @@ class ProvisionServiceJobTest extends TestCase
         $job->failed(ProvisioningAttemptFailedException::fromMessage('gave up'));
 
         $this->assertSame(ServiceStatus::Failed, $service->fresh()->status);
+
+        Event::assertDispatched(ServiceProvisioningFailed::class, function (ServiceProvisioningFailed $event) use ($service): bool {
+            return $event->service->is($service) && $event->reason === 'gave up';
+        });
+        Event::assertNotDispatched(ServiceProvisioned::class);
+    }
+
+    public function test_failed_callback_dispatches_failure_event_only_once(): void
+    {
+        Event::fake([ServiceProvisioningFailed::class]);
+
+        $service = Service::factory()->provisioning()->create([
+            'module' => 'stub',
+        ]);
+
+        $job = new ProvisionServiceJob($service->id);
+        $exception = ProvisioningAttemptFailedException::fromMessage('once');
+
+        $job->failed($exception);
+        $job->failed($exception);
+
+        Event::assertDispatchedTimes(ServiceProvisioningFailed::class, 1);
     }
 
     public function test_non_retryable_missing_module_marks_failed_without_leaving_provisioning(): void

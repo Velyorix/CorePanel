@@ -2,16 +2,18 @@
 
 namespace Core\Provisioning\Services;
 
+use Core\Nodes\Models\Node;
 use Core\Providers\DataTransferObjects\ProvisioningRequest;
 use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Events\ServiceProvisioned;
+use Core\Provisioning\Events\ServiceProvisioningFailed;
 use Core\Provisioning\Exceptions\NoEligibleNodeException;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
-use Core\Nodes\Models\Node;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
 use Core\Services\Services\ServiceLifecycleService;
@@ -33,6 +35,7 @@ class ProvisioningEngine
         private readonly ServiceLifecycleService $lifecycle,
         private readonly ProviderResourceMappingService $mappings,
         private readonly NodeSelectionService $nodeSelection,
+        private readonly ProvisioningRollbackService $rollback,
     ) {
     }
 
@@ -124,7 +127,12 @@ class ProvisioningEngine
                 throw $exception;
             }
 
-            $this->lifecycle->markFailed($service);
+            $failed = $this->lifecycle->markFailed($service);
+
+            event(new ServiceProvisioningFailed(
+                $failed,
+                $exception->getMessage(),
+            ));
 
             throw $exception;
         }
@@ -149,7 +157,9 @@ class ProvisioningEngine
 
     private function activateFromExistingMapping(Service $service, string $externalId): ProvisioningResponse
     {
-        DB::transaction(function () use ($service, $externalId): void {
+        $activated = false;
+
+        DB::transaction(function () use ($service, $externalId, &$activated): void {
             if ($service->external_id !== $externalId) {
                 $service->forceFill(['external_id' => $externalId])->save();
             }
@@ -164,8 +174,16 @@ class ProvisioningEngine
                 }
 
                 $this->lifecycle->markActive($service);
+                $activated = true;
             }
         });
+
+        if ($activated) {
+            event(new ServiceProvisioned(
+                $service->fresh() ?? $service,
+                $externalId,
+            ));
+        }
 
         return ProvisioningResponse::skipped(
             message: 'Service already mapped to provider resource.',
@@ -204,6 +222,13 @@ class ProvisioningEngine
             $this->lifecycle->markActive($service->fresh() ?? $service);
         });
 
+        $fresh = $service->fresh() ?? $service;
+
+        event(new ServiceProvisioned(
+            $fresh,
+            $fresh->external_id ?? $response->externalId,
+        ));
+
         return $response;
     }
 
@@ -231,7 +256,20 @@ class ProvisioningEngine
             throw ProvisioningAttemptFailedException::fromMessage($response->message);
         }
 
-        $this->lifecycle->markFailed($service);
+        $failed = $this->lifecycle->markFailed($service);
+
+        if ((bool) config('corepanel.provisioning.rollback_on_failure', true)) {
+            $this->rollback->rollbackLocalState($failed, [
+                'clear_mapping' => true,
+                'clear_external_id' => true,
+                'clear_node' => false,
+            ]);
+        }
+
+        event(new ServiceProvisioningFailed(
+            $failed->fresh() ?? $failed,
+            $response->message,
+        ));
 
         return $response;
     }

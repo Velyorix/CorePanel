@@ -2,6 +2,7 @@
 
 namespace Core\Provisioning\Jobs;
 
+use Core\Provisioning\Events\ServiceProvisioningFailed;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
@@ -35,6 +36,8 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
     public int $timeout;
 
     public int $uniqueFor;
+
+    private bool $failureFinalized = false;
 
     public function __construct(
         public readonly int $serviceId,
@@ -117,9 +120,30 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
 
     private function finalizeFailure(?Throwable $exception): void
     {
+        if ($this->failureFinalized) {
+            return;
+        }
+
+        $this->failureFinalized = true;
+
         $this->markServiceFailed();
         $this->rollbackLocalState();
         $this->recordDeadLetter($exception);
+        $this->dispatchFailedEvent($exception);
+    }
+
+    private function dispatchFailedEvent(?Throwable $exception): void
+    {
+        $service = Service::query()->find($this->serviceId);
+
+        if ($service === null) {
+            return;
+        }
+
+        event(new ServiceProvisioningFailed(
+            $service,
+            $exception?->getMessage(),
+        ));
     }
 
     private function rollbackLocalState(): void

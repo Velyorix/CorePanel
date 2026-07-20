@@ -8,12 +8,15 @@ use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Core\Providers\Exceptions\UnknownProviderException;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Provisioning\Events\ServiceProvisioned;
+use Core\Provisioning\Events\ServiceProvisioningFailed;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -78,6 +81,8 @@ class ProvisioningEngineTest extends TestCase
 
     public function test_provision_activates_service_on_provider_success(): void
     {
+        Event::fake([ServiceProvisioned::class, ServiceProvisioningFailed::class]);
+
         $node = \Core\Nodes\Models\Node::factory()->create();
 
         $this->registry->registerServer($this->makeProvider('stub', ProvisioningResponse::success(
@@ -104,10 +109,17 @@ class ProvisioningEngineTest extends TestCase
         $this->assertSame('203.0.113.50', $service->ip_address);
         $this->assertSame($node->id, $service->node_id);
         $this->assertNotNull($service->provisioned_at);
+
+        Event::assertDispatched(ServiceProvisioned::class, function (ServiceProvisioned $event) use ($service): bool {
+            return $event->service->is($service) && $event->externalId === 'ext-100';
+        });
+        Event::assertNotDispatched(ServiceProvisioningFailed::class);
     }
 
     public function test_provision_marks_failed_on_provider_failure(): void
     {
+        Event::fake([ServiceProvisioned::class, ServiceProvisioningFailed::class]);
+
         $this->registry->registerServer($this->makeProvider(
             'stub',
             ProvisioningResponse::failed('Upstream unavailable'),
@@ -122,10 +134,35 @@ class ProvisioningEngineTest extends TestCase
 
         $this->assertSame(ProviderOperationStatus::Failed, $response->status);
         $this->assertSame(ServiceStatus::Failed, $service->fresh()->status);
+
+        Event::assertDispatched(ServiceProvisioningFailed::class, function (ServiceProvisioningFailed $event) use ($service): bool {
+            return $event->service->is($service) && $event->reason === 'Upstream unavailable';
+        });
+        Event::assertNotDispatched(ServiceProvisioned::class);
+    }
+
+    public function test_provision_does_not_dispatch_events_when_already_provisioned(): void
+    {
+        Event::fake([ServiceProvisioned::class, ServiceProvisioningFailed::class]);
+
+        $this->registry->registerServer($this->makeProvider('stub'));
+
+        $service = Service::factory()->active()->create([
+            'module' => 'stub',
+            'external_id' => 'already-there',
+        ]);
+
+        $response = $this->engine->provision($service);
+
+        $this->assertSame(ProviderOperationStatus::Skipped, $response->status);
+        $this->assertSame('already-there', $service->fresh()->external_id);
+        Event::assertNothingDispatched();
     }
 
     public function test_provision_leaves_provisioning_on_pending_response(): void
     {
+        Event::fake([ServiceProvisioned::class, ServiceProvisioningFailed::class]);
+
         $this->registry->registerServer($this->makeProvider(
             'stub',
             ProvisioningResponse::pending('Awaiting remote job'),
@@ -140,21 +177,7 @@ class ProvisioningEngineTest extends TestCase
 
         $this->assertSame(ProviderOperationStatus::Pending, $response->status);
         $this->assertSame(ServiceStatus::Provisioning, $service->fresh()->status);
-    }
-
-    public function test_provision_is_idempotent_when_already_active_with_external_id(): void
-    {
-        $this->registry->registerServer($this->makeProvider('stub'));
-
-        $service = Service::factory()->active()->create([
-            'module' => 'stub',
-            'external_id' => 'already-there',
-        ]);
-
-        $response = $this->engine->provision($service);
-
-        $this->assertSame(ProviderOperationStatus::Skipped, $response->status);
-        $this->assertSame('already-there', $service->fresh()->external_id);
+        Event::assertNothingDispatched();
     }
 
     public function test_provision_throws_when_module_missing(): void

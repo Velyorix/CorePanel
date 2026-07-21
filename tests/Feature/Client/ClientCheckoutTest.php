@@ -3,6 +3,8 @@
 namespace Tests\Feature\Client;
 
 use App\Models\User;
+use Core\Billing\Gateways\ManualTransferGateway;
+use Core\Billing\Services\GatewayManager;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CartItemData;
@@ -18,6 +20,7 @@ use Core\Products\Models\Product;
 use Core\Products\Models\ProductCategory;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Billing\FakePaymentGateway;
 use Tests\TestCase;
 
 class ClientCheckoutTest extends TestCase
@@ -78,8 +81,8 @@ class ClientCheckoutTest extends TestCase
             ->assertSee('Acme Hosting')
             ->assertSee('12 Rue de la Paix')
             ->assertSee(__('Payment method'))
-            ->assertSee(__('Bank transfer'))
-            ->assertSee(__('Credit card'))
+            ->assertSee(__('Bank transfer / cheque'))
+            ->assertDontSee(__('Credit card'))
             ->assertSee(__('Coupon'))
             ->assertSee('19.99')
             ->assertSee('5.00')
@@ -206,6 +209,8 @@ class ClientCheckoutTest extends TestCase
         [$user, $client] = $this->makeClientUser();
         $this->addLine($client, $this->makeProduct('pay-method-vps'), 1);
 
+        app(GatewayManager::class)->disable(ManualTransferGateway::KEY);
+
         $this->actingAs($user)
             ->from(route('client.checkout.index'))
             ->post(route('client.checkout.store'), [
@@ -215,10 +220,49 @@ class ClientCheckoutTest extends TestCase
                 'city' => 'Paris',
                 'postal_code' => '75001',
                 'country' => 'FR',
-                'payment_method' => 'card',
+                'payment_method' => ManualTransferGateway::KEY,
             ])
             ->assertRedirect(route('client.checkout.index'))
             ->assertSessionHasErrors('payment_method');
+    }
+
+    public function test_checkout_lists_only_enabled_registered_gateways(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $this->addLine($client, $this->makeProduct('dynamic-gateway-vps'), 1);
+
+        $gateways = app(GatewayManager::class);
+        $gateways->register(new FakePaymentGateway(key: 'fake_checkout', label: 'Fake Checkout Gateway'));
+        $gateways->sync();
+        $gateways->enable('fake_checkout');
+
+        $this->actingAs($user)
+            ->get(route('client.checkout.index'))
+            ->assertOk()
+            ->assertSee(__('Bank transfer / cheque'))
+            ->assertSee('Fake Checkout Gateway');
+
+        $gateways->disable('fake_checkout');
+
+        $this->actingAs($user)
+            ->get(route('client.checkout.index'))
+            ->assertOk()
+            ->assertSee(__('Bank transfer / cheque'))
+            ->assertDontSee('Fake Checkout Gateway');
+    }
+
+    public function test_checkout_shows_empty_state_when_no_gateways_enabled(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $this->addLine($client, $this->makeProduct('empty-gateway-vps'), 1);
+
+        app(GatewayManager::class)->disable(ManualTransferGateway::KEY);
+
+        $this->actingAs($user)
+            ->get(route('client.checkout.index'))
+            ->assertOk()
+            ->assertSee(__('No payment methods are available right now. Please contact support.'))
+            ->assertDontSee(__('Bank transfer / cheque'));
     }
 
     public function test_checkout_rejects_invalid_country(): void

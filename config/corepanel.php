@@ -402,26 +402,13 @@ return [
     | Checkout
     |--------------------------------------------------------------------------
     |
-    | Coupon UI toggle and available payment methods for client checkout.
+    | Coupon UI toggle. Available payment methods are resolved dynamically from
+    | enabled gateways registered in GatewayManager (admin Settings → Payment gateways).
     |
     */
 
     'checkout' => [
         'coupon_enabled' => (bool) env('COREPANEL_CHECKOUT_COUPON_ENABLED', true),
-        'payment_methods' => [
-            [
-                'key' => 'manual_transfer',
-                'label' => 'Bank transfer / cheque',
-                'enabled' => true,
-                'hint' => 'Pay offline by bank transfer or cheque; staff confirms receipt.',
-            ],
-            [
-                'key' => 'card',
-                'label' => 'Credit card',
-                'enabled' => false,
-                'hint' => 'Coming soon',
-            ],
-        ],
     ],
 
     /*

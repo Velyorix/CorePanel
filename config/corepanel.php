@@ -535,6 +535,32 @@ return [
                     FILTER_VALIDATE_BOOL,
                 ),
             ],
+            'resolve' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_deleted' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_EXTERNAL_DELETED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'status_mismatch' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_STATUS', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ip_address' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_IP', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'hostname' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_HOSTNAME', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_id' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_EXTERNAL_ID', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
         ],
     ],
 

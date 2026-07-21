@@ -30,6 +30,7 @@ class ServiceSyncComparisonTest extends TestCase
 
         config([
             'corepanel.services.sync.enabled' => true,
+            'corepanel.services.sync.resolve.enabled' => false,
             'corepanel.services.sync.compare.status' => true,
             'corepanel.services.sync.compare.ip_address' => true,
             'corepanel.services.sync.compare.hostname' => true,

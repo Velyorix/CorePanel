@@ -9,6 +9,7 @@ use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
 use Core\Sync\DataTransferObjects\ServiceSyncComparisonResult;
+use Core\Sync\DataTransferObjects\ServiceSyncResolutionResult;
 use Core\Sync\DataTransferObjects\ServiceSyncResult;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,7 @@ class ServiceSyncService
         private readonly ProviderRegistry $providers,
         private readonly ProviderResourceMappingService $mappings,
         private readonly ServiceSyncComparisonService $comparison,
+        private readonly ServiceSyncResolutionService $resolution,
     ) {
     }
 
@@ -29,6 +31,7 @@ class ServiceSyncService
         }
 
         $polled = 0;
+        $resolved = 0;
         $diverged = 0;
         $failed = 0;
         $skipped = 0;
@@ -38,6 +41,7 @@ class ServiceSyncService
 
             match ($outcome) {
                 'polled' => $polled++,
+                'resolved' => $resolved++,
                 'diverged' => $diverged++,
                 'failed' => $failed++,
                 default => $skipped++,
@@ -46,6 +50,7 @@ class ServiceSyncService
 
         return new ServiceSyncResult(
             polled: $polled,
+            resolved: $resolved,
             diverged: $diverged,
             failed: $failed,
             skipped: $skipped,
@@ -53,7 +58,7 @@ class ServiceSyncService
     }
 
     /**
-     * @return 'polled'|'diverged'|'failed'|'skipped'
+     * @return 'polled'|'resolved'|'diverged'|'failed'|'skipped'
      */
     public function pollService(Service $service): string
     {
@@ -101,13 +106,35 @@ class ServiceSyncService
         $comparison = $this->comparison->compare($service, $response);
 
         if ($comparison->hasDivergences()) {
-            $this->recordComparison($service, $response, $comparison);
+            $resolution = $this->resolution->resolve($service, $comparison);
+            $service = $service->fresh() ?? $service;
 
-            Log::notice('Service sync detected state divergence.', [
-                'service_id' => $service->id,
-                'module' => $module,
-                'divergences' => $comparison->divergenceArrays(),
-            ]);
+            $this->recordComparison($service, $response, $comparison, $resolution);
+
+            if ($resolution->isFullyResolved()) {
+                Log::info('Service sync resolved state divergence.', [
+                    'service_id' => $service->id,
+                    'module' => $module,
+                    'resolutions' => $resolution->appliedArrays(),
+                ]);
+
+                return 'resolved';
+            }
+
+            if ($resolution->hasApplied()) {
+                Log::notice('Service sync partially resolved state divergence.', [
+                    'service_id' => $service->id,
+                    'module' => $module,
+                    'resolutions' => $resolution->appliedArrays(),
+                    'unresolved' => $resolution->unresolvedArrays(),
+                ]);
+            } else {
+                Log::notice('Service sync detected state divergence.', [
+                    'service_id' => $service->id,
+                    'module' => $module,
+                    'divergences' => $comparison->divergenceArrays(),
+                ]);
+            }
 
             return 'diverged';
         }
@@ -150,12 +177,17 @@ class ServiceSyncService
         Service $service,
         ProvisioningResponse $response,
         ServiceSyncComparisonResult $comparison,
+        ?ServiceSyncResolutionResult $resolution = null,
     ): void {
         $mapping = $this->mappings->findForService($service);
 
         if ($mapping === null) {
             return;
         }
+
+        $inSync = $resolution !== null
+            ? $resolution->isFullyResolved()
+            : ! $comparison->hasDivergences();
 
         $this->mappings->upsert(
             service: $service,
@@ -166,9 +198,18 @@ class ServiceSyncService
                 'last_poll_at' => now()->toIso8601String(),
                 'last_poll_payload' => $response->payload === [] ? null : $response->payload,
                 'last_comparison_at' => now()->toIso8601String(),
-                'in_sync' => ! $comparison->hasDivergences(),
+                'in_sync' => $inSync,
                 'last_divergences' => $comparison->hasDivergences()
                     ? $comparison->divergenceArrays()
+                    : null,
+                'last_resolution_at' => $resolution?->hasApplied()
+                    ? now()->toIso8601String()
+                    : null,
+                'last_resolutions' => $resolution?->hasApplied()
+                    ? $resolution->appliedArrays()
+                    : null,
+                'last_unresolved_divergences' => $resolution !== null && $resolution->unresolved !== []
+                    ? $resolution->unresolvedArrays()
                     : null,
             ], static fn (mixed $value): bool => $value !== null),
         );

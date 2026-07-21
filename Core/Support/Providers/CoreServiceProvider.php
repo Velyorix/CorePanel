@@ -112,6 +112,7 @@ use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
+use Core\Sync\Services\ServiceSyncResolutionService;
 use Core\Sync\Services\ServiceSyncService;
 use Core\Provisioning\Services\ProvisioningRollbackService;
 use Core\Services\Contracts\ModuleAccessLinkProvider;
@@ -195,8 +196,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProvisioningRollbackService::class);
         $this->app->singleton(NodeSelectionService::class);
         $this->app->singleton(ProvisioningEngine::class);
-        $this->app->singleton(ServiceSyncService::class);
         $this->app->singleton(ServiceSyncComparisonService::class);
+        $this->app->singleton(ServiceSyncResolutionService::class);
+        $this->app->singleton(ServiceSyncService::class);
         $this->app->singleton(NodeSyncService::class);
         $this->app->singleton(ProvisioningDeadLetterService::class);
         $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);

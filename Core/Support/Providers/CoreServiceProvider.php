@@ -115,6 +115,7 @@ use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
 use Core\Sync\Services\ServiceSyncResolutionService;
 use Core\Sync\Services\ServiceSyncService;
+use Core\Sync\Services\SyncAlertService;
 use Core\Sync\Services\SyncLogQueryService;
 use Core\Sync\Services\SyncLogService;
 use Core\Provisioning\Services\ProvisioningRollbackService;

@@ -5,10 +5,13 @@ namespace Core\Nodes\Services;
 use Core\Nodes\Enums\NodeLogStatus;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeLog;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 
 class NodeLogService
 {
+    /**
+     * @param  array<string, mixed>|null  $response
+     */
     public function record(
         Node $node,
         string $action,
@@ -16,7 +19,7 @@ class NodeLogService
         ?int $performedBy = null,
         ?array $response = null,
     ): NodeLog {
-        $log = new NodeLog([
+        return NodeLog::query()->create([
             'node_id' => $node->id,
             'action' => $action,
             'status' => $status,
@@ -24,26 +27,17 @@ class NodeLogService
             'performed_by' => $performedBy,
             'created_at' => now(),
         ]);
-
-        $log->save();
-
-        return $log;
     }
 
     /**
      * @return Collection<int, NodeLog>
      */
-    public function forNode(Node $node, ?int $limit = null): Collection
+    public function forNode(Node $node, int $limit = 20): Collection
     {
-        $query = NodeLog::query()
-            ->with('performer')
+        return NodeLog::query()
             ->where('node_id', $node->id)
-            ->orderByDesc('id');
-
-        if ($limit !== null) {
-            $query->limit(max(1, $limit));
-        }
-
-        return $query->get();
+            ->orderByDesc('id')
+            ->limit(max(1, $limit))
+            ->get();
     }
 }

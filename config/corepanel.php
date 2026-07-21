@@ -387,7 +387,7 @@ return [
         */
         'manual_transfer' => [
             'enabled' => (bool) env('COREPANEL_BILLING_MANUAL_TRANSFER_ENABLED', true),
-            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer'),
+            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer / cheque'),
             'reference_prefix' => env('COREPANEL_BILLING_MANUAL_TRANSFER_REFERENCE_PREFIX', 'PAY'),
             'beneficiary' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BENEFICIARY'),
             'iban' => env('COREPANEL_BILLING_MANUAL_TRANSFER_IBAN'),
@@ -411,9 +411,9 @@ return [
         'payment_methods' => [
             [
                 'key' => 'manual_transfer',
-                'label' => 'Bank transfer',
+                'label' => 'Bank transfer / cheque',
                 'enabled' => true,
-                'hint' => null,
+                'hint' => 'Pay offline by bank transfer or cheque; staff confirms receipt.',
             ],
             [
                 'key' => 'card',

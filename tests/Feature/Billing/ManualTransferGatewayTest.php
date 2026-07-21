@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\PaymentStatus;
 use Core\Billing\Exceptions\UnsupportedGatewayOperationException;
@@ -10,6 +11,8 @@ use Core\Billing\Models\Invoice;
 use Core\Billing\Models\PaymentGateway;
 use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentService;
+use Core\Providers\Contracts\PaymentGatewayInterface;
+use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -51,12 +54,41 @@ class ManualTransferGatewayTest extends TestCase
         );
     }
 
+    public function test_manual_transfer_is_registered_on_provider_registry(): void
+    {
+        $registry = app(ProviderRegistry::class);
+
+        $this->assertTrue($registry->hasPaymentGateway(ManualTransferGateway::KEY));
+        $this->assertInstanceOf(
+            ManualTransferGateway::class,
+            $registry->paymentGateway(ManualTransferGateway::KEY),
+        );
+        $this->assertInstanceOf(
+            PaymentGatewayInterface::class,
+            $registry->paymentGateway(ManualTransferGateway::KEY),
+        );
+    }
+
     public function test_manual_transfer_gateway_is_registered_as_singleton(): void
     {
         $this->assertSame(
             app(ManualTransferGateway::class),
             app(ManualTransferGateway::class),
         );
+    }
+
+    public function test_default_label_covers_transfer_and_cheque(): void
+    {
+        config(['corepanel.billing.manual_transfer.label' => null]);
+
+        $this->assertSame('Bank transfer / cheque', $this->gateway->label());
+    }
+
+    public function test_config_label_overrides_default(): void
+    {
+        config(['corepanel.billing.manual_transfer.label' => 'Wire / cheque']);
+
+        $this->assertSame('Wire / cheque', $this->gateway->label());
     }
 
     public function test_initiate_keeps_payment_pending_with_instructions(): void
@@ -72,9 +104,40 @@ class ManualTransferGatewayTest extends TestCase
         $this->assertNull($payment->paid_at);
         $this->assertStringContainsString('120.00', (string) $payment->notes);
         $this->assertStringContainsString('PAY-'.$payment->id, (string) $payment->notes);
+        $this->assertStringContainsString('cheque', strtolower((string) $payment->notes));
         $this->assertStringContainsString('CorePanel SAS', (string) $payment->notes);
         $this->assertStringContainsString('FR7612345678901234567890123', (string) $payment->notes);
         $this->assertSame(InvoiceStatus::Unpaid, $invoice->fresh()->status);
+    }
+
+    public function test_empty_reference_prefix_falls_back_to_pay(): void
+    {
+        config(['corepanel.billing.manual_transfer.reference_prefix' => '']);
+
+        $invoice = $this->makeUnpaidInvoice('5.00');
+        $payment = $this->payments->initiate($invoice, ManualTransferGateway::KEY);
+
+        $this->assertSame('PAY-'.$payment->id, $payment->gateway_reference);
+    }
+
+    public function test_provider_interface_aliases_match_billing_contract(): void
+    {
+        $invoice = $this->makeUnpaidInvoice('30.00');
+        $payment = $this->payments->initiate($invoice, ManualTransferGateway::KEY);
+
+        $charged = $this->gateway->charge($payment, new PaymentContext);
+        $validated = $this->gateway->validate($payment);
+
+        $this->assertSame(PaymentStatus::Pending, $charged->status);
+        $this->assertSame(PaymentStatus::Pending, $validated->status);
+        $this->assertSame($payment->gateway_reference, $charged->gatewayReference);
+        $this->assertStringContainsString('Awaiting manual confirmation', (string) $validated->message);
+
+        $this->payments->complete($payment);
+        $refunded = $this->gateway->refund($payment->fresh() ?? $payment, '30.00');
+
+        $this->assertSame(PaymentStatus::Refunded, $refunded->status);
+        $this->assertStringContainsString('30.00', (string) $refunded->message);
     }
 
     public function test_staff_complete_marks_invoice_paid(): void

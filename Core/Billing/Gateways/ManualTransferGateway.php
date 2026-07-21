@@ -8,11 +8,16 @@ use Core\Billing\DataTransferObjects\PaymentGatewayResult;
 use Core\Billing\DataTransferObjects\PaymentGatewayWebhookResult;
 use Core\Billing\Exceptions\UnsupportedGatewayOperationException;
 use Core\Billing\Models\Payment;
+use Core\Providers\Contracts\PaymentGatewayInterface;
 
 /**
- * Native offline gateway: bank transfer / cheque, pending until staff confirms.
+ * Native Core offline gateway (bank transfer / cheque).
+ *
+ * Pending until staff confirms receipt. Implements both the billing
+ * {@see PaymentGateway} contract and the provider-layer
+ * {@see PaymentGatewayInterface} (charge / validate / refund aliases).
  */
-class ManualTransferGateway implements PaymentGateway
+class ManualTransferGateway implements PaymentGateway, PaymentGatewayInterface
 {
     public const KEY = 'manual_transfer';
 
@@ -29,7 +34,7 @@ class ManualTransferGateway implements PaymentGateway
             return $label;
         }
 
-        return (string) __('Bank transfer');
+        return (string) __('Bank transfer / cheque');
     }
 
     public function createPayment(Payment $payment, PaymentContext $context): PaymentGatewayResult
@@ -59,6 +64,21 @@ class ManualTransferGateway implements PaymentGateway
             gatewayReference: $payment->gateway_reference,
             message: (string) __('Manual refund of :amount recorded.', ['amount' => $amount]),
         );
+    }
+
+    public function charge(Payment $payment, PaymentContext $context): PaymentGatewayResult
+    {
+        return $this->createPayment($payment, $context);
+    }
+
+    public function validate(Payment $payment): PaymentGatewayResult
+    {
+        return $this->verifyPayment($payment);
+    }
+
+    public function refund(Payment $payment, string $amount): PaymentGatewayResult
+    {
+        return $this->refundPayment($payment, $amount);
     }
 
     public function handleWebhook(array $payload, array $headers): PaymentGatewayWebhookResult

@@ -294,7 +294,9 @@ class CoreServiceProvider extends ServiceProvider
         BladeAuthorizationDirectives::register();
 
         $gateways = $this->app->make(GatewayManager::class);
-        $gateways->register($this->app->make(ManualTransferGateway::class));
+        $manualGateway = $this->app->make(ManualTransferGateway::class);
+        $gateways->register($manualGateway);
+        $this->app->make(ProviderRegistry::class)->registerPaymentGateway($manualGateway);
 
         if ((bool) config('corepanel.provisioning.stub.enabled', false)) {
             $registry = $this->app->make(ProviderRegistry::class);

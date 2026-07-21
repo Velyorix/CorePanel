@@ -14,6 +14,10 @@ class StubSandboxModule extends AbstractModule
 
     public int $permissionsRegistered = 0;
 
+    public ?string $lastLogMessage = null;
+
+    public mixed $allowedConfigValue = null;
+
     public function boot(): void
     {
         $this->coreVersion = $this->host()->coreVersion();
@@ -42,5 +46,16 @@ class StubSandboxModule extends AbstractModule
     public function readForbiddenConfig(): mixed
     {
         return $this->host()->config('database.default');
+    }
+
+    public function readAllowedConfig(): mixed
+    {
+        return $this->allowedConfigValue = $this->host()->config('corepanel.version');
+    }
+
+    public function writeLog(string $message = 'sandbox probe log'): void
+    {
+        $this->host()->log('info', $message, ['probe' => true]);
+        $this->lastLogMessage = $message;
     }
 }

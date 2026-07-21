@@ -6,8 +6,10 @@ use Core\Nodes\Enums\NodeGroupStatus;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
+use Core\Nodes\Services\NodeOverloadService;
 use Core\Provisioning\DataTransferObjects\NodeSelectionResult;
 use Core\Provisioning\Exceptions\NoEligibleNodeException;
+use Core\Provisioning\Exceptions\NodeProvisioningDeferredException;
 use Core\Services\Models\Service;
 
 /**
@@ -17,6 +19,7 @@ class NodeSelectionService
 {
     public function __construct(
         private readonly NodeAllocationAlgorithm $allocation,
+        private readonly NodeOverloadService $overload,
     ) {
     }
 
@@ -105,10 +108,18 @@ class NodeSelectionService
             }
         }
 
+        $assignable = $this->allocation->assignableCandidates($group, $service->module);
         $node = $this->allocation->selectBest($group, $service->module);
 
         if ($node === null) {
             if ($this->requiresNodeWhenGroupAssigned()) {
+                if ($assignable->isNotEmpty() && $this->shouldDeferOnOverload()) {
+                    throw NodeProvisioningDeferredException::overloadedPool(
+                        $group->key,
+                        $this->overload->deferDelaySeconds(),
+                    );
+                }
+
                 throw NoEligibleNodeException::forGroup($group->key, $service->module);
             }
 
@@ -119,6 +130,7 @@ class NodeSelectionService
             group: $group,
             node: $node,
             connection: $node->toConnectionRequest(),
+            usedFallback: $this->overload->enabled() && $this->overload->isFallbackReceiver($node),
         );
     }
 
@@ -204,5 +216,11 @@ class NodeSelectionService
     private function requiresNodeWhenGroupAssigned(): bool
     {
         return (bool) config('corepanel.provisioning.require_node_for_assigned_group', true);
+    }
+
+    private function shouldDeferOnOverload(): bool
+    {
+        return $this->overload->enabled()
+            && (bool) config('corepanel.nodes.overload.defer_on_overload', true);
     }
 }

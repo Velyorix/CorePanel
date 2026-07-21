@@ -11,6 +11,7 @@ use Core\Providers\Services\ProviderRegistry;
 use Core\Provisioning\Events\ServiceProvisioned;
 use Core\Provisioning\Events\ServiceProvisioningFailed;
 use Core\Provisioning\Exceptions\NoEligibleNodeException;
+use Core\Provisioning\Exceptions\NodeProvisioningDeferredException;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Jobs\ProvisionServiceJob;
@@ -122,6 +123,8 @@ class ProvisioningEngine
 
         try {
             $selection = $this->nodeSelection->assignToService($service);
+        } catch (NodeProvisioningDeferredException $exception) {
+            throw $exception;
         } catch (NoEligibleNodeException $exception) {
             if ($retryableFailures) {
                 throw $exception;

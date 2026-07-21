@@ -33,6 +33,7 @@ readonly class NodeData
         public ?array $config = null,
         public ?array $groupIds = null,
         public ?int $allocationWeight = null,
+        public ?bool $allocationIsFallback = null,
     ) {
     }
 
@@ -55,7 +56,8 @@ readonly class NodeData
      *     credentials?: array<string, mixed>|null,
      *     config?: array<string, mixed>|null,
      *     group_ids?: list<int>|null,
-     *     allocation_weight?: int|null
+     *     allocation_weight?: int|null,
+     *     allocation_is_fallback?: bool|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -122,6 +124,9 @@ readonly class NodeData
             config: self::nullableArray($data['config'] ?? null),
             groupIds: $groupIds,
             allocationWeight: self::nullablePositiveInt($data['allocation_weight'] ?? null),
+            allocationIsFallback: array_key_exists('allocation_is_fallback', $data)
+                ? filter_var($data['allocation_is_fallback'], FILTER_VALIDATE_BOOL)
+                : null,
         );
     }
 
@@ -159,6 +164,12 @@ readonly class NodeData
         if ($this->allocationWeight !== null) {
             $allocation = is_array($config['allocation'] ?? null) ? $config['allocation'] : [];
             $allocation['weight'] = $this->allocationWeight;
+            $config['allocation'] = $allocation;
+        }
+
+        if ($this->allocationIsFallback !== null) {
+            $allocation = is_array($config['allocation'] ?? null) ? $config['allocation'] : [];
+            $allocation['is_fallback'] = $this->allocationIsFallback;
             $config['allocation'] = $allocation;
         }
 

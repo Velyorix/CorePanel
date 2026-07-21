@@ -39,6 +39,7 @@ class NodeSelectionServiceTest extends TestCase
         config([
             'corepanel.provisioning.require_node_for_assigned_group' => true,
             'corepanel.nodes.allocation.load_balancing.enabled' => false,
+            'corepanel.nodes.overload.enabled' => false,
         ]);
     }
 

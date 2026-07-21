@@ -546,6 +546,37 @@ return [
                 ],
             ],
         ],
+        'overload' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'defer_on_overload' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_DEFER', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'queue_delay_seconds' => (int) env('COREPANEL_NODE_OVERLOAD_QUEUE_DELAY', 60),
+            'utilization_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_UTILIZATION_THRESHOLD', 0.85),
+            'fallback_utilization_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_FALLBACK_UTILIZATION_THRESHOLD', 0.95),
+            'service_fill_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_SERVICE_FILL_THRESHOLD', 0.95),
+            'fallback_service_fill_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_FALLBACK_SERVICE_FILL_THRESHOLD', 0.98),
+            'block_degraded' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_BLOCK_DEGRADED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'allow_degraded_fallback' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_ALLOW_DEGRADED_FALLBACK', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'respect_capacity_available_flag' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_RESPECT_CAPACITY_AVAILABLE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'fallback_node_ids' => array_values(array_filter(array_map(
+                static fn (string $value): int => (int) trim($value),
+                explode(',', (string) env('COREPANEL_NODE_OVERLOAD_FALLBACK_NODE_IDS', '')),
+            ), static fn (int $value): bool => $value > 0)),
+        ],
         'capacity' => [
             'stale_after_seconds' => (int) env('COREPANEL_NODE_CAPACITY_STALE_AFTER_SECONDS', 600),
         ],

@@ -18,6 +18,7 @@ class NodeAllocationAlgorithm
 {
     public function __construct(
         private readonly NodeLoadBalancingService $loadBalancing,
+        private readonly NodeOverloadService $overload,
     ) {
     }
 
@@ -41,6 +42,28 @@ class NodeAllocationAlgorithm
         return $query->get()->filter(fn (Node $node): bool => $this->isEligible($node));
     }
 
+    /**
+     * Nodes that could receive assignments before capacity and overload checks.
+     *
+     * @return Collection<int, Node>
+     */
+    public function assignableCandidates(NodeGroup $group, ?string $module): Collection
+    {
+        $query = Node::query()
+            ->selectable()
+            ->assignedToGroup((int) $group->id)
+            ->withAllocatedCount()
+            ->with(['groups' => fn ($builder) => $builder->where('node_groups.id', $group->id)]);
+
+        $module = trim((string) $module);
+
+        if ($module !== '') {
+            $query->forModule($module);
+        }
+
+        return $query->get()->filter(fn (Node $node): bool => $this->isAssignable($node));
+    }
+
     public function selectBest(NodeGroup $group, ?string $module): ?Node
     {
         $candidates = $this->eligibleCandidates($group, $module);
@@ -49,7 +72,11 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $this->pick($candidates, $this->groupScope($group, $module));
+        return $this->selectFromCandidates(
+            $candidates,
+            $this->groupScope($group, $module),
+            $module,
+        );
     }
 
     public function selectBestExcluding(NodeGroup $group, ?string $module, int $excludeNodeId): ?Node
@@ -61,7 +88,11 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $this->pick($candidates, $this->groupScope($group, $module).':exclude:'.$excludeNodeId);
+        return $this->selectFromCandidates(
+            $candidates,
+            $this->groupScope($group, $module).':exclude:'.$excludeNodeId,
+            $module,
+        );
     }
 
     public function selectBestFromPool(?string $module, int $excludeNodeId): ?Node
@@ -80,7 +111,11 @@ class NodeAllocationAlgorithm
             ->reject(fn (Node $node): bool => (int) $node->id === $excludeNodeId)
             ->filter(fn (Node $node): bool => $this->isEligible($node));
 
-        return $this->pick($candidates, $this->poolScope($module).':exclude:'.$excludeNodeId);
+        return $this->selectFromCandidates(
+            $candidates,
+            $this->poolScope($module).':exclude:'.$excludeNodeId,
+            $module,
+        );
     }
 
     /**
@@ -121,10 +156,82 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $this->pick(
+        return $this->selectFromCandidates(
             $candidates,
             'cluster:'.$failedNode->id.':'.$this->normalizedModule($module),
+            $module,
         );
+    }
+
+    /**
+     * @param  Collection<int, Node>  $candidates
+     */
+    private function selectFromCandidates(Collection $candidates, string $scope, ?string $module): ?Node
+    {
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        if (! $this->overload->enabled()) {
+            return $this->pick($candidates, $scope);
+        }
+
+        $primary = $candidates->reject(
+            fn (Node $node): bool => $this->overload->isOverloaded($node),
+        );
+
+        if ($primary->isNotEmpty()) {
+            return $this->pick($primary, $scope);
+        }
+
+        $fallback = $this->fallbackCandidates($candidates, $module);
+
+        if ($fallback->isNotEmpty()) {
+            return $this->pick($fallback, $scope.':fallback');
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  Collection<int, Node>  $groupCandidates
+     * @return Collection<int, Node>
+     */
+    private function fallbackCandidates(Collection $groupCandidates, ?string $module): Collection
+    {
+        $fromGroup = $groupCandidates->filter(function (Node $node): bool {
+            return $this->overload->isFallbackReceiver($node)
+                && ! $this->overload->isOverloaded($node, fallbackPool: true);
+        });
+
+        if ($fromGroup->isNotEmpty()) {
+            return $fromGroup->values();
+        }
+
+        $globalIds = array_values(array_diff(
+            $this->overload->globalFallbackNodeIds(),
+            $groupCandidates->pluck('id')->map(static fn ($id): int => (int) $id)->all(),
+        ));
+
+        if ($globalIds === []) {
+            return collect();
+        }
+
+        $query = Node::query()
+            ->selectable()
+            ->withAllocatedCount()
+            ->whereIn('id', $globalIds);
+
+        $module = trim((string) $module);
+
+        if ($module !== '') {
+            $query->forModule($module);
+        }
+
+        return $query->get()
+            ->filter(fn (Node $node): bool => $this->isEligible($node)
+                && ! $this->overload->isOverloaded($node, fallbackPool: true))
+            ->values();
     }
 
     /**
@@ -158,15 +265,24 @@ class NodeAllocationAlgorithm
 
     public function isEligible(Node $node): bool
     {
+        if (! $this->isAssignable($node)) {
+            return false;
+        }
+
+        if (! $node->hasCapacity()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isAssignable(Node $node): bool
+    {
         if (! $node->isSelectable()) {
             return false;
         }
 
         if (! $node->isHealthEligible()) {
-            return false;
-        }
-
-        if (! $node->hasCapacity()) {
             return false;
         }
 

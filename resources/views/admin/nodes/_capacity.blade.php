@@ -71,3 +71,28 @@
     max="1000"
     :hint="__('Higher values receive more provisioning assignments within the same utilization band.')"
 />
+
+@php
+    $allocationIsFallback = old(
+        'allocation_is_fallback',
+        is_array($node?->config['allocation'] ?? null)
+            ? (bool) ($node->config['allocation']['is_fallback'] ?? false)
+            : false,
+    );
+@endphp
+
+<label class="flex items-start gap-3 sm:col-span-2">
+    <input
+        type="checkbox"
+        name="allocation_is_fallback"
+        value="1"
+        @checked((bool) $allocationIsFallback)
+        class="mt-1 rounded border-border"
+    />
+    <span>
+        <span class="text-body-sm font-medium text-foreground">{{ __('Overflow fallback node') }}</span>
+        <span class="mt-1 block text-small text-muted-foreground">
+            {{ __('Accepts provisioning overflow when primary nodes in the group are overloaded.') }}
+        </span>
+    </span>
+</label>

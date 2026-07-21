@@ -24,6 +24,7 @@ class NodeAllocationAlgorithmTest extends TestCase
         config([
             'corepanel.nodes.allocation.require_credentials' => false,
             'corepanel.nodes.allocation.load_balancing.enabled' => false,
+            'corepanel.nodes.overload.enabled' => false,
         ]);
 
         $this->algorithm = app(NodeAllocationAlgorithm::class);

@@ -56,6 +56,7 @@ class AdminNodeManagementTest extends TestCase
             ->assertSee(__('Create server'))
             ->assertSee(__('Provider module'))
             ->assertSee(__('Credentials'))
+            ->assertSee(__('Capacity limits'))
             ->assertSee('stub');
     }
 
@@ -74,6 +75,9 @@ class AdminNodeManagementTest extends TestCase
                 'api_url' => 'https://panel.example.test',
                 'status' => NodeStatus::Active->value,
                 'max_services' => 40,
+                'max_cpu_cores' => 12,
+                'max_ram_mb' => 49152,
+                'max_disk_gb' => 1000,
                 'sort_order' => 5,
                 'node_group_id' => $group->id,
             ])
@@ -88,6 +92,9 @@ class AdminNodeManagementTest extends TestCase
         $this->assertSame('https://panel.example.test', $node->api_url);
         $this->assertSame($group->id, $node->node_group_id);
         $this->assertSame(40, $node->max_services);
+        $this->assertSame(12, $node->max_cpu_cores);
+        $this->assertSame(49152, $node->max_ram_mb);
+        $this->assertSame(1000, $node->max_disk_gb);
     }
 
     public function test_admin_can_create_server_with_encrypted_credentials(): void

@@ -177,9 +177,21 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-muted-foreground">
-                    {{ $node->allocated_services_count }}
-                    @if ($node->max_services !== null)
-                        / {{ $node->max_services }}
+                    <div>{{ $node->allocated_services_count }}@if ($node->max_services !== null) / {{ $node->max_services }}@endif {{ __('services') }}</div>
+                    @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null)
+                        <div class="text-small">
+                            @if ($node->max_cpu_cores !== null)
+                                {{ $node->allocatedResources()['cpu_cores'] }}/{{ $node->max_cpu_cores }} {{ __('CPU') }}
+                            @endif
+                            @if ($node->max_ram_mb !== null)
+                                @if ($node->max_cpu_cores !== null) · @endif
+                                {{ number_format($node->allocatedResources()['ram_mb']) }}/{{ number_format($node->max_ram_mb) }} {{ __('MB RAM') }}
+                            @endif
+                            @if ($node->max_disk_gb !== null)
+                                @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null) · @endif
+                                {{ $node->allocatedResources()['disk_gb'] }}/{{ $node->max_disk_gb }} {{ __('GB disk') }}
+                            @endif
+                        </div>
                     @endif
                 </td>
                 <td class="px-4 py-3 text-end">

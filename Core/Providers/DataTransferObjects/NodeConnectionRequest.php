@@ -20,6 +20,9 @@ final readonly class NodeConnectionRequest
         public ?array $credentials = null,
         public ?array $config = null,
         public ?int $maxServices = null,
+        public ?int $maxCpuCores = null,
+        public ?int $maxRamMb = null,
+        public ?int $maxDiskGb = null,
     ) {
         if ($this->hostname === '') {
             throw new InvalidArgumentException('Node hostname is required.');
@@ -37,6 +40,9 @@ final readonly class NodeConnectionRequest
      *     credentials?: array<string, mixed>|null,
      *     config?: array<string, mixed>|null,
      *     max_services?: int|null,
+     *     max_cpu_cores?: int|null,
+     *     max_ram_mb?: int|null,
+     *     max_disk_gb?: int|null,
      * }  $node
      */
     public static function fromArray(array $node): self
@@ -58,6 +64,9 @@ final readonly class NodeConnectionRequest
         }
 
         $maxServices = $node['max_services'] ?? null;
+        $maxCpuCores = $node['max_cpu_cores'] ?? null;
+        $maxRamMb = $node['max_ram_mb'] ?? null;
+        $maxDiskGb = $node['max_disk_gb'] ?? null;
 
         return new self(
             hostname: $hostname,
@@ -69,6 +78,9 @@ final readonly class NodeConnectionRequest
             credentials: $credentials,
             config: $config,
             maxServices: $maxServices !== null ? (int) $maxServices : null,
+            maxCpuCores: $maxCpuCores !== null ? (int) $maxCpuCores : null,
+            maxRamMb: $maxRamMb !== null ? (int) $maxRamMb : null,
+            maxDiskGb: $maxDiskGb !== null ? (int) $maxDiskGb : null,
         );
     }
 
@@ -83,6 +95,9 @@ final readonly class NodeConnectionRequest
      *     credentials?: array<string, mixed>|null,
      *     config?: array<string, mixed>|null,
      *     max_services?: int|null,
+     *     max_cpu_cores?: int|null,
+     *     max_ram_mb?: int|null,
+     *     max_disk_gb?: int|null,
      * }
      */
     public function toArray(): array
@@ -97,6 +112,9 @@ final readonly class NodeConnectionRequest
             'credentials' => $this->credentials,
             'config' => $this->config,
             'max_services' => $this->maxServices,
+            'max_cpu_cores' => $this->maxCpuCores,
+            'max_ram_mb' => $this->maxRamMb,
+            'max_disk_gb' => $this->maxDiskGb,
         ], static fn (mixed $value): bool => $value !== null && $value !== '');
     }
 }

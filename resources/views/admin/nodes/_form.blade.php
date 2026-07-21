@@ -70,21 +70,14 @@
     </x-ui.select>
 
     <x-ui.input
-        name="max_services"
-        type="number"
-        :label="__('Max services')"
-        :value="old('max_services', $node?->max_services)"
-        min="0"
-        :hint="__('Leave empty for unlimited capacity.')"
-    />
-
-    <x-ui.input
         name="sort_order"
         type="number"
         :label="__('Sort order')"
         :value="old('sort_order', $node?->sort_order ?? 0)"
         min="0"
     />
+
+    @include('admin.nodes._capacity')
 
     @include('admin.nodes._credentials')
 </div>

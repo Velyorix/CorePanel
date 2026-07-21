@@ -22,6 +22,9 @@ readonly class NodeData
         public ?string $apiUrl = null,
         public NodeStatus $status = NodeStatus::Active,
         public ?int $maxServices = null,
+        public ?int $maxCpuCores = null,
+        public ?int $maxRamMb = null,
+        public ?int $maxDiskGb = null,
         public int $sortOrder = 0,
         public ?int $nodeGroupId = null,
         public ?array $credentials = null,
@@ -41,6 +44,9 @@ readonly class NodeData
      *     api_url?: string|null,
      *     status?: string|null,
      *     max_services?: int|null,
+     *     max_cpu_cores?: int|null,
+     *     max_ram_mb?: int|null,
+     *     max_disk_gb?: int|null,
      *     sort_order?: int|null,
      *     node_group_id?: int|null,
      *     credentials?: array<string, mixed>|null,
@@ -67,11 +73,10 @@ readonly class NodeData
             throw new InvalidArgumentException("Invalid node status [{$statusValue}].");
         }
 
-        $maxServices = $data['max_services'] ?? null;
-
-        if ($maxServices !== null) {
-            $maxServices = max(0, (int) $maxServices);
-        }
+        $maxServices = self::nullableNonNegativeInt($data['max_services'] ?? null);
+        $maxCpuCores = self::nullableNonNegativeInt($data['max_cpu_cores'] ?? null);
+        $maxRamMb = self::nullableNonNegativeInt($data['max_ram_mb'] ?? null);
+        $maxDiskGb = self::nullableNonNegativeInt($data['max_disk_gb'] ?? null);
 
         $nodeGroupId = $data['node_group_id'] ?? null;
 
@@ -101,6 +106,9 @@ readonly class NodeData
             apiUrl: self::nullableString($data['api_url'] ?? null),
             status: $status,
             maxServices: $maxServices,
+            maxCpuCores: $maxCpuCores,
+            maxRamMb: $maxRamMb,
+            maxDiskGb: $maxDiskGb,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             nodeGroupId: $nodeGroupId,
             credentials: $credentials,
@@ -124,6 +132,9 @@ readonly class NodeData
             'api_url' => $this->apiUrl,
             'status' => $this->status->value,
             'max_services' => $this->maxServices,
+            'max_cpu_cores' => $this->maxCpuCores,
+            'max_ram_mb' => $this->maxRamMb,
+            'max_disk_gb' => $this->maxDiskGb,
             'sort_order' => $this->sortOrder,
             'node_group_id' => $this->nodeGroupId,
             'config' => $this->config,
@@ -198,6 +209,15 @@ readonly class NodeData
         $string = trim((string) $value);
 
         return $string === '' ? null : $string;
+    }
+
+    private static function nullableNonNegativeInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return max(0, (int) $value);
     }
 
     /**

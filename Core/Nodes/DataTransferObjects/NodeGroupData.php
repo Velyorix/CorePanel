@@ -17,6 +17,9 @@ readonly class NodeGroupData
         public ?string $description = null,
         public NodeGroupStatus $status = NodeGroupStatus::Active,
         public int $sortOrder = 0,
+        /** @var list<int>|null */
+        public ?array $nodeIds = null,
+        public bool $nodeIdsProvided = false,
     ) {
     }
 
@@ -28,7 +31,8 @@ readonly class NodeGroupData
      *     type?: string|null,
      *     description?: string|null,
      *     status?: string|null,
-     *     sort_order?: int|null
+     *     sort_order?: int|null,
+     *     node_ids?: list<int|string>|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -64,6 +68,13 @@ readonly class NodeGroupData
             throw new InvalidArgumentException("Invalid node group status [{$statusValue}].");
         }
 
+        $nodeIdsProvided = array_key_exists('node_ids', $data);
+        $nodeIds = null;
+
+        if ($nodeIdsProvided) {
+            $nodeIds = self::normalizeNodeIds($data['node_ids']);
+        }
+
         return new self(
             name: $name,
             key: $key,
@@ -72,6 +83,8 @@ readonly class NodeGroupData
             description: self::nullableString($data['description'] ?? null),
             status: $status,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
+            nodeIds: $nodeIds,
+            nodeIdsProvided: $nodeIdsProvided,
         );
     }
 
@@ -111,5 +124,31 @@ readonly class NodeGroupData
         $string = trim((string) $value);
 
         return $string === '' ? null : $string;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function normalizeNodeIds(mixed $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        if (! is_array($value)) {
+            throw new InvalidArgumentException('Server ids must be an array.');
+        }
+
+        $ids = [];
+
+        foreach ($value as $nodeId) {
+            if (! is_int($nodeId) && ! ctype_digit((string) $nodeId)) {
+                throw new InvalidArgumentException('Each server id must be an integer.');
+            }
+
+            $ids[] = (int) $nodeId;
+        }
+
+        return array_values(array_unique($ids));
     }
 }

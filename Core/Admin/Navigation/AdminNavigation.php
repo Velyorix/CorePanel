@@ -173,7 +173,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Groups'),
-                        'route' => null,
+                        'route' => 'admin.node-groups.index',
+                        'routeIs' => ['admin.node-groups.*'],
                         'permission' => 'nodes.view',
                     ],
                     [

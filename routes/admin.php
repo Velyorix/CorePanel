@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
+use App\Http\Controllers\Admin\NodeGroupController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderStatusController;
 use App\Http\Controllers\Admin\PaymentActionController;
@@ -127,6 +128,14 @@ Route::middleware('admin')
         Route::post('nodes', [NodeController::class, 'store'])->name('nodes.store');
         Route::post('nodes/test-connection', [NodeConnectionController::class, 'test'])->name('nodes.test-connection');
         Route::post('nodes/{node}/test-connection', [NodeConnectionController::class, 'testNode'])->name('nodes.test-connection.node');
+
+        Route::get('node-groups', [NodeGroupController::class, 'index'])->name('node-groups.index');
+        Route::get('node-groups/create', [NodeGroupController::class, 'create'])->name('node-groups.create');
+        Route::post('node-groups', [NodeGroupController::class, 'store'])->name('node-groups.store');
+        Route::get('node-groups/{nodeGroup}', [NodeGroupController::class, 'show'])->name('node-groups.show');
+        Route::get('node-groups/{nodeGroup}/edit', [NodeGroupController::class, 'edit'])->name('node-groups.edit');
+        Route::put('node-groups/{nodeGroup}', [NodeGroupController::class, 'update'])->name('node-groups.update');
+        Route::delete('node-groups/{nodeGroup}', [NodeGroupController::class, 'destroy'])->name('node-groups.destroy');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

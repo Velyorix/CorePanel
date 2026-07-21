@@ -60,6 +60,8 @@ use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
 use Core\Permissions\Policies\InvoicePolicy;
+use Core\Nodes\Models\NodeGroup;
+use Core\Permissions\Policies\NodeGroupPolicy;
 use Core\Permissions\Policies\NodePolicy;
 use Core\Permissions\Policies\OrderPolicy;
 use Core\Permissions\Policies\PaymentPolicy;
@@ -200,6 +202,7 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
         Gate::policy(Node::class, NodePolicy::class);
+        Gate::policy(NodeGroup::class, NodeGroupPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(Service::class, ServicePolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);

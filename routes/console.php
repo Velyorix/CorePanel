@@ -6,9 +6,11 @@ use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
 use Core\Nodes\Jobs\CollectNodeMetricsJob;
 use Core\Nodes\Jobs\RunNodeHealthChecksJob;
+use Core\Sync\Jobs\NodeSyncJob;
 use Core\Sync\Jobs\ServiceSyncJob;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Services\NodeTelemetryService;
+use Core\Sync\Services\NodeSyncService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -81,6 +83,17 @@ match ($serviceSyncSchedule) {
     default => $serviceSync->everyFiveMinutes(),
 };
 
+$nodeSyncSchedule = (string) config('corepanel.nodes.sync.schedule', 'everyTenMinutes');
+
+$nodeSync = Schedule::job(new NodeSyncJob)->withoutOverlapping();
+
+match ($nodeSyncSchedule) {
+    'everyFiveMinutes' => $nodeSync->everyFiveMinutes(),
+    'everyMinute' => $nodeSync->everyMinute(),
+    'hourly' => $nodeSync->hourly(),
+    default => $nodeSync->everyTenMinutes(),
+};
+
 Artisan::command('nodes:telemetry {node?}', function (?string $node = null) {
     $telemetry = app(NodeTelemetryService::class);
 
@@ -101,3 +114,32 @@ Artisan::command('nodes:telemetry {node?}', function (?string $node = null) {
 
     return 0;
 })->purpose('Refresh node health checks and metrics');
+
+Artisan::command('nodes:sync {node?}', function (?string $node = null) {
+    $sync = app(NodeSyncService::class);
+
+    $nodes = $node === null
+        ? Node::query()->whereNotNull('module')->where('module', '!=', '')->get()
+        : Node::query()->whereKey($node)->get();
+
+    if ($nodes->isEmpty()) {
+        $this->error('No matching nodes found.');
+
+        return 1;
+    }
+
+    if ($node !== null) {
+        $matched = $nodes->first();
+        $outcome = $sync->syncNode($matched);
+
+        $this->line("Node [{$matched->id}] {$matched->name}: {$outcome}");
+
+        return $outcome === 'failed' ? 1 : 0;
+    }
+
+    $result = $sync->syncAll();
+
+    $this->info("Synced {$result->synced} node(s), {$result->failed} failed, {$result->skipped} skipped.");
+
+    return $result->failed > 0 ? 1 : 0;
+})->purpose('Sync node resources from external providers');

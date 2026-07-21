@@ -552,6 +552,13 @@ return [
             ),
             'schedule' => env('COREPANEL_NODE_METRICS_SCHEDULE', 'everyFiveMinutes'),
         ],
+        'sync' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_SYNC_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_NODE_SYNC_SCHEDULE', 'everyTenMinutes'),
+        ],
         'allocation' => [
             'require_credentials' => filter_var(
                 env('COREPANEL_NODE_ALLOCATION_REQUIRE_CREDENTIALS', false),

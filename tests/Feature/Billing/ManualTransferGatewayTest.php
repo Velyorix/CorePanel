@@ -7,7 +7,8 @@ use Core\Billing\Enums\PaymentStatus;
 use Core\Billing\Exceptions\UnsupportedGatewayOperationException;
 use Core\Billing\Gateways\ManualTransferGateway;
 use Core\Billing\Models\Invoice;
-use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Models\PaymentGateway;
+use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -40,12 +41,13 @@ class ManualTransferGatewayTest extends TestCase
 
     public function test_manual_transfer_gateway_is_registered_by_default(): void
     {
-        $registry = app(PaymentGatewayRegistry::class);
+        $gateways = app(GatewayManager::class);
 
-        $this->assertTrue($registry->has(ManualTransferGateway::KEY));
+        $this->assertTrue($gateways->has(ManualTransferGateway::KEY));
+        $this->assertTrue($gateways->isEnabled(ManualTransferGateway::KEY));
         $this->assertInstanceOf(
             ManualTransferGateway::class,
-            $registry->get(ManualTransferGateway::KEY),
+            $gateways->resolve(ManualTransferGateway::KEY),
         );
     }
 
@@ -133,18 +135,18 @@ class ManualTransferGatewayTest extends TestCase
         );
     }
 
-    public function test_disabled_gateway_is_not_registered_after_rebind(): void
+    public function test_config_disabled_skips_auto_enable_on_first_install(): void
     {
+        PaymentGateway::query()->where('key', ManualTransferGateway::KEY)->delete();
         config(['corepanel.billing.manual_transfer.enabled' => false]);
 
-        $registry = app(PaymentGatewayRegistry::class);
-        $registry->flush();
+        $gateways = app(GatewayManager::class);
+        $gateways->flush();
+        $gateways->register(app(ManualTransferGateway::class));
+        $gateways->sync();
 
-        if ((bool) config('corepanel.billing.manual_transfer.enabled', true)) {
-            $registry->register(app(ManualTransferGateway::class));
-        }
-
-        $this->assertFalse($registry->has(ManualTransferGateway::KEY));
+        $this->assertTrue($gateways->has(ManualTransferGateway::KEY));
+        $this->assertFalse($gateways->isEnabled(ManualTransferGateway::KEY));
     }
 
     public function test_instructions_helper_matches_payment_notes_shape(): void

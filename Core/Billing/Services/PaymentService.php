@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
 class PaymentService
 {
     public function __construct(
-        private readonly PaymentGatewayRegistry $gateways,
+        private readonly GatewayManager $gateways,
         private readonly BillingAuditLogger $auditLogger,
     ) {
     }
@@ -143,7 +143,7 @@ class PaymentService
             throw new InvalidPaymentException('Payment amount cannot exceed the invoice balance due.');
         }
 
-        $gateway = $this->gateways->get($method);
+        $gateway = $this->gateways->resolve($method);
         $context ??= new PaymentContext;
 
         return DB::transaction(function () use ($invoice, $method, $resolvedAmount, $context, $notes, $gateway): Payment {
@@ -272,7 +272,7 @@ class PaymentService
      */
     public function verify(Payment $payment): Payment
     {
-        $gateway = $this->gateways->get($payment->method);
+        $gateway = $this->gateways->resolve($payment->method, onlyEnabled: false);
         $result = $gateway->verifyPayment($payment);
 
         return $this->applyGatewayResult($payment, $result);
@@ -297,7 +297,7 @@ class PaymentService
             throw new InvalidPaymentException('Refund amount cannot exceed the payment amount.');
         }
 
-        $gateway = $this->gateways->get($payment->method);
+        $gateway = $this->gateways->resolve($payment->method, onlyEnabled: false);
 
         return DB::transaction(function () use ($payment, $refundAmount, $notes, $gateway): Payment {
             $result = $gateway->refundPayment($payment, $refundAmount);

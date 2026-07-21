@@ -3,10 +3,12 @@
 namespace Core\Sync\Services;
 
 use Core\Providers\DataTransferObjects\ProvisioningRequest;
+use Core\Providers\DataTransferObjects\ProvisioningResponse;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
+use Core\Sync\DataTransferObjects\ServiceSyncComparisonResult;
 use Core\Sync\DataTransferObjects\ServiceSyncResult;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +18,7 @@ class ServiceSyncService
     public function __construct(
         private readonly ProviderRegistry $providers,
         private readonly ProviderResourceMappingService $mappings,
+        private readonly ServiceSyncComparisonService $comparison,
     ) {
     }
 
@@ -26,6 +29,7 @@ class ServiceSyncService
         }
 
         $polled = 0;
+        $diverged = 0;
         $failed = 0;
         $skipped = 0;
 
@@ -34,6 +38,7 @@ class ServiceSyncService
 
             match ($outcome) {
                 'polled' => $polled++,
+                'diverged' => $diverged++,
                 'failed' => $failed++,
                 default => $skipped++,
             };
@@ -41,13 +46,14 @@ class ServiceSyncService
 
         return new ServiceSyncResult(
             polled: $polled,
+            diverged: $diverged,
             failed: $failed,
             skipped: $skipped,
         );
     }
 
     /**
-     * @return 'polled'|'failed'|'skipped'
+     * @return 'polled'|'diverged'|'failed'|'skipped'
      */
     public function pollService(Service $service): string
     {
@@ -92,6 +98,19 @@ class ServiceSyncService
         }
 
         $response = $this->providers->server($module)->getStatus($request);
+        $comparison = $this->comparison->compare($service, $response);
+
+        if ($comparison->hasDivergences()) {
+            $this->recordComparison($service, $response, $comparison);
+
+            Log::notice('Service sync detected state divergence.', [
+                'service_id' => $service->id,
+                'module' => $module,
+                'divergences' => $comparison->divergenceArrays(),
+            ]);
+
+            return 'diverged';
+        }
 
         if (! $response->status->isSuccessful()) {
             Log::warning('Service sync poll failed.', [
@@ -104,7 +123,7 @@ class ServiceSyncService
             return 'failed';
         }
 
-        $this->recordSuccessfulPoll($service, $response->payload);
+        $this->recordComparison($service, $response, $comparison);
 
         return 'polled';
     }
@@ -127,11 +146,11 @@ class ServiceSyncService
             ->get();
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function recordSuccessfulPoll(Service $service, array $payload): void
-    {
+    private function recordComparison(
+        Service $service,
+        ProvisioningResponse $response,
+        ServiceSyncComparisonResult $comparison,
+    ): void {
         $mapping = $this->mappings->findForService($service);
 
         if ($mapping === null) {
@@ -145,7 +164,12 @@ class ServiceSyncService
             metadata: array_filter([
                 ...(is_array($mapping->metadata) ? $mapping->metadata : []),
                 'last_poll_at' => now()->toIso8601String(),
-                'last_poll_payload' => $payload === [] ? null : $payload,
+                'last_poll_payload' => $response->payload === [] ? null : $response->payload,
+                'last_comparison_at' => now()->toIso8601String(),
+                'in_sync' => ! $comparison->hasDivergences(),
+                'last_divergences' => $comparison->hasDivergences()
+                    ? $comparison->divergenceArrays()
+                    : null,
             ], static fn (mixed $value): bool => $value !== null),
         );
     }

@@ -517,6 +517,24 @@ return [
                 FILTER_VALIDATE_BOOL,
             ),
             'schedule' => env('COREPANEL_SERVICE_SYNC_SCHEDULE', 'everyFiveMinutes'),
+            'compare' => [
+                'status' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_STATUS', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ip_address' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_IP', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'hostname' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_HOSTNAME', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_id' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_EXTERNAL_ID', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
         ],
     ],
 

@@ -74,6 +74,7 @@ class ServiceSyncJobTest extends TestCase
         $mapping = ProviderResourceMapping::query()->where('service_id', $service->id)->first();
         $this->assertNotNull($mapping?->synced_at);
         $this->assertNotNull($mapping?->metadata['last_poll_at'] ?? null);
+        $this->assertTrue((bool) ($mapping?->metadata['in_sync'] ?? false));
     }
 
     public function test_records_failed_poll_without_mutating_service_status(): void

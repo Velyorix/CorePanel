@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Models\User;
 use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentGatewayInjector;
 use Core\Modules\Enums\ModuleCapability;
@@ -15,6 +16,7 @@ use Core\Modules\Services\ModuleResourceLoader;
 use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleServiceProviderRegistrar;
 use Core\Modules\Services\ModuleSignatureVerifier;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\Support\Billing\FakePaymentGateway;
@@ -124,6 +126,50 @@ class ModuleGatewayInjectionTest extends TestCase
             'Plugin Fake Gateway',
             app(GatewayManager::class)->resolve('plugin_fake', onlyEnabled: false)->label(),
         );
+    }
+
+    public function test_module_injected_gateway_is_visible_and_activatable_in_admin(): void
+    {
+        $this->seed(RoleAndPermissionSeeder::class);
+
+        config([
+            'corepanel.rbac.cache.enabled' => true,
+            'corepanel.rbac.cache.store' => 'array',
+            'corepanel.rbac.cache.prefix' => 'test.rbac.module-gateway-admin',
+        ]);
+
+        $this->writeModule('admin_gateway', [
+            'name' => 'admin_gateway',
+            'version' => '1.0.0',
+            'capabilities' => [ModuleCapability::PaymentGateway->value],
+            'gateways' => [FakePaymentGateway::class],
+        ]);
+
+        app(ModuleManager::class)->enable('admin_gateway');
+
+        $gateways = app(GatewayManager::class);
+        $gateways->sync();
+
+        $this->assertTrue($gateways->has('fake'));
+        $this->assertFalse($gateways->isEnabled('fake'));
+
+        $admin = User::factory()->withRole('admin')->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.gateways.index'))
+            ->assertOk()
+            ->assertSee('fake')
+            ->assertSee('Fake Gateway');
+
+        $this->actingAs($admin)
+            ->post(route('admin.gateways.enable', 'fake'))
+            ->assertRedirect(route('admin.gateways.show', 'fake'));
+
+        $this->assertTrue($gateways->isEnabled('fake'));
+        $this->assertDatabaseHas('payment_gateways', [
+            'key' => 'fake',
+            'enabled' => true,
+        ]);
     }
 
     public function test_invalid_gateway_class_in_manifest_fails_load(): void

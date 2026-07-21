@@ -84,6 +84,33 @@ class ManualTransferGatewayTest extends TestCase
         $this->assertSame('Bank transfer / cheque', $this->gateway->label());
     }
 
+    public function test_works_without_bank_account_configuration(): void
+    {
+        config([
+            'corepanel.billing.manual_transfer.enabled' => true,
+            'corepanel.billing.manual_transfer.label' => null,
+            'corepanel.billing.manual_transfer.beneficiary' => null,
+            'corepanel.billing.manual_transfer.iban' => null,
+            'corepanel.billing.manual_transfer.bic' => null,
+            'corepanel.billing.manual_transfer.bank_name' => null,
+            'corepanel.billing.manual_transfer.reference_prefix' => null,
+            'corepanel.billing.manual_transfer.instructions' => null,
+        ]);
+
+        $gateways = app(GatewayManager::class);
+
+        $this->assertTrue($gateways->isEnabled(ManualTransferGateway::KEY));
+        $this->assertSame('Bank transfer / cheque', $this->gateway->label());
+
+        $invoice = $this->makeUnpaidInvoice('15.00');
+        $payment = $this->payments->initiate($invoice, ManualTransferGateway::KEY);
+
+        $this->assertSame(PaymentStatus::Pending, $payment->status);
+        $this->assertSame('PAY-'.$payment->id, $payment->gateway_reference);
+        $this->assertStringContainsString('15.00', (string) $payment->notes);
+        $this->assertStringNotContainsString('IBAN', (string) $payment->notes);
+    }
+
     public function test_config_label_overrides_default(): void
     {
         config(['corepanel.billing.manual_transfer.label' => 'Wire / cheque']);

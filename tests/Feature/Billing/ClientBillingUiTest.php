@@ -144,6 +144,41 @@ class ClientBillingUiTest extends TestCase
         );
     }
 
+    public function test_client_pay_applies_partial_credit_then_charges_gateway(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $client->forceFill(['credit_balance' => '0.00'])->save();
+        app(ClientCreditService::class)->add($client, '30.00');
+
+        $invoice = Invoice::factory()->unpaid()->create([
+            'client_id' => $client->id,
+            'subtotal' => '100.00',
+            'tax_amount' => '0.00',
+            'total_amount' => '100.00',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('client.invoices.pay', $invoice))
+            ->assertRedirect(route('client.invoices.show', $invoice))
+            ->assertSessionHas('status', __('Account credit applied. Please complete the remaining payment.'));
+
+        $payments = Payment::query()
+            ->where('invoice_id', $invoice->id)
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(2, $payments);
+        $this->assertSame(PaymentService::METHOD_CLIENT_CREDIT, $payments[0]->method);
+        $this->assertSame('30.00', $payments[0]->amount);
+        $this->assertSame(PaymentStatus::Completed, $payments[0]->status);
+        $this->assertSame('manual_transfer', $payments[1]->method);
+        $this->assertSame('70.00', $payments[1]->amount);
+        $this->assertSame(PaymentStatus::Pending, $payments[1]->status);
+        $this->assertSame('0.00', app(ClientCreditService::class)->balance($client));
+        $this->assertSame(InvoiceStatus::Unpaid, $invoice->fresh()->status);
+        $this->assertSame('70.00', $invoice->fresh()->amountDue());
+    }
+
     public function test_client_cannot_pay_another_clients_invoice(): void
     {
         [$user] = $this->makeClientUser();

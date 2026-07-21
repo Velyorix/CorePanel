@@ -110,6 +110,11 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($servicesItem);
         $this->assertFalse($servicesItem['placeholder']);
         $this->assertSame(route('admin.services.index'), $servicesItem['url']);
+
+        $nodesItem = $flatItems->firstWhere('label', __('Nodes'));
+        $this->assertNotNull($nodesItem);
+        $this->assertFalse($nodesItem['placeholder']);
+        $this->assertSame(route('admin.nodes.index'), $nodesItem['url']);
     }
 
     public function test_navigation_hides_items_without_permission(): void

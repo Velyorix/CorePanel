@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\NodeController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderStatusController;
 use App\Http\Controllers\Admin\PaymentActionController;
@@ -119,6 +120,10 @@ Route::middleware('admin')
         Route::post('provisioning-dead-letters/{provisioningDeadLetter}/resolve', [ProvisioningDeadLetterActionController::class, 'resolve'])->name('provisioning-dead-letters.resolve');
         Route::post('provisioning-dead-letters/{provisioningDeadLetter}/discard', [ProvisioningDeadLetterActionController::class, 'discard'])->name('provisioning-dead-letters.discard');
         Route::post('provisioning-dead-letters/{provisioningDeadLetter}/rollback', [ProvisioningDeadLetterActionController::class, 'rollback'])->name('provisioning-dead-letters.rollback');
+
+        Route::get('nodes', [NodeController::class, 'index'])->name('nodes.index');
+        Route::get('nodes/create', [NodeController::class, 'create'])->name('nodes.create');
+        Route::post('nodes', [NodeController::class, 'store'])->name('nodes.store');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

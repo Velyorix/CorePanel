@@ -167,7 +167,8 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Nodes'),
-                        'route' => null,
+                        'route' => 'admin.nodes.index',
+                        'routeIs' => ['admin.nodes.*'],
                         'permission' => 'nodes.view',
                     ],
                     [

@@ -29,6 +29,8 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServiceActionController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\SyncActionController;
+use App\Http\Controllers\Admin\SyncLogController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterActionController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterController;
 use Illuminate\Support\Facades\Route;
@@ -117,6 +119,11 @@ Route::middleware('admin')
         Route::post('services/{service}/unsuspend', [ServiceActionController::class, 'unsuspend'])->name('services.unsuspend');
         Route::post('services/{service}/terminate', [ServiceActionController::class, 'terminate'])->name('services.terminate');
         Route::post('services/{service}/reinstall', [ServiceActionController::class, 'reinstall'])->name('services.reinstall');
+        Route::post('services/{service}/sync', [SyncActionController::class, 'syncService'])->name('services.sync');
+
+        Route::get('sync-logs', [SyncLogController::class, 'index'])->name('sync-logs.index');
+        Route::get('sync-logs/{syncLog}', [SyncLogController::class, 'show'])->name('sync-logs.show');
+        Route::post('sync/run', [SyncActionController::class, 'runAll'])->name('sync.run');
 
         Route::get('provisioning-dead-letters', [ProvisioningDeadLetterController::class, 'index'])->name('provisioning-dead-letters.index');
         Route::get('provisioning-dead-letters/{provisioningDeadLetter}', [ProvisioningDeadLetterController::class, 'show'])->name('provisioning-dead-letters.show');

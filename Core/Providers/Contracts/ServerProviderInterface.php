@@ -53,4 +53,12 @@ interface ServerProviderInterface
      * Reinstall or rebuild the service on the external module.
      */
     public function reinstall(ProvisioningRequest $request): ProvisioningResponse;
+
+    /**
+     * Fetch the current remote state for an already-provisioned service.
+     *
+     * Used by periodic sync jobs to poll external providers without mutating
+     * local lifecycle state (comparison and reconciliation happen elsewhere).
+     */
+    public function getStatus(ProvisioningRequest $request): ProvisioningResponse;
 }

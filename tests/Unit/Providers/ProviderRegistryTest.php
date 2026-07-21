@@ -141,47 +141,7 @@ class ProviderRegistryTest extends TestCase
 
     private function makeServerProvider(string $key): ServerProviderInterface
     {
-        return new class($key) implements ServerProviderInterface
-        {
-            public function __construct(private readonly string $keyValue)
-            {
-            }
-
-            public function key(): string
-            {
-                return $this->keyValue;
-            }
-
-            public function label(): string
-            {
-                return strtoupper($this->keyValue);
-            }
-
-            public function create(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function suspend(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function unsuspend(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function terminate(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function reinstall(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-        };
+        return new \Tests\Support\FakeServerProvider($key);
     }
 
     private function makeNodeProvider(string $key): NodeProviderInterface

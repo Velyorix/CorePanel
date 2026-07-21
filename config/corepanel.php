@@ -506,6 +506,95 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Services
+    |--------------------------------------------------------------------------
+    */
+
+    'services' => [
+        'sync' => [
+            'enabled' => filter_var(
+                env('COREPANEL_SERVICE_SYNC_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_SERVICE_SYNC_SCHEDULE', 'everyFiveMinutes'),
+            'compare' => [
+                'status' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_STATUS', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ip_address' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_IP', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'hostname' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_HOSTNAME', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_id' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_COMPARE_EXTERNAL_ID', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+            'resolve' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_deleted' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_EXTERNAL_DELETED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'status_mismatch' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_STATUS', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ip_address' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_IP', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'hostname' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_HOSTNAME', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'external_id' => filter_var(
+                    env('COREPANEL_SERVICE_SYNC_RESOLVE_EXTERNAL_ID', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sync logging & admin alerts
+    |--------------------------------------------------------------------------
+    */
+
+    'sync' => [
+        'logs' => [
+            'service' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SYNC_LOG_SERVICE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+            'node' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SYNC_LOG_NODE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        ],
+        'alerts' => [
+            'enabled' => filter_var(
+                env('COREPANEL_SYNC_ALERTS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Nodes infrastructure
     |--------------------------------------------------------------------------
     */
@@ -517,6 +606,13 @@ return [
                 FILTER_VALIDATE_BOOL,
             ),
             'schedule' => env('COREPANEL_NODE_METRICS_SCHEDULE', 'everyFiveMinutes'),
+        ],
+        'sync' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_SYNC_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_NODE_SYNC_SCHEDULE', 'everyTenMinutes'),
         ],
         'allocation' => [
             'require_credentials' => filter_var(

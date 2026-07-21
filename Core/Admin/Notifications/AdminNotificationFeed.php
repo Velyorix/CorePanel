@@ -2,47 +2,44 @@
 
 namespace Core\Admin\Notifications;
 
+use Core\Admin\Services\AdminNotificationService;
+use Illuminate\Support\Carbon;
+
 class AdminNotificationFeed
 {
+    public function __construct(
+        private readonly AdminNotificationService $notifications,
+    ) {
+    }
+
     /**
-     * Sample notifications for the admin dropdown feed.
-     *
      * @return list<array{key: string, title: string, message: string, time: string, unread: bool, variant: string}>
      */
-    public function placeholders(): array
+    public function recent(int $limit = 20): array
     {
-        return [
-            [
-                'key' => 'node_cpu',
-                'title' => __('High CPU usage detected'),
-                'message' => __('Node Atlas-01 reported sustained load above 85%.'),
-                'time' => __('5 min ago'),
-                'unread' => true,
-                'variant' => 'warning',
-            ],
-            [
-                'key' => 'payment_webhook',
-                'title' => __('Payment webhook failed'),
-                'message' => __('A billing webhook retry is pending manual review.'),
-                'time' => __('18 min ago'),
-                'unread' => true,
-                'variant' => 'danger',
-            ],
-            [
-                'key' => 'support_ticket',
-                'title' => __('New support ticket'),
-                'message' => __('Ticket #1042 was opened by Acme Corp.'),
-                'time' => __('1 hr ago'),
-                'unread' => false,
-                'variant' => 'primary',
-            ],
-        ];
+        return $this->notifications->recent($limit)
+            ->map(fn ($notification): array => [
+                'key' => $notification->dedupe_key,
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'time' => $this->formatTime($notification->created_at),
+                'unread' => $notification->isUnread(),
+                'variant' => $notification->variant,
+            ])
+            ->all();
     }
 
     public function unreadCount(): int
     {
-        return collect($this->placeholders())
-            ->where('unread', true)
-            ->count();
+        return $this->notifications->unreadCount();
+    }
+
+    private function formatTime(?Carbon $createdAt): string
+    {
+        if ($createdAt === null) {
+            return __('just now');
+        }
+
+        return $createdAt->diffForHumans();
     }
 }

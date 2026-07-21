@@ -527,6 +527,18 @@ return [
         'capacity' => [
             'stale_after_seconds' => (int) env('COREPANEL_NODE_CAPACITY_STALE_AFTER_SECONDS', 600),
         ],
+        'health' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_HEALTH_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_NODE_HEALTH_SCHEDULE', 'everyMinute'),
+            'auto_status' => filter_var(
+                env('COREPANEL_NODE_HEALTH_AUTO_STATUS', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'degraded_utilization_threshold' => (float) env('COREPANEL_NODE_HEALTH_DEGRADED_THRESHOLD', 0.85),
+        ],
     ],
 
     /*

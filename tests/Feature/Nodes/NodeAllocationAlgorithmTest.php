@@ -178,4 +178,32 @@ class NodeAllocationAlgorithmTest extends TestCase
 
         $this->assertNull($this->algorithm->selectBest($group, 'stub'));
     }
+
+    public function test_skips_nodes_with_unhealthy_health_state(): void
+    {
+        $group = NodeGroup::factory()->create(['key' => 'health-group']);
+
+        Node::factory()->forGroup($group)->forModule('stub')->withCapacity(10)->create([
+            'hostname' => 'offline-health.example.test',
+            'config' => [
+                'health' => [
+                    'state' => \Core\Nodes\Enums\NodeHealthState::Offline->value,
+                ],
+            ],
+        ]);
+
+        $healthy = Node::factory()->forGroup($group)->forModule('stub')->withCapacity(10)->create([
+            'hostname' => 'online-health.example.test',
+            'config' => [
+                'health' => [
+                    'state' => \Core\Nodes\Enums\NodeHealthState::Online->value,
+                ],
+            ],
+        ]);
+
+        $selected = $this->algorithm->selectBest($group, 'stub');
+
+        $this->assertNotNull($selected);
+        $this->assertSame($healthy->id, $selected->id);
+    }
 }

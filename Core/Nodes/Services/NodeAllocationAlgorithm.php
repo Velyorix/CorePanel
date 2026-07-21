@@ -52,6 +52,10 @@ class NodeAllocationAlgorithm
             return false;
         }
 
+        if (! $node->isHealthEligible()) {
+            return false;
+        }
+
         if (! $node->hasCapacity()) {
             return false;
         }

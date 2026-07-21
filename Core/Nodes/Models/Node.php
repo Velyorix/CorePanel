@@ -3,6 +3,8 @@
 namespace Core\Nodes\Models;
 
 use Core\Nodes\DataTransferObjects\NodeCapacityUsage;
+use Core\Nodes\DataTransferObjects\NodeHealthSnapshot;
+use Core\Nodes\Enums\NodeHealthState;
 use Core\Nodes\Enums\NodeStatus;
 use Core\Nodes\Enums\NodeType;
 use Core\Providers\DataTransferObjects\NodeConnectionRequest;
@@ -120,6 +122,29 @@ class Node extends Model
     public function metrics(): HasMany
     {
         return $this->hasMany(NodeMetric::class)->orderByDesc('collected_at');
+    }
+
+    /**
+     * @return HasMany<NodeHealthCheck, $this>
+     */
+    public function healthChecks(): HasMany
+    {
+        return $this->hasMany(NodeHealthCheck::class)->orderByDesc('checked_at');
+    }
+
+    public function healthSnapshot(): NodeHealthSnapshot
+    {
+        return NodeHealthSnapshot::fromNode($this);
+    }
+
+    public function healthState(): NodeHealthState
+    {
+        return $this->healthSnapshot()->state;
+    }
+
+    public function isHealthEligible(): bool
+    {
+        return $this->healthState()->allowsAllocation();
     }
 
     public function isSelectable(): bool

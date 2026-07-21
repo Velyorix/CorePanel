@@ -5,6 +5,7 @@ use App\Jobs\GenerateRenewalInvoices;
 use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
 use Core\Nodes\Jobs\CollectNodeMetricsJob;
+use Core\Nodes\Jobs\RunNodeHealthChecksJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -53,4 +54,15 @@ match ($nodeMetricsSchedule) {
     'everyTenMinutes' => $nodeMetrics->everyTenMinutes(),
     'hourly' => $nodeMetrics->hourly(),
     default => $nodeMetrics->everyFiveMinutes(),
+};
+
+$nodeHealthSchedule = (string) config('corepanel.nodes.health.schedule', 'everyMinute');
+
+$nodeHealth = Schedule::job(new RunNodeHealthChecksJob)->withoutOverlapping();
+
+match ($nodeHealthSchedule) {
+    'everyFiveMinutes' => $nodeHealth->everyFiveMinutes(),
+    'everyTenMinutes' => $nodeHealth->everyTenMinutes(),
+    'hourly' => $nodeHealth->hourly(),
+    default => $nodeHealth->everyMinute(),
 };

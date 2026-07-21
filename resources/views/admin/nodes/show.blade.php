@@ -4,6 +4,7 @@
     /** @var \Core\Nodes\Models\Node $node */
     $credentialValues = is_array($node->credentials) ? $node->credentials : [];
     $capacityUsage = $node->capacityUsage();
+    $healthSnapshot = $node->healthSnapshot();
 @endphp
 
 <x-layout.admin
@@ -124,6 +125,32 @@
                             };
                         @endphp
                         <x-ui.badge :variant="$statusVariant">{{ $node->status->label() }}</x-ui.badge>
+                    </dd>
+                </div>
+
+                <div class="flex justify-between gap-4">
+                    <dt class="text-muted-foreground">{{ __('Health') }}</dt>
+                    <dd>
+                        @php
+                            $healthVariant = match ($healthSnapshot->state) {
+                                \Core\Nodes\Enums\NodeHealthState::Online => 'success',
+                                \Core\Nodes\Enums\NodeHealthState::Degraded => 'warning',
+                                \Core\Nodes\Enums\NodeHealthState::Offline => 'danger',
+                                default => 'neutral',
+                            };
+                        @endphp
+                        <x-ui.badge :variant="$healthVariant">{{ $healthSnapshot->state->label() }}</x-ui.badge>
+                        @if ($healthSnapshot->checkedAt)
+                            <div class="mt-2 text-small text-muted-foreground">
+                                {{ __('Last checked') }}: {{ $healthSnapshot->checkedAt }}
+                                @if ($healthSnapshot->latencyMs !== null)
+                                    · {{ $healthSnapshot->latencyMs }} ms
+                                @endif
+                            </div>
+                        @endif
+                        @if ($healthSnapshot->message)
+                            <div class="mt-1 text-small text-muted-foreground">{{ $healthSnapshot->message }}</div>
+                        @endif
                     </dd>
                 </div>
 

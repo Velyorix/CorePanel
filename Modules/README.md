@@ -68,7 +68,9 @@ Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
 
 ## Rules
 
-- No direct access to the Core database (sandbox)
+- No direct access to Core database tables (sandbox)
+- Module-owned tables must use the prefix `module_{key}_`
+- Use `ModuleHostApi` for mediated Core operations (config, logging, permissions)
 - Dynamic loading via `ModuleManager`
 - Implement `ModuleInterface` (extend `AbstractModule`) when declaring `module`
 - `module.json` is required (`name`, `version`, `capabilities`)

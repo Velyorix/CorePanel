@@ -26,6 +26,7 @@ class ModuleManager
         private readonly ModuleStateRepository $state,
         private readonly ModuleFactory $factory,
         private readonly ModuleRequirementChecker $requirements,
+        private readonly ModuleSandbox $sandbox,
         private readonly ?string $modulesPath = null,
     ) {
     }
@@ -93,8 +94,11 @@ class ModuleManager
             $instance = $this->factory->make($manifest);
 
             if ($instance !== null) {
-                $instance->register();
-                $instance->boot();
+                $this->sandbox->run($manifest->key, function () use ($instance): void {
+                    $instance->register();
+                    $instance->boot();
+                });
+
                 $this->instances[$manifest->key] = $instance;
             }
 
@@ -112,7 +116,12 @@ class ModuleManager
         $manifest = $this->load($key);
 
         $this->state->enable($manifest->key);
-        $this->instance($manifest->key)?->enable();
+
+        $instance = $this->instance($manifest->key);
+
+        if ($instance !== null) {
+            $this->sandbox->run($manifest->key, fn () => $instance->enable());
+        }
 
         return $manifest;
     }
@@ -124,7 +133,12 @@ class ModuleManager
     {
         $manifest = $this->findOrFail($key);
 
-        $this->instance($manifest->key)?->disable();
+        $instance = $this->instance($manifest->key);
+
+        if ($instance !== null) {
+            $this->sandbox->run($manifest->key, fn () => $instance->disable());
+        }
+
         $this->state->disable($manifest->key);
 
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);

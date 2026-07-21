@@ -111,10 +111,13 @@ use Core\Provisioning\Services\NodeSelectionService;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
+use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
+use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleStateRepository;
+use Core\Modules\Services\ModuleTableAccessPolicy;
 use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
 use Core\Sync\Services\ServiceSyncResolutionService;
@@ -159,6 +162,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
+        $this->app->singleton(ModuleSandbox::class);
+        $this->app->singleton(ModuleTableAccessPolicy::class);
+        $this->app->singleton(ModuleDatabaseGuard::class);
         $this->app->singleton(ModuleFactory::class);
         $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);
@@ -293,6 +299,8 @@ class CoreServiceProvider extends ServiceProvider
         if ((bool) config('corepanel.modules.auto_load_enabled', true)) {
             $this->app->make(ModuleManager::class)->loadEnabled();
         }
+
+        $this->app->make(ModuleDatabaseGuard::class)->register();
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
     }

@@ -814,6 +814,23 @@ return [
             env('COREPANEL_MODULES_AUTO_LOAD', true),
             FILTER_VALIDATE_BOOL,
         ),
+        'sandbox' => [
+            'enabled' => filter_var(
+                env('COREPANEL_MODULES_SANDBOX', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            /*
+            | Module-owned tables must use: module_{key}_*
+            | Example: module_pterodactyl_nodes
+            */
+            'module_table_prefix' => env('COREPANEL_MODULES_TABLE_PREFIX', 'module_'),
+            'ignored_tables' => [
+                'sqlite_master',
+                'sqlite_sequence',
+                'sqlite_temp_master',
+                'main',
+            ],
+        ],
     ],
 
 ];

@@ -8,6 +8,7 @@ use Core\Modules\Exceptions\ModuleNotFoundException;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
+use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleStateRepository;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -44,6 +45,7 @@ class ModuleManagerTest extends TestCase
             app(ModuleStateRepository::class),
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
+            app(ModuleSandbox::class),
             $this->modulesPath,
         ));
     }
@@ -141,6 +143,7 @@ class ModuleManagerTest extends TestCase
             app(ModuleStateRepository::class),
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
+            app(ModuleSandbox::class),
             $this->modulesPath,
         ));
 

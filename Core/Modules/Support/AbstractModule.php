@@ -2,13 +2,16 @@
 
 namespace Core\Modules\Support;
 
+use Core\Modules\Contracts\ModuleHostApi;
 use Core\Modules\Contracts\ModuleInterface;
 use Core\Modules\DataTransferObjects\ModuleManifest;
+use Core\Modules\Exceptions\ModuleSandboxViolationException;
 
 abstract class AbstractModule implements ModuleInterface
 {
     public function __construct(
         protected readonly ModuleManifest $manifest,
+        protected readonly ?ModuleHostApi $host = null,
     ) {
     }
 
@@ -43,6 +46,15 @@ abstract class AbstractModule implements ModuleInterface
     public function manifest(): ModuleManifest
     {
         return $this->manifest;
+    }
+
+    protected function host(): ModuleHostApi
+    {
+        if ($this->host === null) {
+            throw ModuleSandboxViolationException::hostUnavailable($this->key());
+        }
+
+        return $this->host;
     }
 
     public function register(): void

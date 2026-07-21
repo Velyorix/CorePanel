@@ -9,6 +9,7 @@ use Core\Modules\Exceptions\ModuleBootstrapException;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
+use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleStateRepository;
 use Illuminate\Support\Facades\File;
 use Tests\Support\Modules\StubExampleModule;
@@ -47,6 +48,7 @@ class ModuleManifestAndInterfaceTest extends TestCase
             app(ModuleStateRepository::class),
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
+            app(ModuleSandbox::class),
             $this->modulesPath,
         ));
     }

@@ -58,6 +58,17 @@ class NodeController extends Controller
             ->with('status', __('Server created successfully.'));
     }
 
+    public function show(Node $node): View
+    {
+        Gate::authorize('view', $node);
+
+        $found = $this->nodeService->find($node->id);
+
+        return view('admin.nodes.show', [
+            'node' => $found ?? $node,
+        ]);
+    }
+
     /**
      * @return array{
      *     types: list<NodeType>,

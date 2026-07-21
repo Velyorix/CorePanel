@@ -125,6 +125,7 @@ Route::middleware('admin')
 
         Route::get('nodes', [NodeController::class, 'index'])->name('nodes.index');
         Route::get('nodes/create', [NodeController::class, 'create'])->name('nodes.create');
+        Route::get('nodes/{node}', [NodeController::class, 'show'])->name('nodes.show');
         Route::post('nodes', [NodeController::class, 'store'])->name('nodes.store');
         Route::post('nodes/test-connection', [NodeConnectionController::class, 'test'])->name('nodes.test-connection');
         Route::post('nodes/{node}/test-connection', [NodeConnectionController::class, 'testNode'])->name('nodes.test-connection.node');

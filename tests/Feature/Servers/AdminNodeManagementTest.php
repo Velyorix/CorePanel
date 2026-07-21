@@ -70,6 +70,33 @@ class AdminNodeManagementTest extends TestCase
             ->assertSee('stub');
     }
 
+    public function test_admin_can_view_node_details_with_masked_credentials(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $group = NodeGroup::factory()->create([
+            'name' => 'EU Group',
+            'key' => 'eu-group',
+        ]);
+
+        $node = Node::factory()->forModule('stub')->create([
+            'name' => 'EU Game Node',
+            'hostname' => 'eu-game.example.test',
+            'node_group_id' => $group->id,
+            'credentials' => [
+                'api_key' => 'panel-secret-key',
+            ],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.nodes.show', $node))
+            ->assertOk()
+            ->assertSee('EU Game Node')
+            ->assertSee('EU Group')
+            ->assertSee(__('API key'))
+            ->assertSee('••••••')
+            ->assertDontSee('panel-secret-key');
+    }
+
     public function test_admin_can_create_server_with_module_binding(): void
     {
         $admin = User::factory()->withRole('admin')->create();

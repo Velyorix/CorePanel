@@ -199,6 +199,12 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-end">
+                    @can('view', $node)
+                        <x-ui.button :href="route('admin.nodes.show', $node)" variant="ghost" size="sm">
+                            {{ __('View') }}
+                        </x-ui.button>
+                    @endcan
+
                     @can('update', $node)
                         @if (filled($node->module))
                             <form method="POST" action="{{ route('admin.nodes.test-connection.node', $node) }}" class="inline">

@@ -27,6 +27,7 @@ class ModuleManager
         private readonly ModuleFactory $factory,
         private readonly ModuleRequirementChecker $requirements,
         private readonly ModuleSandbox $sandbox,
+        private readonly ModuleServiceProviderRegistrar $providers,
         private readonly ?string $modulesPath = null,
     ) {
     }
@@ -91,6 +92,8 @@ class ModuleManager
         $this->requirements->assertSatisfied($manifest);
 
         if (! isset($this->loaded[$manifest->key])) {
+            $this->providers->register($manifest);
+
             $instance = $this->factory->make($manifest);
 
             if ($instance !== null) {
@@ -142,6 +145,7 @@ class ModuleManager
         $this->state->disable($manifest->key);
 
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
+        $this->providers->forget($manifest->key);
 
         return $manifest;
     }
@@ -231,6 +235,14 @@ class ModuleManager
     public function instances(): Collection
     {
         return collect(array_values($this->instances));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function registeredProviders(string $key): array
+    {
+        return $this->providers->providersFor($key);
     }
 
     public function path(): string

@@ -9,6 +9,7 @@ use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleSandbox;
+use Core\Modules\Services\ModuleServiceProviderRegistrar;
 use Core\Modules\Services\ModuleStateRepository;
 use Core\Modules\Services\ModuleTableAccessPolicy;
 use Core\Providers\Services\ModulePermissionRegistrar;
@@ -57,6 +58,7 @@ class ModuleSandboxTest extends TestCase
         $this->app->forgetInstance(ModuleDatabaseGuard::class);
         $this->app->forgetInstance(ModuleFactory::class);
         $this->app->forgetInstance(ModuleRequirementChecker::class);
+        $this->app->forgetInstance(ModuleServiceProviderRegistrar::class);
         $this->app->forgetInstance(ModuleManager::class);
 
         $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
@@ -68,6 +70,7 @@ class ModuleSandboxTest extends TestCase
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
             app(ModuleSandbox::class),
+            app(ModuleServiceProviderRegistrar::class),
             $this->modulesPath,
         ));
 

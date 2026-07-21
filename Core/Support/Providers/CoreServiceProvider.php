@@ -116,6 +116,7 @@ use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleSandbox;
+use Core\Modules\Services\ModuleServiceProviderRegistrar;
 use Core\Modules\Services\ModuleStateRepository;
 use Core\Modules\Services\ModuleTableAccessPolicy;
 use Core\Sync\Services\NodeSyncService;
@@ -165,6 +166,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleSandbox::class);
         $this->app->singleton(ModuleTableAccessPolicy::class);
         $this->app->singleton(ModuleDatabaseGuard::class);
+        $this->app->singleton(ModuleServiceProviderRegistrar::class);
         $this->app->singleton(ModuleFactory::class);
         $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);

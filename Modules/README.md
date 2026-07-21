@@ -72,5 +72,7 @@ Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
 - Module-owned tables must use the prefix `module_{key}_`
 - Use `ModuleHostApi` for mediated Core operations (config, logging, permissions)
 - Dynamic loading via `ModuleManager`
+- Declare Laravel providers in `module.json` → `providers` (registered on load)
+- Prefer extending `AbstractModuleServiceProvider`
 - Implement `ModuleInterface` (extend `AbstractModule`) when declaring `module`
 - `module.json` is required (`name`, `version`, `capabilities`)

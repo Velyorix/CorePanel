@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -60,6 +61,25 @@ class Node extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(NodeGroup::class, 'node_group_id');
+    }
+
+    /**
+     * @return HasMany<NodeGroupRelation, $this>
+     */
+    public function groupRelations(): HasMany
+    {
+        return $this->hasMany(NodeGroupRelation::class);
+    }
+
+    /**
+     * @return BelongsToMany<NodeGroup, $this>
+     */
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(NodeGroup::class, 'node_group_relations')
+            ->withPivot(['is_primary', 'sort_order'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     /**

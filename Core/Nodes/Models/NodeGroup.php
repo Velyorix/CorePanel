@@ -9,6 +9,7 @@ use Database\Factories\NodeGroupFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -57,6 +58,25 @@ class NodeGroup extends Model
     public function nodes(): HasMany
     {
         return $this->hasMany(Node::class);
+    }
+
+    /**
+     * @return HasMany<NodeGroupRelation, $this>
+     */
+    public function nodeRelations(): HasMany
+    {
+        return $this->hasMany(NodeGroupRelation::class);
+    }
+
+    /**
+     * @return BelongsToMany<Node, $this>
+     */
+    public function assignedNodes(): BelongsToMany
+    {
+        return $this->belongsToMany(Node::class, 'node_group_relations')
+            ->withPivot(['is_primary', 'sort_order'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     public function isActive(): bool

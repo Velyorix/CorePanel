@@ -221,6 +221,11 @@ class ProviderResourceMappingTest extends TestCase
             {
                 return ProvisioningResponse::success();
             }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return $this->response;
+            }
         };
     }
 
@@ -269,6 +274,11 @@ class ProviderResourceMappingTest extends TestCase
             public function reinstall(ProvisioningRequest $request): ProvisioningResponse
             {
                 return ProvisioningResponse::success();
+            }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return ProvisioningResponse::success(externalId: $request->externalId);
             }
         };
     }

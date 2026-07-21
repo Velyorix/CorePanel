@@ -17,6 +17,7 @@ use Core\Services\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use RuntimeException;
+use Tests\Support\FakeServerProvider;
 use Tests\TestCase;
 
 class ProvisioningDeadLetterTest extends TestCase
@@ -221,48 +222,6 @@ class ProvisioningDeadLetterTest extends TestCase
 
     private function makeProvider(string $key, ProvisioningResponse $response): ServerProviderInterface
     {
-        return new class($key, $response) implements ServerProviderInterface
-        {
-            public function __construct(
-                private readonly string $keyValue,
-                private readonly ProvisioningResponse $response,
-            ) {
-            }
-
-            public function key(): string
-            {
-                return $this->keyValue;
-            }
-
-            public function label(): string
-            {
-                return strtoupper($this->keyValue);
-            }
-
-            public function create(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return $this->response;
-            }
-
-            public function suspend(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function unsuspend(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function terminate(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-
-            public function reinstall(ProvisioningRequest $request): ProvisioningResponse
-            {
-                return ProvisioningResponse::success();
-            }
-        };
+        return new FakeServerProvider($key, $response);
     }
 }

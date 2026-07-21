@@ -88,6 +88,7 @@ class ProviderContractsTest extends TestCase
                     'unsuspend' => ProvisioningResponse::class,
                     'terminate' => ProvisioningResponse::class,
                     'reinstall' => ProvisioningResponse::class,
+                    'getStatus' => ProvisioningResponse::class,
                 ],
             ],
             'node provider' => [
@@ -168,6 +169,11 @@ class ProviderContractsTest extends TestCase
             {
                 return ProvisioningResponse::success();
             }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return ProvisioningResponse::success(externalId: $request->externalId);
+            }
         };
 
         $nodeProvider = new class implements NodeProviderInterface
@@ -227,6 +233,7 @@ class ProviderContractsTest extends TestCase
         };
 
         $this->assertInstanceOf(ProvisioningResponse::class, $server->create($request));
+        $this->assertInstanceOf(ProvisioningResponse::class, $server->getStatus($request));
         $this->assertInstanceOf(NodeOperationResponse::class, $nodeProvider->testConnection($node));
         $this->assertInstanceOf(PaymentGatewayResult::class, $gateway->charge($payment, $context));
     }

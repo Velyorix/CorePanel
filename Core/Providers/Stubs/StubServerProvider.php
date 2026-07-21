@@ -107,6 +107,31 @@ class StubServerProvider implements ServerProviderInterface
         );
     }
 
+    public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+    {
+        if ($this->shouldFail('getStatus')) {
+            return ProvisioningResponse::failed('Stub provider forced getStatus failure.');
+        }
+
+        $externalId = filled($request->externalId)
+            ? (string) $request->externalId
+            : $this->externalIdFor($request->serviceId);
+
+        return ProvisioningResponse::success(
+            externalId: $externalId,
+            hostname: $request->hostname ?: $this->hostnameFor($request->serviceId),
+            ipAddress: $request->ipAddress ?: $this->ipAddressFor($request->serviceId),
+            nodeId: $request->nodeId,
+            message: 'Remote status fetched from stub provider.',
+            payload: [
+                'provider' => $this->key(),
+                'service_id' => $request->serviceId,
+                'remote_status' => $request->status->value,
+                'sync_source' => 'poll',
+            ],
+        );
+    }
+
     public function externalIdFor(int $serviceId): string
     {
         $prefix = (string) config('corepanel.provisioning.stub.external_id_prefix', 'stub');

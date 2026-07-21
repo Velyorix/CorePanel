@@ -221,6 +221,11 @@ class NodeSelectionServiceTest extends TestCase
             {
                 return ProvisioningResponse::success();
             }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return ProvisioningResponse::success(externalId: $request->externalId);
+            }
         });
 
         $product = Product::factory()

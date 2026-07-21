@@ -61,6 +61,11 @@ class ServerProviderInterfaceTest extends TestCase
             {
                 return ProvisioningResponse::success();
             }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return ProvisioningResponse::success(externalId: $request->externalId);
+            }
         };
 
         $response = $provider->create($request);
@@ -118,6 +123,11 @@ class ServerProviderInterfaceTest extends TestCase
             public function reinstall(ProvisioningRequest $request): ProvisioningResponse
             {
                 return ProvisioningResponse::success(message: 'reinstalled');
+            }
+
+            public function getStatus(ProvisioningRequest $request): ProvisioningResponse
+            {
+                return ProvisioningResponse::success(externalId: $request->externalId);
             }
         };
 

@@ -6,6 +6,7 @@ use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
 use Core\Nodes\Jobs\CollectNodeMetricsJob;
 use Core\Nodes\Jobs\RunNodeHealthChecksJob;
+use Core\Sync\Jobs\ServiceSyncJob;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Services\NodeTelemetryService;
 use Illuminate\Foundation\Inspiring;
@@ -67,6 +68,17 @@ match ($nodeHealthSchedule) {
     'everyTenMinutes' => $nodeHealth->everyTenMinutes(),
     'hourly' => $nodeHealth->hourly(),
     default => $nodeHealth->everyMinute(),
+};
+
+$serviceSyncSchedule = (string) config('corepanel.services.sync.schedule', 'everyFiveMinutes');
+
+$serviceSync = Schedule::job(new ServiceSyncJob)->withoutOverlapping();
+
+match ($serviceSyncSchedule) {
+    'everyMinute' => $serviceSync->everyMinute(),
+    'everyTenMinutes' => $serviceSync->everyTenMinutes(),
+    'hourly' => $serviceSync->hourly(),
+    default => $serviceSync->everyFiveMinutes(),
 };
 
 Artisan::command('nodes:telemetry {node?}', function (?string $node = null) {

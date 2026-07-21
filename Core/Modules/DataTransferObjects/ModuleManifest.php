@@ -10,7 +10,7 @@ use JsonException;
  * Parsed module.json schema.
  *
  * Required: name, version, capabilities
- * Optional: label, description, module, providers, authors, homepage,
+ * Optional: label, description, module, providers, gateways, authors, homepage,
  *           license, requires, permissions
  */
 final readonly class ModuleManifest
@@ -18,6 +18,7 @@ final readonly class ModuleManifest
     /**
      * @param  list<string>  $capabilities
      * @param  list<string>  $providers
+     * @param  list<string>  $gateways
      * @param  list<ModuleAuthor>  $authors
      * @param  list<string|array{name?: string, description?: string|null}>  $permissions
      * @param  array<string, mixed>  $raw
@@ -31,6 +32,7 @@ final readonly class ModuleManifest
         public ?string $description = null,
         public ?string $moduleClass = null,
         public array $providers = [],
+        public array $gateways = [],
         public array $authors = [],
         public ?string $homepage = null,
         public ?string $license = null,
@@ -71,6 +73,7 @@ final readonly class ModuleManifest
             'capabilities' => $this->capabilities,
             'module' => $this->moduleClass,
             'providers' => $this->providers === [] ? null : $this->providers,
+            'gateways' => $this->gateways === [] ? null : $this->gateways,
             'authors' => $this->authors === [] ? null : array_map(
                 static fn (ModuleAuthor $author): array => $author->toArray(),
                 $this->authors,
@@ -144,6 +147,7 @@ final readonly class ModuleManifest
 
         $capabilities = self::normalizeCapabilities($data['capabilities']);
         $providers = self::normalizeClassList($data['providers'] ?? [], 'providers');
+        $gateways = self::normalizeClassList($data['gateways'] ?? [], 'gateways');
         $moduleClass = self::normalizeOptionalClass($data['module'] ?? null, 'module');
         $authors = self::normalizeAuthors($data['authors'] ?? []);
         $permissions = self::normalizePermissions($data['permissions'] ?? []);
@@ -163,6 +167,7 @@ final readonly class ModuleManifest
             description: $description !== '' ? $description : null,
             moduleClass: $moduleClass,
             providers: $providers,
+            gateways: $gateways,
             authors: $authors,
             homepage: $homepage !== '' ? $homepage : null,
             license: $license !== '' ? $license : null,

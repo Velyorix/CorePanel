@@ -144,13 +144,15 @@ class GatewayManager
     }
 
     /**
-     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>|null  $config
      */
-    public function configure(string $key, array $config, bool $merge = true): PaymentGateway
+    public function configure(string $key, ?array $config, bool $merge = true): PaymentGateway
     {
         $record = $this->ensureRecord($key);
 
-        if ($merge) {
+        if ($config === null) {
+            $record->config = null;
+        } elseif ($merge) {
             $existing = is_array($record->config) ? $record->config : [];
             $record->config = array_replace_recursive($existing, $config);
         } else {
@@ -187,6 +189,86 @@ class GatewayManager
                 'sort_order' => $nextSort,
             ]);
         }
+    }
+
+    /**
+     * Persist display order for registered gateways (1-based sort_order).
+     *
+     * @param  list<string>  $orderedKeys
+     */
+    public function reorder(array $orderedKeys): void
+    {
+        if (! $this->ready()) {
+            return;
+        }
+
+        $this->sync();
+
+        $position = 0;
+
+        foreach ($orderedKeys as $key) {
+            $key = trim((string) $key);
+
+            if ($key === '' || ! $this->has($key)) {
+                throw UnknownPaymentGatewayException::forKey($key !== '' ? $key : 'unknown');
+            }
+
+            $record = $this->ensureRecord($key);
+            $record->sort_order = ++$position;
+            $record->save();
+        }
+    }
+
+    /**
+     * Move a registered gateway one step up or down in display order.
+     *
+     * @param  'up'|'down'  $direction
+     */
+    public function move(string $key, string $direction): void
+    {
+        $ordered = $this->orderedKeys();
+        $index = array_search($key, $ordered, true);
+
+        if ($index === false) {
+            throw UnknownPaymentGatewayException::forKey($key);
+        }
+
+        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
+
+        if ($swapWith < 0 || $swapWith >= count($ordered)) {
+            return;
+        }
+
+        [$ordered[$index], $ordered[$swapWith]] = [$ordered[$swapWith], $ordered[$index]];
+
+        $this->reorder($ordered);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function orderedKeys(): array
+    {
+        $this->sync();
+
+        if (! $this->ready()) {
+            return $this->keys();
+        }
+
+        $keys = PaymentGateway::query()
+            ->whereIn('key', $this->keys())
+            ->orderBy('sort_order')
+            ->orderBy('key')
+            ->pluck('key')
+            ->all();
+
+        foreach ($this->keys() as $key) {
+            if (! in_array($key, $keys, true)) {
+                $keys[] = $key;
+            }
+        }
+
+        return $keys;
     }
 
     public function flush(): void

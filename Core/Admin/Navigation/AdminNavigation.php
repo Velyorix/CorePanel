@@ -238,8 +238,9 @@ class AdminNavigation
                         'permission' => 'settings.view',
                     ],
                     [
-                        'label' => __('Payments'),
-                        'route' => null,
+                        'label' => __('Payment gateways'),
+                        'route' => 'admin.gateways.index',
+                        'routeIs' => ['admin.gateways.*'],
                         'permission' => 'settings.view',
                     ],
                     [

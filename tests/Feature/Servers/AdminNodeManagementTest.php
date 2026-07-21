@@ -41,16 +41,24 @@ class AdminNodeManagementTest extends TestCase
     public function test_admin_can_view_nodes_index_and_create_form(): void
     {
         $admin = User::factory()->withRole('admin')->create();
+
+        $group = NodeGroup::factory()->create([
+            'name' => 'EU Group',
+            'key' => 'eu-group',
+        ]);
+
         $node = Node::factory()->forModule('stub')->create([
             'name' => 'EU Game Node',
             'hostname' => 'eu-game.example.test',
+            'node_group_id' => $group->id,
         ]);
 
         $this->actingAs($admin)
             ->get(route('admin.nodes.index'))
             ->assertOk()
             ->assertSee('EU Game Node')
-            ->assertSee($node->hostname);
+            ->assertSee($node->hostname)
+            ->assertSee('EU Group');
 
         $this->actingAs($admin)
             ->get(route('admin.nodes.create'))

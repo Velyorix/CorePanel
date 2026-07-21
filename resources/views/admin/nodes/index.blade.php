@@ -128,6 +128,7 @@
                 <x-ui.table-heading sort="module">{{ __('Module') }}</x-ui.table-heading>
                 <x-ui.table-heading sort="type">{{ __('Type') }}</x-ui.table-heading>
                 <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
+                <th class="px-4 py-3 font-medium">{{ __('Group') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Credentials') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Load') }}</th>
                 <th class="px-4 py-3 font-medium"></th>
@@ -136,7 +137,7 @@
 
         <x-slot:empty>
             <tr>
-                <td colspan="8" class="p-4">
+                <td colspan="9" class="p-4">
                     <x-ui.empty
                         :title="__('No servers found')"
                         :description="filled($filters['q']) || $filters['type'] !== null || $filters['status'] !== null || filled($filters['module']) || $filters['node_group_id'] !== null
@@ -168,6 +169,9 @@
                     <x-ui.badge :variant="$statusVariant">
                         {{ $node->status->label() }}
                     </x-ui.badge>
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">
+                    {{ $node->group?->name ?? '—' }}
                 </td>
                 <td class="px-4 py-3">
                     @if ($node->hasConfiguredCredentials())

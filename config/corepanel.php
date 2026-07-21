@@ -564,6 +564,21 @@ return [
                 )),
             ))),
         ],
+        'clusters' => [
+            'prefer_peers_on_failover' => filter_var(
+                env('COREPANEL_NODE_CLUSTERS_PREFER_PEERS', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+        'ssh' => [
+            'port' => (int) env('COREPANEL_NODE_SSH_PORT', 22),
+            'timeout' => (int) env('COREPANEL_NODE_SSH_TIMEOUT', 10),
+            'host_key_policy' => env('COREPANEL_NODE_SSH_HOST_KEY_POLICY', 'accept_new'),
+            'known_hosts_path' => env(
+                'COREPANEL_NODE_SSH_KNOWN_HOSTS_PATH',
+                storage_path('app/nodes/ssh_known_hosts'),
+            ),
+        ],
     ],
 
     /*

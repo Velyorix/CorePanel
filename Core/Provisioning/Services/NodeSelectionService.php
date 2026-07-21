@@ -147,6 +147,22 @@ class NodeSelectionService
         $service->loadMissing('product.provisioningRules.nodeGroup');
 
         $group = $this->resolveGroup($service);
+        $failedNode = Node::query()->find($excludeNodeId);
+
+        if (
+            $failedNode !== null
+            && (bool) config('corepanel.nodes.clusters.prefer_peers_on_failover', true)
+        ) {
+            $peer = $this->allocation->selectBestClusterPeer($failedNode, $service->module);
+
+            if ($peer !== null) {
+                return new NodeSelectionResult(
+                    group: $group,
+                    node: $peer,
+                    connection: $peer->toConnectionRequest(),
+                );
+            }
+        }
 
         if ($group !== null && $group->status === NodeGroupStatus::Active) {
             $node = $this->allocation->selectBestExcluding($group, $service->module, $excludeNodeId);

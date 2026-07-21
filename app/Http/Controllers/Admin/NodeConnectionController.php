@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TestNodeConnectionRequest;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Services\NodeConnectionTestService;
+use Core\Nodes\Services\NodeTelemetryService;
 use Core\Providers\DataTransferObjects\NodeOperationResponse;
 use Core\Providers\Enums\ProviderOperationStatus;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,7 @@ class NodeConnectionController extends Controller
 {
     public function __construct(
         private readonly NodeConnectionTestService $connectionTests,
+        private readonly NodeTelemetryService $telemetry,
     ) {
     }
 
@@ -32,7 +34,15 @@ class NodeConnectionController extends Controller
 
         return $this->respond(
             redirect: back(),
-            response: $this->runTest(fn () => $this->connectionTests->testNode($node)),
+            response: $this->runTest(function () use ($node): NodeOperationResponse {
+                $response = $this->connectionTests->testNode($node);
+
+                if ($response->status->isSuccessful()) {
+                    $this->telemetry->refresh($node);
+                }
+
+                return $response;
+            }),
         );
     }
 

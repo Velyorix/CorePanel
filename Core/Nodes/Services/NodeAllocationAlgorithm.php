@@ -3,7 +3,9 @@
 namespace Core\Nodes\Services;
 
 use Core\Nodes\DataTransferObjects\NodeAllocationScore;
+use Core\Nodes\Enums\NodeClusterStatus;
 use Core\Nodes\Models\Node;
+use Core\Nodes\Models\NodeCluster;
 use Core\Nodes\Models\NodeGroup;
 use Illuminate\Support\Collection;
 
@@ -74,6 +76,62 @@ class NodeAllocationAlgorithm
             ->reject(fn (Node $node): bool => (int) $node->id === $excludeNodeId)
             ->filter(fn (Node $node): bool => $this->isEligible($node));
 
+        return $this->pickLowestUtilization($candidates);
+    }
+
+    /**
+     * Prefer healthy peers that share an active HA cluster with the failed node.
+     */
+    public function selectBestClusterPeer(Node $failedNode, ?string $module): ?Node
+    {
+        $failedNode->loadMissing(['clusters' => fn ($query) => $query->active()]);
+
+        $clusterIds = $failedNode->clusters
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        if ($clusterIds === []) {
+            return null;
+        }
+
+        $query = Node::query()
+            ->selectable()
+            ->whereKeyNot($failedNode->id)
+            ->whereHas('clusters', function ($builder) use ($clusterIds): void {
+                $builder->whereIn('node_clusters.id', $clusterIds)
+                    ->where('node_clusters.status', NodeClusterStatus::Active->value);
+            })
+            ->withAllocatedCount()
+            ->with(['clusters' => fn ($builder) => $builder->whereIn('node_clusters.id', $clusterIds)]);
+
+        $module = trim((string) $module);
+
+        if ($module !== '') {
+            $query->forModule($module);
+        }
+
+        $candidates = $query->get()->filter(fn (Node $node): bool => $this->isEligible($node));
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        return $candidates
+            ->sort(function (Node $left, Node $right) use ($clusterIds): int {
+                return $this->utilizationScore($left) <=> $this->utilizationScore($right)
+                    ?: $left->allocatedServicesCount() <=> $right->allocatedServicesCount()
+                    ?: $this->clusterSortOrder($left, $clusterIds) <=> $this->clusterSortOrder($right, $clusterIds)
+                    ?: $left->id <=> $right->id;
+            })
+            ->first();
+    }
+
+    /**
+     * @param  Collection<int, Node>  $candidates
+     */
+    private function pickLowestUtilization(Collection $candidates): ?Node
+    {
         if ($candidates->isEmpty()) {
             return null;
         }
@@ -86,6 +144,20 @@ class NodeAllocationAlgorithm
                     ?: $left->id <=> $right->id;
             })
             ->first();
+    }
+
+    /**
+     * @param  list<int>  $clusterIds
+     */
+    private function clusterSortOrder(Node $node, array $clusterIds): int
+    {
+        $member = $node->clusters->first(fn (NodeCluster $cluster): bool => in_array((int) $cluster->id, $clusterIds, true));
+
+        if ($member !== null && $member->pivot !== null) {
+            return (int) $member->pivot->sort_order;
+        }
+
+        return (int) $node->sort_order;
     }
 
     public function isEligible(Node $node): bool

@@ -101,6 +101,25 @@ class Node extends Model
     }
 
     /**
+     * @return HasMany<NodeClusterMember, $this>
+     */
+    public function clusterMemberships(): HasMany
+    {
+        return $this->hasMany(NodeClusterMember::class);
+    }
+
+    /**
+     * @return BelongsToMany<NodeCluster, $this>
+     */
+    public function clusters(): BelongsToMany
+    {
+        return $this->belongsToMany(NodeCluster::class, 'node_cluster_members')
+            ->withPivot(['sort_order', 'weight'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
      * @return HasMany<Service, $this>
      */
     public function services(): HasMany

@@ -178,6 +178,12 @@ class AdminNavigation
                         'permission' => 'nodes.view',
                     ],
                     [
+                        'label' => __('Clusters'),
+                        'route' => 'admin.node-clusters.index',
+                        'routeIs' => ['admin.node-clusters.*'],
+                        'permission' => 'nodes.view',
+                    ],
+                    [
                         'label' => __('Metrics'),
                         'route' => 'admin.nodes.monitoring',
                         'routeIs' => ['admin.nodes.monitoring'],

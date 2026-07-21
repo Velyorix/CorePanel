@@ -13,6 +13,8 @@
         $values,
         static fn (?float $value): bool => $value !== null,
     ));
+    $paddingY = 8;
+    $plotHeight = 100 - ($paddingY * 2);
 @endphp
 
 <div {{ $attributes->class('space-y-3') }}>
@@ -44,20 +46,39 @@
             $plotValues = $values === [] ? $numericValues : $values;
             $count = count($plotValues);
             $points = [];
+            $labeledIndexes = array_keys(array_filter(
+                $plotValues,
+                static fn (?float $value): bool => $value !== null,
+            ));
+            $firstIndex = $labeledIndexes[0] ?? 0;
+            $lastIndex = $labeledIndexes[array_key_last($labeledIndexes)] ?? $firstIndex;
 
             foreach ($plotValues as $index => $value) {
                 if ($value === null) {
                     continue;
                 }
 
-                $x = $count === 1 ? 50 : ($index / max($count - 1, 1)) * 100;
-                $y = 100 - (($value - $min) / $range) * 100;
-                $points[] = round($x, 2).','.round($y, 2);
+                $x = $count === 1
+                    ? 50
+                    : ($index / max($count - 1, 1)) * 100;
+                $y = $paddingY + ($plotHeight - ((($value - $min) / $range) * $plotHeight));
+                $points[] = [
+                    'x' => round($x, 2),
+                    'y' => round($y, 2),
+                ];
             }
 
-            $polyline = implode(' ', $points);
-            $firstLabel = $series->labels[0] ?? '';
-            $lastLabel = $series->labels[array_key_last($series->labels)] ?? '';
+            if (count($points) === 1) {
+                $y = $points[0]['y'];
+                $polyline = '0,'.$y.' 100,'.$y;
+            } else {
+                $polyline = collect($points)
+                    ->map(static fn (array $point): string => $point['x'].','.$point['y'])
+                    ->implode(' ');
+            }
+
+            $firstLabel = $series->labels[$firstIndex] ?? '';
+            $lastLabel = $series->labels[$lastIndex] ?? $firstLabel;
         @endphp
 
         <div
@@ -68,16 +89,28 @@
             <svg
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
-                class="h-40 w-full text-primary"
-                style="height: {{ (int) $height }}px"
+                class="h-40 w-full"
+                style="height: {{ (int) $height }}px; color: var(--cp-accent);"
+                aria-hidden="true"
             >
                 <polyline
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="1.75"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                     vector-effect="non-scaling-stroke"
                     points="{{ $polyline }}"
                 />
+
+                @foreach ($points as $point)
+                    <circle
+                        cx="{{ $point['x'] }}"
+                        cy="{{ $point['y'] }}"
+                        r="1.75"
+                        fill="currentColor"
+                    />
+                @endforeach
             </svg>
             <div class="mt-2 flex justify-between text-small text-muted-foreground">
                 <span>{{ $firstLabel }}</span>

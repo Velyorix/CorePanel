@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\NodeClusterController;
 use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
 use App\Http\Controllers\Admin\NodeMonitoringController;
@@ -144,6 +145,14 @@ Route::middleware('admin')
         Route::get('node-groups/{nodeGroup}/edit', [NodeGroupController::class, 'edit'])->name('node-groups.edit');
         Route::put('node-groups/{nodeGroup}', [NodeGroupController::class, 'update'])->name('node-groups.update');
         Route::delete('node-groups/{nodeGroup}', [NodeGroupController::class, 'destroy'])->name('node-groups.destroy');
+
+        Route::get('node-clusters', [NodeClusterController::class, 'index'])->name('node-clusters.index');
+        Route::get('node-clusters/create', [NodeClusterController::class, 'create'])->name('node-clusters.create');
+        Route::post('node-clusters', [NodeClusterController::class, 'store'])->name('node-clusters.store');
+        Route::get('node-clusters/{nodeCluster}', [NodeClusterController::class, 'show'])->name('node-clusters.show');
+        Route::get('node-clusters/{nodeCluster}/edit', [NodeClusterController::class, 'edit'])->name('node-clusters.edit');
+        Route::put('node-clusters/{nodeCluster}', [NodeClusterController::class, 'update'])->name('node-clusters.update');
+        Route::delete('node-clusters/{nodeCluster}', [NodeClusterController::class, 'destroy'])->name('node-clusters.destroy');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

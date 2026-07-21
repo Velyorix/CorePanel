@@ -9,7 +9,8 @@ use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Models\NodeGroupRelation;
 use Core\Nodes\Services\NodeCredentialsService;
-use Core\Nodes\Services\NodeCapacityService;
+use Core\Nodes\Services\NodeMetricsCollectionService;
+use Core\Nodes\Services\NodeTelemetryService;
 use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,8 @@ class NodeService
     public function __construct(
         private readonly ProviderRegistry $providers,
         private readonly NodeCredentialsService $credentials,
-        private readonly NodeCapacityService $capacity,
+        private readonly NodeMetricsCollectionService $metrics,
+        private readonly NodeTelemetryService $telemetry,
     ) {
     }
 
@@ -118,7 +120,10 @@ class NodeService
             $node = Node::query()->create($attributes);
             $this->syncGroupRelations($node, $data);
 
-            return $node->fresh(self::RELATIONS) ?? $node;
+            $node = $node->fresh(self::RELATIONS) ?? $node;
+            $this->telemetry->refresh($node);
+
+            return $node;
         });
     }
 
@@ -177,13 +182,7 @@ class NodeService
             return $sync;
         }
 
-        $resources = $this->providers->node($module)->getResources($request);
-
-        if (! $resources->status->isSuccessful()) {
-            return $sync;
-        }
-
-        $this->capacity->applyResources($node, $resources->resources, 'sync');
+        $this->metrics->collectForNode($node->fresh() ?? $node);
 
         return $sync;
     }

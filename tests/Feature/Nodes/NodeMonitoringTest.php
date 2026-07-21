@@ -157,7 +157,8 @@ class NodeMonitoringTest extends TestCase
             ->assertSee(__('Node monitoring'))
             ->assertSee('Dashboard Node')
             ->assertSee(__('Average CPU usage'))
-            ->assertSee(__('Uptime'));
+            ->assertSee(__('Uptime'))
+            ->assertSee('<polyline', false);
     }
 
     public function test_admin_can_view_node_monitoring_on_detail_page(): void
@@ -183,7 +184,8 @@ class NodeMonitoringTest extends TestCase
             ->assertOk()
             ->assertSee(__('Monitoring'))
             ->assertSee(__('CPU usage'))
-            ->assertSee(__('Fleet dashboard'));
+            ->assertSee(__('Fleet dashboard'))
+            ->assertSee('<polyline', false);
     }
 
     public function test_navigation_metrics_item_points_to_monitoring_dashboard(): void

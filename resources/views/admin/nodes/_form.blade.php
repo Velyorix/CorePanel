@@ -42,6 +42,7 @@
         name="ip_address"
         :label="__('IP address')"
         :value="old('ip_address', $node?->ip_address)"
+        :hint="__('Required for SSH health checks when the hostname is not reachable from the panel.')"
     />
 
     <x-ui.input

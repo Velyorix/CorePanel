@@ -3,10 +3,9 @@
 namespace Core\Nodes\Jobs;
 
 use Core\Nodes\Services\NodeHealthCheckService;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class RunNodeHealthChecksJob implements ShouldQueue
+class RunNodeHealthChecksJob
 {
     use Queueable;
 

@@ -6,6 +6,8 @@ use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
 use Core\Nodes\Jobs\CollectNodeMetricsJob;
 use Core\Nodes\Jobs\RunNodeHealthChecksJob;
+use Core\Nodes\Models\Node;
+use Core\Nodes\Services\NodeTelemetryService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -66,3 +68,24 @@ match ($nodeHealthSchedule) {
     'hourly' => $nodeHealth->hourly(),
     default => $nodeHealth->everyMinute(),
 };
+
+Artisan::command('nodes:telemetry {node?}', function (?string $node = null) {
+    $telemetry = app(NodeTelemetryService::class);
+
+    $nodes = $node === null
+        ? Node::query()->whereNotNull('module')->where('module', '!=', '')->get()
+        : Node::query()->whereKey($node)->get();
+
+    if ($nodes->isEmpty()) {
+        $this->error('No matching nodes found.');
+
+        return 1;
+    }
+
+    foreach ($nodes as $matched) {
+        $telemetry->refresh($matched);
+        $this->info("Refreshed telemetry for node [{$matched->id}] {$matched->name}");
+    }
+
+    return 0;
+})->purpose('Refresh node health checks and metrics');

@@ -10,6 +10,7 @@ use Core\Nodes\Enums\NodeStatus;
 use Core\Nodes\Enums\NodeType;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
+use Core\Nodes\Services\NodeAuditLogger;
 use Core\Nodes\Services\NodeLogService;
 use Core\Nodes\Services\NodeMonitoringService;
 use Core\Nodes\Services\NodeService;
@@ -24,6 +25,7 @@ class NodeController extends Controller
     public function __construct(
         private readonly NodeService $nodeService,
         private readonly NodeLogService $nodeLogs,
+        private readonly NodeAuditLogger $audit,
         private readonly NodeMonitoringService $monitoring,
         private readonly ProviderRegistry $providers,
     ) {
@@ -69,6 +71,12 @@ class NodeController extends Controller
             ],
         );
 
+        $this->audit->log(
+            action: NodeAuditLogger::ACTION_CREATED,
+            node: $node,
+            after: $this->audit->nodeSnapshot($node),
+        );
+
         return redirect()
             ->route('admin.nodes.index')
             ->with('status', __('Server created successfully.'));
@@ -79,11 +87,17 @@ class NodeController extends Controller
         Gate::authorize('view', $node);
 
         $found = $this->nodeService->find($node->id);
+        $resolved = $found ?? $node;
+
+        $this->audit->log(
+            action: NodeAuditLogger::ACTION_VIEWED,
+            node: $resolved,
+        );
 
         return view('admin.nodes.show', [
-            'node' => $found ?? $node,
-            'logs' => $this->nodeLogs->forNode($found ?? $node, limit: 20),
-            'monitoring' => $this->monitoring->forNode($found ?? $node),
+            'node' => $resolved,
+            'logs' => $this->nodeLogs->forNode($resolved, limit: 20),
+            'monitoring' => $this->monitoring->forNode($resolved),
         ]);
     }
 
@@ -108,12 +122,23 @@ class NodeController extends Controller
         }
 
         if ($response->status->isSuccessful()) {
+            $fresh = $node->fresh() ?? $node;
+
             $this->nodeLogs->record(
-                node: $node->fresh() ?? $node,
+                node: $fresh,
                 action: 'node.sync',
                 status: NodeLogStatus::Success,
                 performedBy: auth()->id(),
                 response: $response->payload,
+            );
+
+            $this->audit->log(
+                action: NodeAuditLogger::ACTION_SYNCED,
+                node: $fresh,
+                after: [
+                    'message' => $response->message,
+                    'payload' => $response->payload,
+                ],
             );
 
             return redirect()
@@ -145,6 +170,8 @@ class NodeController extends Controller
             ? NodeStatus::Active
             : NodeStatus::Maintenance;
 
+        $before = $this->audit->nodeSnapshot($node);
+
         $this->nodeService->setStatus($node, $target);
         $fresh = $node->fresh() ?? $node;
         $this->nodeLogs->record(
@@ -153,6 +180,13 @@ class NodeController extends Controller
             status: NodeLogStatus::Success,
             performedBy: auth()->id(),
             response: ['status' => $target->value],
+        );
+
+        $this->audit->log(
+            action: NodeAuditLogger::ACTION_STATUS_CHANGED,
+            node: $fresh,
+            before: $before,
+            after: $this->audit->nodeSnapshot($fresh),
         );
 
         return redirect()
@@ -164,13 +198,23 @@ class NodeController extends Controller
     {
         Gate::authorize('update', $node);
 
+        $before = $this->audit->nodeSnapshot($node);
+
         $this->nodeService->setStatus($node, NodeStatus::Disabled);
+        $fresh = $node->fresh() ?? $node;
         $this->nodeLogs->record(
-            node: $node->fresh() ?? $node,
+            node: $fresh,
             action: 'node.disabled',
             status: NodeLogStatus::Success,
             performedBy: auth()->id(),
             response: ['status' => NodeStatus::Disabled->value],
+        );
+
+        $this->audit->log(
+            action: NodeAuditLogger::ACTION_STATUS_CHANGED,
+            node: $fresh,
+            before: $before,
+            after: $this->audit->nodeSnapshot($fresh),
         );
 
         return redirect()
@@ -182,13 +226,23 @@ class NodeController extends Controller
     {
         Gate::authorize('update', $node);
 
+        $before = $this->audit->nodeSnapshot($node);
+
         $this->nodeService->setStatus($node, NodeStatus::Active);
+        $fresh = $node->fresh() ?? $node;
         $this->nodeLogs->record(
-            node: $node->fresh() ?? $node,
+            node: $fresh,
             action: 'node.enabled',
             status: NodeLogStatus::Success,
             performedBy: auth()->id(),
             response: ['status' => NodeStatus::Active->value],
+        );
+
+        $this->audit->log(
+            action: NodeAuditLogger::ACTION_STATUS_CHANGED,
+            node: $fresh,
+            before: $before,
+            after: $this->audit->nodeSnapshot($fresh),
         );
 
         return redirect()
@@ -201,6 +255,8 @@ class NodeController extends Controller
         Gate::authorize('delete', $node);
 
         try {
+            $snapshot = $this->audit->nodeSnapshot($node);
+
             $this->nodeLogs->record(
                 node: $node,
                 action: 'node.deleted',
@@ -208,6 +264,12 @@ class NodeController extends Controller
                 performedBy: auth()->id(),
             );
             $this->nodeService->delete($node);
+
+            $this->audit->log(
+                action: NodeAuditLogger::ACTION_DELETED,
+                node: $node,
+                before: $snapshot,
+            );
         } catch (InvalidArgumentException $exception) {
             $this->nodeLogs->record(
                 node: $node,

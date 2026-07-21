@@ -6,12 +6,14 @@ use Core\Nodes\Models\Node;
 use Core\Providers\DataTransferObjects\NodeConnectionRequest;
 use Core\Providers\DataTransferObjects\NodeOperationResponse;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Nodes\Exceptions\NodeSecurityException;
 use InvalidArgumentException;
 
 class NodeConnectionTestService
 {
     public function __construct(
         private readonly ProviderRegistry $providers,
+        private readonly NodeConnectionSecurityService $security,
     ) {
     }
 
@@ -49,6 +51,8 @@ class NodeConnectionTestService
         if (! $this->providers->hasNode($module)) {
             throw new InvalidArgumentException("No node provider registered for module [{$module}].");
         }
+
+        $this->security->assertAllowed($request);
 
         return $this->providers->node($module)->testConnection($request);
     }

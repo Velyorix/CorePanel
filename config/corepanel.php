@@ -632,6 +632,44 @@ return [
                 storage_path('app/nodes/ssh_known_hosts'),
             ),
         ],
+        'security' => [
+            'audit' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_AUDIT_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+            'tls' => [
+                'required' => filter_var(
+                    env('COREPANEL_NODE_TLS_REQUIRED', env('APP_ENV') !== 'local'),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'verify_ssl' => filter_var(
+                    env('COREPANEL_NODE_VERIFY_SSL', env('APP_ENV') !== 'local'),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ca_bundle' => env('COREPANEL_NODE_CA_BUNDLE'),
+                'timeout_seconds' => (int) env('COREPANEL_NODE_TLS_TIMEOUT_SECONDS', 15),
+            ],
+            'ip_whitelist' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_ENABLED', false),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'allowed' => array_values(array_filter(array_map(
+                    static fn (string $value): string => trim($value),
+                    explode(',', (string) env('COREPANEL_NODE_IP_WHITELIST', '')),
+                ), static fn (string $value): bool => $value !== '')),
+                'allow_private' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_ALLOW_PRIVATE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'resolve_hostnames' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_RESOLVE_HOSTNAMES', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        ],
     ],
 
     /*

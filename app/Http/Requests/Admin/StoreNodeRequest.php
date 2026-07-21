@@ -34,7 +34,24 @@ class StoreNodeRequest extends FormRequest
                 Rule::in(app(ProviderRegistry::class)->nodeKeys()),
             ],
             'ip_address' => ['nullable', 'string', 'max:45'],
-            'api_url' => ['nullable', 'string', 'max:2048', 'url'],
+            'api_url' => [
+                'nullable',
+                'string',
+                'max:2048',
+                'url',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! filled($value)) {
+                        return;
+                    }
+
+                    if (
+                        (bool) config('corepanel.nodes.security.tls.required', env('APP_ENV') !== 'local')
+                        && ! str_starts_with(strtolower((string) $value), 'https://')
+                    ) {
+                        $fail(__('The API URL must use HTTPS.'));
+                    }
+                },
+            ],
             'status' => ['nullable', 'string', Rule::in(NodeStatus::values())],
             'max_services' => ['nullable', 'integer', 'min:0'],
             'max_cpu_cores' => ['nullable', 'integer', 'min:0'],

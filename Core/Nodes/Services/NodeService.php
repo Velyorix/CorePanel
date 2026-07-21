@@ -25,6 +25,8 @@ class NodeService
         private readonly NodeCredentialsService $credentials,
         private readonly NodeMetricsCollectionService $metrics,
         private readonly NodeTelemetryService $telemetry,
+        private readonly NodeConnectionSecurityService $security,
+        private readonly NodeAuditLogger $audit,
     ) {
     }
 
@@ -140,6 +142,8 @@ class NodeService
                 $attributes['credentials'] = $this->credentials->mergeForUpdate($node, $data->credentials);
             }
 
+            $before = $this->audit->nodeSnapshot($node);
+
             $attributes['config'] = $data->mergedConfig(
                 is_array($node->config) ? $node->config : [],
             );
@@ -150,7 +154,18 @@ class NodeService
                 $this->syncGroupRelations($node->fresh() ?? $node, $data);
             }
 
-            return $node->fresh(self::RELATIONS) ?? $node;
+            $fresh = $node->fresh(self::RELATIONS) ?? $node;
+
+            if ($data->credentialsProvided) {
+                $this->audit->log(
+                    action: NodeAuditLogger::ACTION_CREDENTIALS_UPDATED,
+                    node: $fresh,
+                    before: $before,
+                    after: $this->audit->nodeSnapshot($fresh),
+                );
+            }
+
+            return $fresh;
         });
     }
 
@@ -179,6 +194,8 @@ class NodeService
         }
 
         $request = $node->toConnectionRequest();
+
+        $this->security->assertAllowed($request);
 
         $sync = $this->providers->node($module)->sync($request);
 

@@ -11,6 +11,7 @@ enum ServiceAction: string
     case Unsuspend = 'unsuspend';
     case Terminate = 'terminate';
     case Reinstall = 'reinstall';
+    case Failover = 'failover';
     case Upgrade = 'upgrade';
     case Downgrade = 'downgrade';
 
@@ -24,6 +25,7 @@ enum ServiceAction: string
             self::Unsuspend => __('Unsuspend'),
             self::Terminate => __('Terminate'),
             self::Reinstall => __('Reinstall'),
+            self::Failover => __('Failover'),
             self::Upgrade => __('Upgrade'),
             self::Downgrade => __('Downgrade'),
         };

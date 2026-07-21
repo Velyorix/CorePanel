@@ -142,6 +142,38 @@ class NodeSelectionService
         return $selection;
     }
 
+    public function selectReplacement(Service $service, int $excludeNodeId): NodeSelectionResult
+    {
+        $service->loadMissing('product.provisioningRules.nodeGroup');
+
+        $group = $this->resolveGroup($service);
+
+        if ($group !== null && $group->status === NodeGroupStatus::Active) {
+            $node = $this->allocation->selectBestExcluding($group, $service->module, $excludeNodeId);
+
+            if ($node === null) {
+                throw NoEligibleNodeException::forServiceReplacement((int) $service->id);
+            }
+
+            return new NodeSelectionResult(
+                group: $group,
+                node: $node,
+                connection: $node->toConnectionRequest(),
+            );
+        }
+
+        $node = $this->allocation->selectBestFromPool($service->module, $excludeNodeId);
+
+        if ($node === null) {
+            throw NoEligibleNodeException::forServiceReplacement((int) $service->id);
+        }
+
+        return new NodeSelectionResult(
+            node: $node,
+            connection: $node->toConnectionRequest(),
+        );
+    }
+
     private function moduleMatches(Node $node, ?string $module): bool
     {
         $module = trim((string) $module);

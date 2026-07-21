@@ -543,6 +543,27 @@ return [
             'history_hours' => (int) env('COREPANEL_NODE_MONITORING_HISTORY_HOURS', 24),
             'bucket_minutes' => (int) env('COREPANEL_NODE_MONITORING_BUCKET_MINUTES', 15),
         ],
+        'failover' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'auto_reassign' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_AUTO_REASSIGN', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'reinstall_on_provider' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_REINSTALL_ON_PROVIDER', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'eligible_statuses' => array_values(array_filter(array_map(
+                trim(...),
+                explode(',', (string) env(
+                    'COREPANEL_NODE_FAILOVER_ELIGIBLE_STATUSES',
+                    'active,suspended',
+                )),
+            ))),
+        ],
     ],
 
     /*

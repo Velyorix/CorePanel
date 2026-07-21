@@ -249,6 +249,10 @@ class NodeHealthCheckService
                     'health_state' => $state->value,
                 ],
             );
+
+            if ($nextStatus === NodeStatus::Offline) {
+                app(NodeFailoverService::class)->dispatchForNode($node->fresh() ?? $node);
+            }
         }
     }
 

@@ -41,6 +41,7 @@ use Core\Nodes\Services\NodeAllocationAlgorithm;
 use Core\Nodes\Services\NodeCapacityService;
 use Core\Nodes\Services\NodeConnectionTestService;
 use Core\Nodes\Services\NodeCredentialsService;
+use Core\Nodes\Services\NodeFailoverService;
 use Core\Nodes\Services\NodeGroupService;
 use Core\Nodes\Services\NodeHealthCheckService;
 use Core\Nodes\Services\NodeLogService;
@@ -150,6 +151,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(NodeMetricsCollectionService::class);
         $this->app->singleton(NodeHealthCheckService::class);
         $this->app->singleton(NodeMonitoringService::class);
+        $this->app->singleton(NodeFailoverService::class);
         $this->app->singleton(NodeLogService::class);
         $this->app->singleton(NodeService::class);
         $this->app->singleton(CartService::class);

@@ -46,6 +46,48 @@ class NodeAllocationAlgorithm
         return $this->rank($candidates, $group)->first()?->node;
     }
 
+    public function selectBestExcluding(NodeGroup $group, ?string $module, int $excludeNodeId): ?Node
+    {
+        $candidates = $this->eligibleCandidates($group, $module)
+            ->reject(fn (Node $node): bool => (int) $node->id === $excludeNodeId);
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        return $this->rank($candidates, $group)->first()?->node;
+    }
+
+    public function selectBestFromPool(?string $module, int $excludeNodeId): ?Node
+    {
+        $query = Node::query()
+            ->selectable()
+            ->withAllocatedCount();
+
+        $module = trim((string) $module);
+
+        if ($module !== '') {
+            $query->forModule($module);
+        }
+
+        $candidates = $query->get()
+            ->reject(fn (Node $node): bool => (int) $node->id === $excludeNodeId)
+            ->filter(fn (Node $node): bool => $this->isEligible($node));
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        return $candidates
+            ->sort(function (Node $left, Node $right): int {
+                return $this->utilizationScore($left) <=> $this->utilizationScore($right)
+                    ?: $left->allocatedServicesCount() <=> $right->allocatedServicesCount()
+                    ?: $left->sort_order <=> $right->sort_order
+                    ?: $left->id <=> $right->id;
+            })
+            ->first();
+    }
+
     public function isEligible(Node $node): bool
     {
         if (! $node->isSelectable()) {

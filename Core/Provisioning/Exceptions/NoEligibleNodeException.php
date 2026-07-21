@@ -21,4 +21,9 @@ class NoEligibleNodeException extends RuntimeException
     {
         return new self("Configured node group [{$reference}] could not be resolved.");
     }
+
+    public static function forServiceReplacement(int $serviceId): self
+    {
+        return new self("No eligible replacement node found for service [{$serviceId}].");
+    }
 }

@@ -34,12 +34,32 @@ class StoreNodeRequest extends FormRequest
                 Rule::in(app(ProviderRegistry::class)->nodeKeys()),
             ],
             'ip_address' => ['nullable', 'string', 'max:45'],
-            'api_url' => ['nullable', 'string', 'max:2048', 'url'],
+            'api_url' => [
+                'nullable',
+                'string',
+                'max:2048',
+                'url',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! filled($value)) {
+                        return;
+                    }
+
+                    if (
+                        (bool) config('corepanel.nodes.security.tls.required', env('APP_ENV') !== 'local')
+                        && ! str_starts_with(strtolower((string) $value), 'https://')
+                    ) {
+                        $fail(__('The API URL must use HTTPS.'));
+                    }
+                },
+            ],
             'status' => ['nullable', 'string', Rule::in(NodeStatus::values())],
             'max_services' => ['nullable', 'integer', 'min:0'],
             'max_cpu_cores' => ['nullable', 'integer', 'min:0'],
             'max_ram_mb' => ['nullable', 'integer', 'min:0'],
             'max_disk_gb' => ['nullable', 'integer', 'min:0'],
+            'max_bandwidth_mbps' => ['nullable', 'integer', 'min:0'],
+            'allocation_weight' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'allocation_is_fallback' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'node_group_id' => ['nullable', 'integer', 'exists:node_groups,id'],
             'credentials' => ['nullable', 'array'],
@@ -79,6 +99,9 @@ class StoreNodeRequest extends FormRequest
             'max_cpu_cores' => filled($this->input('max_cpu_cores')) ? $this->input('max_cpu_cores') : null,
             'max_ram_mb' => filled($this->input('max_ram_mb')) ? $this->input('max_ram_mb') : null,
             'max_disk_gb' => filled($this->input('max_disk_gb')) ? $this->input('max_disk_gb') : null,
+            'max_bandwidth_mbps' => filled($this->input('max_bandwidth_mbps')) ? $this->input('max_bandwidth_mbps') : null,
+            'allocation_weight' => filled($this->input('allocation_weight')) ? $this->input('allocation_weight') : null,
+            'allocation_is_fallback' => $this->boolean('allocation_is_fallback'),
             'credentials' => is_array($credentials) ? $credentials : null,
         ]);
     }

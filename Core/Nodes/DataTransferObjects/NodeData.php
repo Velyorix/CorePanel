@@ -25,12 +25,15 @@ readonly class NodeData
         public ?int $maxCpuCores = null,
         public ?int $maxRamMb = null,
         public ?int $maxDiskGb = null,
+        public ?int $maxBandwidthMbps = null,
         public int $sortOrder = 0,
         public ?int $nodeGroupId = null,
         public ?array $credentials = null,
         public bool $credentialsProvided = false,
         public ?array $config = null,
         public ?array $groupIds = null,
+        public ?int $allocationWeight = null,
+        public ?bool $allocationIsFallback = null,
     ) {
     }
 
@@ -47,11 +50,14 @@ readonly class NodeData
      *     max_cpu_cores?: int|null,
      *     max_ram_mb?: int|null,
      *     max_disk_gb?: int|null,
+     *     max_bandwidth_mbps?: int|null,
      *     sort_order?: int|null,
      *     node_group_id?: int|null,
      *     credentials?: array<string, mixed>|null,
      *     config?: array<string, mixed>|null,
-     *     group_ids?: list<int>|null
+     *     group_ids?: list<int>|null,
+     *     allocation_weight?: int|null,
+     *     allocation_is_fallback?: bool|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -77,6 +83,7 @@ readonly class NodeData
         $maxCpuCores = self::nullableNonNegativeInt($data['max_cpu_cores'] ?? null);
         $maxRamMb = self::nullableNonNegativeInt($data['max_ram_mb'] ?? null);
         $maxDiskGb = self::nullableNonNegativeInt($data['max_disk_gb'] ?? null);
+        $maxBandwidthMbps = self::nullableNonNegativeInt($data['max_bandwidth_mbps'] ?? null);
 
         $nodeGroupId = $data['node_group_id'] ?? null;
 
@@ -109,12 +116,17 @@ readonly class NodeData
             maxCpuCores: $maxCpuCores,
             maxRamMb: $maxRamMb,
             maxDiskGb: $maxDiskGb,
+            maxBandwidthMbps: $maxBandwidthMbps,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             nodeGroupId: $nodeGroupId,
             credentials: $credentials,
             credentialsProvided: $credentialsProvided,
             config: self::nullableArray($data['config'] ?? null),
             groupIds: $groupIds,
+            allocationWeight: self::nullablePositiveInt($data['allocation_weight'] ?? null),
+            allocationIsFallback: array_key_exists('allocation_is_fallback', $data)
+                ? filter_var($data['allocation_is_fallback'], FILTER_VALIDATE_BOOL)
+                : null,
         );
     }
 
@@ -135,10 +147,33 @@ readonly class NodeData
             'max_cpu_cores' => $this->maxCpuCores,
             'max_ram_mb' => $this->maxRamMb,
             'max_disk_gb' => $this->maxDiskGb,
+            'max_bandwidth_mbps' => $this->maxBandwidthMbps,
             'sort_order' => $this->sortOrder,
             'node_group_id' => $this->nodeGroupId,
-            'config' => $this->config,
+            'config' => $this->mergedConfig(),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function mergedConfig(?array $existing = null): ?array
+    {
+        $config = $existing ?? $this->config ?? [];
+
+        if ($this->allocationWeight !== null) {
+            $allocation = is_array($config['allocation'] ?? null) ? $config['allocation'] : [];
+            $allocation['weight'] = $this->allocationWeight;
+            $config['allocation'] = $allocation;
+        }
+
+        if ($this->allocationIsFallback !== null) {
+            $allocation = is_array($config['allocation'] ?? null) ? $config['allocation'] : [];
+            $allocation['is_fallback'] = $this->allocationIsFallback;
+            $config['allocation'] = $allocation;
+        }
+
+        return $config === [] ? null : $config;
     }
 
     /**
@@ -218,6 +253,15 @@ readonly class NodeData
         }
 
         return max(0, (int) $value);
+    }
+
+    private static function nullablePositiveInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return max(1, (int) $value);
     }
 
     /**

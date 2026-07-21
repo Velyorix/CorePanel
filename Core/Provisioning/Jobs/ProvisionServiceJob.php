@@ -3,6 +3,7 @@
 namespace Core\Provisioning\Jobs;
 
 use Core\Provisioning\Events\ServiceProvisioningFailed;
+use Core\Provisioning\Exceptions\NodeProvisioningDeferredException;
 use Core\Provisioning\Exceptions\ProvisioningAttemptFailedException;
 use Core\Provisioning\Exceptions\ProvisioningException;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
@@ -79,6 +80,14 @@ class ProvisionServiceJob implements ShouldBeUnique, ShouldQueue
 
         try {
             $engine->provision($service, retryableFailures: true);
+        } catch (NodeProvisioningDeferredException $exception) {
+            Log::info('Provisioning deferred due to node overload.', [
+                'service_id' => $this->serviceId,
+                'retry_after_seconds' => $exception->retryAfterSeconds,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            $this->release($exception->retryAfterSeconds);
         } catch (ProvisioningException|UnknownProviderException $exception) {
             Log::warning('Provisioning job aborted (non-retryable).', [
                 'service_id' => $this->serviceId,

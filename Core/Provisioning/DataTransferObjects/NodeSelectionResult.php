@@ -12,6 +12,7 @@ final readonly class NodeSelectionResult
         public ?NodeGroup $group = null,
         public ?Node $node = null,
         public ?NodeConnectionRequest $connection = null,
+        public bool $usedFallback = false,
     ) {
     }
 

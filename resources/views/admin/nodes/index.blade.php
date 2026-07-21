@@ -19,6 +19,12 @@
     </x-slot:breadcrumbs>
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        @can('viewAny', Core\Nodes\Models\Node::class)
+            <x-ui.button :href="route('admin.nodes.monitoring')" variant="secondary" size="sm">
+                {{ __('Monitoring') }}
+            </x-ui.button>
+        @endcan
+
         @can('create', Core\Nodes\Models\Node::class)
             <x-ui.button :href="route('admin.nodes.create')" variant="primary" size="sm">
                 {{ __('Create server') }}
@@ -128,6 +134,7 @@
                 <x-ui.table-heading sort="module">{{ __('Module') }}</x-ui.table-heading>
                 <x-ui.table-heading sort="type">{{ __('Type') }}</x-ui.table-heading>
                 <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
+                <th class="px-4 py-3 font-medium">{{ __('Health') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Group') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Credentials') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Load') }}</th>
@@ -137,7 +144,7 @@
 
         <x-slot:empty>
             <tr>
-                <td colspan="9" class="p-4">
+                <td colspan="10" class="p-4">
                     <x-ui.empty
                         :title="__('No servers found')"
                         :description="filled($filters['q']) || $filters['type'] !== null || $filters['status'] !== null || filled($filters['module']) || $filters['node_group_id'] !== null
@@ -150,10 +157,17 @@
 
         @foreach ($nodes as $node)
             @php
+                $healthState = $node->healthState();
                 $statusVariant = match ($node->status) {
                     \Core\Nodes\Enums\NodeStatus::Active => 'success',
                     \Core\Nodes\Enums\NodeStatus::Maintenance => 'warning',
                     \Core\Nodes\Enums\NodeStatus::Offline => 'danger',
+                    default => 'neutral',
+                };
+                $healthVariant = match ($healthState) {
+                    \Core\Nodes\Enums\NodeHealthState::Online => 'success',
+                    \Core\Nodes\Enums\NodeHealthState::Degraded => 'warning',
+                    \Core\Nodes\Enums\NodeHealthState::Offline => 'danger',
                     default => 'neutral',
                 };
             @endphp
@@ -168,6 +182,11 @@
                 <td class="px-4 py-3">
                     <x-ui.badge :variant="$statusVariant">
                         {{ $node->status->label() }}
+                    </x-ui.badge>
+                </td>
+                <td class="px-4 py-3">
+                    <x-ui.badge :variant="$healthVariant">
+                        {{ $healthState->label() }}
                     </x-ui.badge>
                 </td>
                 <td class="px-4 py-3 text-muted-foreground">

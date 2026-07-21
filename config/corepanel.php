@@ -506,6 +506,174 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Nodes infrastructure
+    |--------------------------------------------------------------------------
+    */
+
+    'nodes' => [
+        'metrics' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_METRICS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_NODE_METRICS_SCHEDULE', 'everyFiveMinutes'),
+        ],
+        'allocation' => [
+            'require_credentials' => filter_var(
+                env('COREPANEL_NODE_ALLOCATION_REQUIRE_CREDENTIALS', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'load_balancing' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_LOAD_BALANCING_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'default_weight' => (int) env('COREPANEL_NODE_LOAD_BALANCING_DEFAULT_WEIGHT', 100),
+                'utilization_band' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UTILIZATION_BAND', 0.15),
+                'use_reliability_history' => filter_var(
+                    env('COREPANEL_NODE_LOAD_BALANCING_USE_RELIABILITY', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'reliability_hours' => (int) env('COREPANEL_NODE_LOAD_BALANCING_RELIABILITY_HOURS', 24),
+                'unknown_reliability_factor' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UNKNOWN_RELIABILITY', 0.85),
+                'state_ttl_seconds' => (int) env('COREPANEL_NODE_LOAD_BALANCING_STATE_TTL', 3600),
+                'cache_prefix' => env('COREPANEL_NODE_LOAD_BALANCING_CACHE_PREFIX', 'nodes.load_balancing'),
+                'uptime_factors' => [
+                    'online' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_ONLINE', 1.0),
+                    'degraded' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_DEGRADED', 0.5),
+                    'unknown' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_UNKNOWN', 0.85),
+                    'offline' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_OFFLINE', 0.1),
+                ],
+            ],
+        ],
+        'overload' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'defer_on_overload' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_DEFER', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'queue_delay_seconds' => (int) env('COREPANEL_NODE_OVERLOAD_QUEUE_DELAY', 60),
+            'utilization_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_UTILIZATION_THRESHOLD', 0.85),
+            'fallback_utilization_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_FALLBACK_UTILIZATION_THRESHOLD', 0.95),
+            'service_fill_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_SERVICE_FILL_THRESHOLD', 0.95),
+            'fallback_service_fill_threshold' => (float) env('COREPANEL_NODE_OVERLOAD_FALLBACK_SERVICE_FILL_THRESHOLD', 0.98),
+            'block_degraded' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_BLOCK_DEGRADED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'allow_degraded_fallback' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_ALLOW_DEGRADED_FALLBACK', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'respect_capacity_available_flag' => filter_var(
+                env('COREPANEL_NODE_OVERLOAD_RESPECT_CAPACITY_AVAILABLE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'fallback_node_ids' => array_values(array_filter(array_map(
+                static fn (string $value): int => (int) trim($value),
+                explode(',', (string) env('COREPANEL_NODE_OVERLOAD_FALLBACK_NODE_IDS', '')),
+            ), static fn (int $value): bool => $value > 0)),
+        ],
+        'capacity' => [
+            'stale_after_seconds' => (int) env('COREPANEL_NODE_CAPACITY_STALE_AFTER_SECONDS', 600),
+        ],
+        'health' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_HEALTH_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'schedule' => env('COREPANEL_NODE_HEALTH_SCHEDULE', 'everyMinute'),
+            'auto_status' => filter_var(
+                env('COREPANEL_NODE_HEALTH_AUTO_STATUS', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'degraded_utilization_threshold' => (float) env('COREPANEL_NODE_HEALTH_DEGRADED_THRESHOLD', 0.85),
+        ],
+        'monitoring' => [
+            'history_hours' => (int) env('COREPANEL_NODE_MONITORING_HISTORY_HOURS', 24),
+            'bucket_minutes' => (int) env('COREPANEL_NODE_MONITORING_BUCKET_MINUTES', 15),
+        ],
+        'failover' => [
+            'enabled' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'auto_reassign' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_AUTO_REASSIGN', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'reinstall_on_provider' => filter_var(
+                env('COREPANEL_NODE_FAILOVER_REINSTALL_ON_PROVIDER', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'eligible_statuses' => array_values(array_filter(array_map(
+                trim(...),
+                explode(',', (string) env(
+                    'COREPANEL_NODE_FAILOVER_ELIGIBLE_STATUSES',
+                    'active,suspended',
+                )),
+            ))),
+        ],
+        'clusters' => [
+            'prefer_peers_on_failover' => filter_var(
+                env('COREPANEL_NODE_CLUSTERS_PREFER_PEERS', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+        'ssh' => [
+            'port' => (int) env('COREPANEL_NODE_SSH_PORT', 22),
+            'timeout' => (int) env('COREPANEL_NODE_SSH_TIMEOUT', 10),
+            'host_key_policy' => env('COREPANEL_NODE_SSH_HOST_KEY_POLICY', 'accept_new'),
+            'known_hosts_path' => env(
+                'COREPANEL_NODE_SSH_KNOWN_HOSTS_PATH',
+                storage_path('app/nodes/ssh_known_hosts'),
+            ),
+        ],
+        'security' => [
+            'audit' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_AUDIT_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+            'tls' => [
+                'required' => filter_var(
+                    env('COREPANEL_NODE_TLS_REQUIRED', env('APP_ENV') !== 'local'),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'verify_ssl' => filter_var(
+                    env('COREPANEL_NODE_VERIFY_SSL', env('APP_ENV') !== 'local'),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'ca_bundle' => env('COREPANEL_NODE_CA_BUNDLE'),
+                'timeout_seconds' => (int) env('COREPANEL_NODE_TLS_TIMEOUT_SECONDS', 15),
+            ],
+            'ip_whitelist' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_ENABLED', false),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'allowed' => array_values(array_filter(array_map(
+                    static fn (string $value): string => trim($value),
+                    explode(',', (string) env('COREPANEL_NODE_IP_WHITELIST', '')),
+                ), static fn (string $value): bool => $value !== '')),
+                'allow_private' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_ALLOW_PRIVATE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'resolve_hostnames' => filter_var(
+                    env('COREPANEL_NODE_IP_WHITELIST_RESOLVE_HOSTNAMES', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | UI theme
     |--------------------------------------------------------------------------
     |

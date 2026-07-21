@@ -5,19 +5,24 @@ namespace Core\Provisioning\Services;
 use Core\Nodes\Enums\NodeGroupStatus;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
+use Core\Nodes\Services\NodeAllocationAlgorithm;
+use Core\Nodes\Services\NodeOverloadService;
 use Core\Provisioning\DataTransferObjects\NodeSelectionResult;
 use Core\Provisioning\Exceptions\NoEligibleNodeException;
+use Core\Provisioning\Exceptions\NodeProvisioningDeferredException;
 use Core\Services\Models\Service;
-use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Selects and assigns an infrastructure node before provider execution.
- *
- * Strategy: resolve product node group → filter selectable nodes by module
- * and remaining capacity → pick the least allocated node.
  */
 class NodeSelectionService
 {
+    public function __construct(
+        private readonly NodeAllocationAlgorithm $allocation,
+        private readonly NodeOverloadService $overload,
+    ) {
+    }
+
     public function resolveGroup(Service $service): ?NodeGroup
     {
         $service->loadMissing('product.provisioningRules.nodeGroup');
@@ -64,7 +69,7 @@ class NodeSelectionService
             if ($service->node_id !== null) {
                 $existing = Node::query()->find($service->node_id);
 
-                if ($existing !== null && $existing->isSelectable()) {
+                if ($existing !== null && $this->allocation->isEligible($existing)) {
                     return new NodeSelectionResult(
                         node: $existing,
                         connection: $existing->toConnectionRequest(),
@@ -86,11 +91,15 @@ class NodeSelectionService
         if ($service->node_id !== null) {
             $existing = Node::query()
                 ->selectable()
-                ->inGroup((int) $group->id)
+                ->assignedToGroup((int) $group->id)
                 ->whereKey($service->node_id)
                 ->first();
 
-            if ($existing !== null && $this->moduleMatches($existing, $service->module) && $existing->hasCapacity()) {
+            if (
+                $existing !== null
+                && $this->moduleMatches($existing, $service->module)
+                && $this->allocation->isEligible($existing)
+            ) {
                 return new NodeSelectionResult(
                     group: $group,
                     node: $existing,
@@ -99,11 +108,18 @@ class NodeSelectionService
             }
         }
 
-        $candidates = $this->candidateNodes($group, $service->module);
-        $node = $candidates->first(fn (Node $candidate): bool => $candidate->hasCapacity());
+        $assignable = $this->allocation->assignableCandidates($group, $service->module);
+        $node = $this->allocation->selectBest($group, $service->module);
 
         if ($node === null) {
             if ($this->requiresNodeWhenGroupAssigned()) {
+                if ($assignable->isNotEmpty() && $this->shouldDeferOnOverload()) {
+                    throw NodeProvisioningDeferredException::overloadedPool(
+                        $group->key,
+                        $this->overload->deferDelaySeconds(),
+                    );
+                }
+
                 throw NoEligibleNodeException::forGroup($group->key, $service->module);
             }
 
@@ -114,6 +130,7 @@ class NodeSelectionService
             group: $group,
             node: $node,
             connection: $node->toConnectionRequest(),
+            usedFallback: $this->overload->enabled() && $this->overload->isFallbackReceiver($node),
         );
     }
 
@@ -137,26 +154,52 @@ class NodeSelectionService
         return $selection;
     }
 
-    /**
-     * @return Collection<int, Node>
-     */
-    private function candidateNodes(NodeGroup $group, ?string $module): Collection
+    public function selectReplacement(Service $service, int $excludeNodeId): NodeSelectionResult
     {
-        $query = Node::query()
-            ->selectable()
-            ->inGroup((int) $group->id)
-            ->withAllocatedCount()
-            ->orderBy('allocated_services_count')
-            ->orderBy('sort_order')
-            ->orderBy('id');
+        $service->loadMissing('product.provisioningRules.nodeGroup');
 
-        $module = trim((string) $module);
+        $group = $this->resolveGroup($service);
+        $failedNode = Node::query()->find($excludeNodeId);
 
-        if ($module !== '') {
-            $query->forModule($module);
+        if (
+            $failedNode !== null
+            && (bool) config('corepanel.nodes.clusters.prefer_peers_on_failover', true)
+        ) {
+            $peer = $this->allocation->selectBestClusterPeer($failedNode, $service->module);
+
+            if ($peer !== null) {
+                return new NodeSelectionResult(
+                    group: $group,
+                    node: $peer,
+                    connection: $peer->toConnectionRequest(),
+                );
+            }
         }
 
-        return $query->get();
+        if ($group !== null && $group->status === NodeGroupStatus::Active) {
+            $node = $this->allocation->selectBestExcluding($group, $service->module, $excludeNodeId);
+
+            if ($node === null) {
+                throw NoEligibleNodeException::forServiceReplacement((int) $service->id);
+            }
+
+            return new NodeSelectionResult(
+                group: $group,
+                node: $node,
+                connection: $node->toConnectionRequest(),
+            );
+        }
+
+        $node = $this->allocation->selectBestFromPool($service->module, $excludeNodeId);
+
+        if ($node === null) {
+            throw NoEligibleNodeException::forServiceReplacement((int) $service->id);
+        }
+
+        return new NodeSelectionResult(
+            node: $node,
+            connection: $node->toConnectionRequest(),
+        );
     }
 
     private function moduleMatches(Node $node, ?string $module): bool
@@ -173,5 +216,11 @@ class NodeSelectionService
     private function requiresNodeWhenGroupAssigned(): bool
     {
         return (bool) config('corepanel.provisioning.require_node_for_assigned_group', true);
+    }
+
+    private function shouldDeferOnOverload(): bool
+    {
+        return $this->overload->enabled()
+            && (bool) config('corepanel.nodes.overload.defer_on_overload', true);
     }
 }

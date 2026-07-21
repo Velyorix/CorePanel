@@ -36,7 +36,11 @@ class NodeSelectionServiceTest extends TestCase
         $this->registry = app(ProviderRegistry::class);
         $this->registry->flush();
 
-        config(['corepanel.provisioning.require_node_for_assigned_group' => true]);
+        config([
+            'corepanel.provisioning.require_node_for_assigned_group' => true,
+            'corepanel.nodes.allocation.load_balancing.enabled' => false,
+            'corepanel.nodes.overload.enabled' => false,
+        ]);
     }
 
     public function test_selection_service_is_registered_as_singleton(): void
@@ -260,6 +264,39 @@ class NodeSelectionServiceTest extends TestCase
         $service = Service::factory()->forProduct($product)->create([
             'module' => 'stub',
             'node_id' => $node->id,
+        ]);
+
+        $result = $this->selection->selectForService($service);
+
+        $this->assertSame($node->id, $result->nodeId());
+    }
+
+    public function test_selects_node_assigned_via_group_relation_only(): void
+    {
+        $group = NodeGroup::factory()->create(['key' => 'relation-only']);
+        $node = Node::factory()->forModule('stub')->withCapacity(10)->create([
+            'hostname' => 'relation-only.example.test',
+            'node_group_id' => null,
+        ]);
+
+        \Core\Nodes\Models\NodeGroupRelation::query()->create([
+            'node_id' => $node->id,
+            'node_group_id' => $group->id,
+            'is_primary' => false,
+            'sort_order' => 0,
+        ]);
+
+        $product = Product::factory()
+            ->withModule('stub')
+            ->withProvisioningRules([
+                'node_group_id' => $group->id,
+                'node_group_key' => $group->key,
+            ])
+            ->create();
+
+        $service = Service::factory()->forProduct($product)->create([
+            'module' => 'stub',
+            'status' => ServiceStatus::Pending,
         ]);
 
         $result = $this->selection->selectForService($service);

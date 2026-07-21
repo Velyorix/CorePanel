@@ -3,6 +3,8 @@
 
     /** @var \Core\Nodes\Models\Node $node */
     $credentialValues = is_array($node->credentials) ? $node->credentials : [];
+    $capacityUsage = $node->capacityUsage();
+    $healthSnapshot = $node->healthSnapshot();
 @endphp
 
 <x-layout.admin
@@ -127,6 +129,32 @@
                 </div>
 
                 <div class="flex justify-between gap-4">
+                    <dt class="text-muted-foreground">{{ __('Health') }}</dt>
+                    <dd>
+                        @php
+                            $healthVariant = match ($healthSnapshot->state) {
+                                \Core\Nodes\Enums\NodeHealthState::Online => 'success',
+                                \Core\Nodes\Enums\NodeHealthState::Degraded => 'warning',
+                                \Core\Nodes\Enums\NodeHealthState::Offline => 'danger',
+                                default => 'neutral',
+                            };
+                        @endphp
+                        <x-ui.badge :variant="$healthVariant">{{ $healthSnapshot->state->label() }}</x-ui.badge>
+                        @if ($healthSnapshot->checkedAt)
+                            <div class="mt-2 text-small text-muted-foreground">
+                                {{ __('Last checked') }}: {{ $healthSnapshot->checkedAt }}
+                                @if ($healthSnapshot->latencyMs !== null)
+                                    · {{ $healthSnapshot->latencyMs }} ms
+                                @endif
+                            </div>
+                        @endif
+                        @if ($healthSnapshot->message)
+                            <div class="mt-1 text-small text-muted-foreground">{{ $healthSnapshot->message }}</div>
+                        @endif
+                    </dd>
+                </div>
+
+                <div class="flex justify-between gap-4">
                     <dt class="text-muted-foreground">{{ __('Hostname') }}</dt>
                     <dd class="font-mono text-small">{{ $node->hostname }}</dd>
                 </div>
@@ -156,18 +184,30 @@
                             @endif
                             {{ __('services') }}
                         </span>
-                        @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null)
+                        @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null || $node->max_bandwidth_mbps !== null)
                             <div class="mt-2 text-small text-muted-foreground">
                                 @if ($node->max_cpu_cores !== null)
-                                    {{ $node->allocatedResources()['cpu_cores'] }}/{{ $node->max_cpu_cores }} {{ __('CPU') }}
+                                    {{ $capacityUsage->cpuCores }}/{{ $node->max_cpu_cores }} {{ __('CPU') }}
                                 @endif
                                 @if ($node->max_ram_mb !== null)
                                     @if ($node->max_cpu_cores !== null) · @endif
-                                    {{ number_format($node->allocatedResources()['ram_mb']) }}/{{ number_format($node->max_ram_mb) }} {{ __('MB RAM') }}
+                                    {{ number_format($capacityUsage->ramMb) }}/{{ number_format($node->max_ram_mb) }} {{ __('MB RAM') }}
                                 @endif
                                 @if ($node->max_disk_gb !== null)
                                     @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null) · @endif
-                                    {{ $node->allocatedResources()['disk_gb'] }}/{{ $node->max_disk_gb }} {{ __('GB disk') }}
+                                    {{ $capacityUsage->diskGb }}/{{ $node->max_disk_gb }} {{ __('GB disk') }}
+                                @endif
+                                @if ($node->max_bandwidth_mbps !== null)
+                                    @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null) · @endif
+                                    {{ number_format($capacityUsage->peakBandwidthMbps(), 1) }}/{{ $node->max_bandwidth_mbps }} {{ __('Mbps') }}
+                                @endif
+                            </div>
+                        @endif
+                        @if ($capacityUsage->syncedAt)
+                            <div class="mt-2 text-small text-muted-foreground">
+                                {{ __('Last synced') }}: {{ $capacityUsage->syncedAt }}
+                                @if ($capacityUsage->source)
+                                    ({{ $capacityUsage->source }})
                                 @endif
                             </div>
                         @endif
@@ -175,6 +215,8 @@
                 </div>
             </dl>
         </x-ui.card>
+
+        @include('admin.nodes._monitoring')
 
         <x-ui.card :title="__('Configuration')">
             @if (! empty($node->config))

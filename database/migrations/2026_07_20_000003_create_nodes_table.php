@@ -26,7 +26,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('node_groups')
                 ->nullOnDelete();
-            $table->json('credentials')->nullable();
+            $table->text('credentials')->nullable();
             $table->json('config')->nullable();
             $table->timestamps();
             $table->softDeletes();

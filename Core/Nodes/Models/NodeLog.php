@@ -11,6 +11,9 @@ class NodeLog extends Model
 {
     public $timestamps = false;
 
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
         'node_id',
         'action',
@@ -20,6 +23,9 @@ class NodeLog extends Model
         'created_at',
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

@@ -8,7 +8,6 @@ return new class extends Migration
 {
     /**
      * Node groups registry.
-     * Full nodes + node_group_relations.
      */
     public function up(): void
     {

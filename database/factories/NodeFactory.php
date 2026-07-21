@@ -70,4 +70,22 @@ class NodeFactory extends Factory
             'max_services' => $maxServices,
         ]);
     }
+
+    /**
+     * @param  array{
+     *     max_services?: int|null,
+     *     max_cpu_cores?: int|null,
+     *     max_ram_mb?: int|null,
+     *     max_disk_gb?: int|null
+     * }  $limits
+     */
+    public function withCapacityLimits(array $limits): static
+    {
+        return $this->state(fn (): array => array_filter([
+            'max_services' => $limits['max_services'] ?? null,
+            'max_cpu_cores' => $limits['max_cpu_cores'] ?? null,
+            'max_ram_mb' => $limits['max_ram_mb'] ?? null,
+            'max_disk_gb' => $limits['max_disk_gb'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null));
+    }
 }

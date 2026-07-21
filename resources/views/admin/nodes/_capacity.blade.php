@@ -1,0 +1,45 @@
+@php
+    /** @var \Core\Nodes\Models\Node|null $node */
+    $node ??= null;
+@endphp
+
+<div class="sm:col-span-2">
+    <h3 class="text-body-sm font-medium text-foreground">{{ __('Capacity limits') }}</h3>
+    <p class="mt-1 text-small text-muted-foreground">
+        {{ __('Leave empty for unlimited capacity. Used during node selection and provisioning.') }}
+    </p>
+</div>
+
+<x-ui.input
+    name="max_services"
+    type="number"
+    :label="__('Max services')"
+    :value="old('max_services', $node?->max_services)"
+    min="0"
+/>
+
+<x-ui.input
+    name="max_cpu_cores"
+    type="number"
+    :label="__('Max CPU cores')"
+    :value="old('max_cpu_cores', $node?->max_cpu_cores)"
+    min="0"
+/>
+
+<x-ui.input
+    name="max_ram_mb"
+    type="number"
+    :label="__('Max RAM (MB)')"
+    :value="old('max_ram_mb', $node?->max_ram_mb)"
+    min="0"
+    :hint="__('Megabytes of memory available for allocation.')"
+/>
+
+<x-ui.input
+    name="max_disk_gb"
+    type="number"
+    :label="__('Max disk (GB)')"
+    :value="old('max_disk_gb', $node?->max_disk_gb)"
+    min="0"
+    :hint="__('Gigabytes of storage available for allocation.')"
+/>

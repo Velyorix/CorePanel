@@ -167,12 +167,14 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Nodes'),
-                        'route' => null,
+                        'route' => 'admin.nodes.index',
+                        'routeIs' => ['admin.nodes.*'],
                         'permission' => 'nodes.view',
                     ],
                     [
                         'label' => __('Groups'),
-                        'route' => null,
+                        'route' => 'admin.node-groups.index',
+                        'routeIs' => ['admin.node-groups.*'],
                         'permission' => 'nodes.view',
                     ],
                     [

@@ -91,6 +91,17 @@ class ProviderRegistry
         return array_keys($this->nodeProviders);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function provisioningModuleKeys(): array
+    {
+        return array_values(array_unique([
+            ...$this->serverKeys(),
+            ...$this->nodeKeys(),
+        ]));
+    }
+
     public function registerPaymentGateway(PaymentGatewayInterface $provider): void
     {
         $this->paymentGateways[$provider->key()] = $provider;

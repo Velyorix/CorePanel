@@ -213,6 +213,39 @@
                 @endif
             </div>
         </x-ui.card>
+
+        <x-ui.card :title="__('History')" class="lg:col-span-2">
+            @if ($logs->isEmpty())
+                <x-ui.empty :title="__('No activity yet')" :description="__('Actions performed on this node will appear here.')"/>
+            @else
+                <ul class="divide-y divide-border">
+                    @foreach ($logs as $log)
+                        <li class="flex flex-col gap-2 py-3 text-body-sm md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <div class="font-medium">{{ $log->action }}</div>
+                                <div class="text-small text-muted-foreground">
+                                    {{ $log->created_at?->format('Y-m-d H:i:s') ?? '—' }}
+                                    @if ($log->performer !== null)
+                                        · {{ $log->performer->name }}
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                @php
+                                    $logVariant = match ($log->status) {
+                                        \Core\Nodes\Enums\NodeLogStatus::Success => 'success',
+                                        \Core\Nodes\Enums\NodeLogStatus::Failed => 'danger',
+                                        \Core\Nodes\Enums\NodeLogStatus::Skipped => 'neutral',
+                                        default => 'warning',
+                                    };
+                                @endphp
+                                <x-ui.badge :variant="$logVariant">{{ $log->status->value }}</x-ui.badge>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </x-ui.card>
     </div>
 </x-layout.admin>
 

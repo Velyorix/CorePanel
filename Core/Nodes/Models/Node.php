@@ -103,6 +103,14 @@ class Node extends Model
         return $this->hasMany(Service::class);
     }
 
+    /**
+     * @return HasMany<NodeLog, $this>
+     */
+    public function logs(): HasMany
+    {
+        return $this->hasMany(NodeLog::class)->orderByDesc('id');
+    }
+
     public function isSelectable(): bool
     {
         return $this->status->isSelectable();

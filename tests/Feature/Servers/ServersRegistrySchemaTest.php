@@ -15,7 +15,7 @@ class ServersRegistrySchemaTest extends TestCase
 
     public function test_servers_registry_tables_exist(): void
     {
-        foreach (['node_groups', 'nodes', 'node_group_relations'] as $table) {
+        foreach (['node_groups', 'nodes', 'node_group_relations', 'node_logs'] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
                 "Expected table [{$table}] to exist.",
@@ -67,6 +67,24 @@ class ServersRegistrySchemaTest extends TestCase
             $this->assertTrue(
                 Schema::hasColumn('node_group_relations', $column),
                 "Expected node_group_relations.{$column} to exist.",
+            );
+        }
+    }
+
+    public function test_node_logs_table_has_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'node_id',
+            'action',
+            'status',
+            'response',
+            'performed_by',
+            'created_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('node_logs', $column),
+                "Expected node_logs.{$column} to exist.",
             );
         }
     }

@@ -130,6 +130,35 @@ class AdminNodeManagementTest extends TestCase
             ->assertSessionHas('status');
 
         $this->assertSame(NodeStatus::Active, $node->fresh()->status);
+
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.sync',
+            'status' => 'success',
+        ]);
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.status.changed',
+            'status' => 'success',
+        ]);
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.disabled',
+            'status' => 'success',
+        ]);
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.enabled',
+            'status' => 'success',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.nodes.show', $node))
+            ->assertOk()
+            ->assertSee('node.sync')
+            ->assertSee('node.status.changed')
+            ->assertSee('node.disabled')
+            ->assertSee('node.enabled');
     }
 
     public function test_support_cannot_sync_or_toggle_node_status(): void
@@ -169,6 +198,11 @@ class AdminNodeManagementTest extends TestCase
             ->assertSessionHas('status');
 
         $this->assertSoftDeleted('nodes', ['id' => $node->id]);
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.deleted',
+            'status' => 'success',
+        ]);
     }
 
     public function test_admin_can_create_server_with_module_binding(): void
@@ -206,6 +240,11 @@ class AdminNodeManagementTest extends TestCase
         $this->assertSame(12, $node->max_cpu_cores);
         $this->assertSame(49152, $node->max_ram_mb);
         $this->assertSame(1000, $node->max_disk_gb);
+        $this->assertDatabaseHas('node_logs', [
+            'node_id' => $node->id,
+            'action' => 'node.created',
+            'status' => 'success',
+        ]);
     }
 
     public function test_admin_can_create_server_with_encrypted_credentials(): void

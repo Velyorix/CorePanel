@@ -38,6 +38,7 @@ use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
+use Core\Nodes\Services\NodeLoadBalancingService;
 use Core\Nodes\Services\NodeCapacityService;
 use Core\Nodes\Services\NodeClusterService;
 use Core\Nodes\Services\NodeConnectionTestService;
@@ -154,6 +155,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(NodeClusterService::class);
         $this->app->singleton(NodeCredentialsService::class);
         $this->app->singleton(NodeAllocationAlgorithm::class);
+        $this->app->singleton(NodeLoadBalancingService::class);
         $this->app->singleton(NodeCapacityService::class);
         $this->app->singleton(NodeConnectionTestService::class);
         $this->app->singleton(NodeSshKnownHostsStore::class);

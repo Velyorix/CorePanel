@@ -523,6 +523,28 @@ return [
                 env('COREPANEL_NODE_ALLOCATION_REQUIRE_CREDENTIALS', false),
                 FILTER_VALIDATE_BOOL,
             ),
+            'load_balancing' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_NODE_LOAD_BALANCING_ENABLED', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'default_weight' => (int) env('COREPANEL_NODE_LOAD_BALANCING_DEFAULT_WEIGHT', 100),
+                'utilization_band' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UTILIZATION_BAND', 0.15),
+                'use_reliability_history' => filter_var(
+                    env('COREPANEL_NODE_LOAD_BALANCING_USE_RELIABILITY', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'reliability_hours' => (int) env('COREPANEL_NODE_LOAD_BALANCING_RELIABILITY_HOURS', 24),
+                'unknown_reliability_factor' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UNKNOWN_RELIABILITY', 0.85),
+                'state_ttl_seconds' => (int) env('COREPANEL_NODE_LOAD_BALANCING_STATE_TTL', 3600),
+                'cache_prefix' => env('COREPANEL_NODE_LOAD_BALANCING_CACHE_PREFIX', 'nodes.load_balancing'),
+                'uptime_factors' => [
+                    'online' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_ONLINE', 1.0),
+                    'degraded' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_DEGRADED', 0.5),
+                    'unknown' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_UNKNOWN', 0.85),
+                    'offline' => (float) env('COREPANEL_NODE_LOAD_BALANCING_UPTIME_OFFLINE', 0.1),
+                ],
+            ],
         ],
         'capacity' => [
             'stale_after_seconds' => (int) env('COREPANEL_NODE_CAPACITY_STALE_AFTER_SECONDS', 600),

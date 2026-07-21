@@ -140,6 +140,10 @@ class NodeService
                 $attributes['credentials'] = $this->credentials->mergeForUpdate($node, $data->credentials);
             }
 
+            $attributes['config'] = $data->mergedConfig(
+                is_array($node->config) ? $node->config : [],
+            );
+
             $node->update($attributes);
 
             if ($data->shouldSyncGroupRelations()) {

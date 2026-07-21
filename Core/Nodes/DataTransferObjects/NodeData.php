@@ -32,6 +32,7 @@ readonly class NodeData
         public bool $credentialsProvided = false,
         public ?array $config = null,
         public ?array $groupIds = null,
+        public ?int $allocationWeight = null,
     ) {
     }
 
@@ -53,7 +54,8 @@ readonly class NodeData
      *     node_group_id?: int|null,
      *     credentials?: array<string, mixed>|null,
      *     config?: array<string, mixed>|null,
-     *     group_ids?: list<int>|null
+     *     group_ids?: list<int>|null,
+     *     allocation_weight?: int|null
      * }  $data
      */
     public static function fromArray(array $data): self
@@ -119,6 +121,7 @@ readonly class NodeData
             credentialsProvided: $credentialsProvided,
             config: self::nullableArray($data['config'] ?? null),
             groupIds: $groupIds,
+            allocationWeight: self::nullablePositiveInt($data['allocation_weight'] ?? null),
         );
     }
 
@@ -142,8 +145,24 @@ readonly class NodeData
             'max_bandwidth_mbps' => $this->maxBandwidthMbps,
             'sort_order' => $this->sortOrder,
             'node_group_id' => $this->nodeGroupId,
-            'config' => $this->config,
+            'config' => $this->mergedConfig(),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function mergedConfig(?array $existing = null): ?array
+    {
+        $config = $existing ?? $this->config ?? [];
+
+        if ($this->allocationWeight !== null) {
+            $allocation = is_array($config['allocation'] ?? null) ? $config['allocation'] : [];
+            $allocation['weight'] = $this->allocationWeight;
+            $config['allocation'] = $allocation;
+        }
+
+        return $config === [] ? null : $config;
     }
 
     /**
@@ -223,6 +242,15 @@ readonly class NodeData
         }
 
         return max(0, (int) $value);
+    }
+
+    private static function nullablePositiveInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return max(1, (int) $value);
     }
 
     /**

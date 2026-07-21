@@ -36,7 +36,10 @@ class NodeSelectionServiceTest extends TestCase
         $this->registry = app(ProviderRegistry::class);
         $this->registry->flush();
 
-        config(['corepanel.provisioning.require_node_for_assigned_group' => true]);
+        config([
+            'corepanel.provisioning.require_node_for_assigned_group' => true,
+            'corepanel.nodes.allocation.load_balancing.enabled' => false,
+        ]);
     }
 
     public function test_selection_service_is_registered_as_singleton(): void

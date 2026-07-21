@@ -41,6 +41,7 @@ class StoreNodeRequest extends FormRequest
             'max_ram_mb' => ['nullable', 'integer', 'min:0'],
             'max_disk_gb' => ['nullable', 'integer', 'min:0'],
             'max_bandwidth_mbps' => ['nullable', 'integer', 'min:0'],
+            'allocation_weight' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'node_group_id' => ['nullable', 'integer', 'exists:node_groups,id'],
             'credentials' => ['nullable', 'array'],
@@ -81,6 +82,7 @@ class StoreNodeRequest extends FormRequest
             'max_ram_mb' => filled($this->input('max_ram_mb')) ? $this->input('max_ram_mb') : null,
             'max_disk_gb' => filled($this->input('max_disk_gb')) ? $this->input('max_disk_gb') : null,
             'max_bandwidth_mbps' => filled($this->input('max_bandwidth_mbps')) ? $this->input('max_bandwidth_mbps') : null,
+            'allocation_weight' => filled($this->input('allocation_weight')) ? $this->input('allocation_weight') : null,
             'credentials' => is_array($credentials) ? $credentials : null,
         ]);
     }

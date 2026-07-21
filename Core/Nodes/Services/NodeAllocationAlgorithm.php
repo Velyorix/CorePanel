@@ -5,18 +5,22 @@ namespace Core\Nodes\Services;
 use Core\Nodes\DataTransferObjects\NodeAllocationScore;
 use Core\Nodes\Enums\NodeClusterStatus;
 use Core\Nodes\Models\Node;
-use Core\Nodes\Models\NodeCluster;
 use Core\Nodes\Models\NodeGroup;
 use Illuminate\Support\Collection;
 
 /**
  * Ranks infrastructure nodes for provisioning allocation.
  *
- * Strategy: filter eligible nodes, then pick the lowest utilization score
- * (services + CPU/RAM/disk ratios), with sort order as tiebreaker.
+ * Filters eligible nodes, keeps candidates within a utilization band,
+ * then distributes assignments with weighted round robin.
  */
 class NodeAllocationAlgorithm
 {
+    public function __construct(
+        private readonly NodeLoadBalancingService $loadBalancing,
+    ) {
+    }
+
     /**
      * @return Collection<int, Node>
      */
@@ -45,7 +49,7 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $this->rank($candidates, $group)->first()?->node;
+        return $this->pick($candidates, $this->groupScope($group, $module));
     }
 
     public function selectBestExcluding(NodeGroup $group, ?string $module, int $excludeNodeId): ?Node
@@ -57,7 +61,7 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $this->rank($candidates, $group)->first()?->node;
+        return $this->pick($candidates, $this->groupScope($group, $module).':exclude:'.$excludeNodeId);
     }
 
     public function selectBestFromPool(?string $module, int $excludeNodeId): ?Node
@@ -76,7 +80,7 @@ class NodeAllocationAlgorithm
             ->reject(fn (Node $node): bool => (int) $node->id === $excludeNodeId)
             ->filter(fn (Node $node): bool => $this->isEligible($node));
 
-        return $this->pickLowestUtilization($candidates);
+        return $this->pick($candidates, $this->poolScope($module).':exclude:'.$excludeNodeId);
     }
 
     /**
@@ -117,47 +121,39 @@ class NodeAllocationAlgorithm
             return null;
         }
 
-        return $candidates
-            ->sort(function (Node $left, Node $right) use ($clusterIds): int {
-                return $this->utilizationScore($left) <=> $this->utilizationScore($right)
-                    ?: $left->allocatedServicesCount() <=> $right->allocatedServicesCount()
-                    ?: $this->clusterSortOrder($left, $clusterIds) <=> $this->clusterSortOrder($right, $clusterIds)
-                    ?: $left->id <=> $right->id;
-            })
-            ->first();
+        return $this->pick(
+            $candidates,
+            'cluster:'.$failedNode->id.':'.$this->normalizedModule($module),
+        );
     }
 
     /**
      * @param  Collection<int, Node>  $candidates
      */
-    private function pickLowestUtilization(Collection $candidates): ?Node
+    private function pick(Collection $candidates, string $scope): ?Node
     {
-        if ($candidates->isEmpty()) {
-            return null;
-        }
-
-        return $candidates
-            ->sort(function (Node $left, Node $right): int {
-                return $this->utilizationScore($left) <=> $this->utilizationScore($right)
-                    ?: $left->allocatedServicesCount() <=> $right->allocatedServicesCount()
-                    ?: $left->sort_order <=> $right->sort_order
-                    ?: $left->id <=> $right->id;
-            })
-            ->first();
+        return $this->loadBalancing->select(
+            $candidates,
+            $scope,
+            fn (Node $node): float => $this->utilizationScore($node),
+        );
     }
 
-    /**
-     * @param  list<int>  $clusterIds
-     */
-    private function clusterSortOrder(Node $node, array $clusterIds): int
+    private function groupScope(NodeGroup $group, ?string $module): string
     {
-        $member = $node->clusters->first(fn (NodeCluster $cluster): bool => in_array((int) $cluster->id, $clusterIds, true));
+        return 'group:'.$group->id.':'.$this->normalizedModule($module);
+    }
 
-        if ($member !== null && $member->pivot !== null) {
-            return (int) $member->pivot->sort_order;
-        }
+    private function poolScope(?string $module): string
+    {
+        return 'pool:'.$this->normalizedModule($module);
+    }
 
-        return (int) $node->sort_order;
+    private function normalizedModule(?string $module): string
+    {
+        $module = trim((string) $module);
+
+        return $module === '' ? 'any' : $module;
     }
 
     public function isEligible(Node $node): bool

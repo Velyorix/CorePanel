@@ -21,7 +21,10 @@ class NodeAllocationAlgorithmTest extends TestCase
     {
         parent::setUp();
 
-        config(['corepanel.nodes.allocation.require_credentials' => false]);
+        config([
+            'corepanel.nodes.allocation.require_credentials' => false,
+            'corepanel.nodes.allocation.load_balancing.enabled' => false,
+        ]);
 
         $this->algorithm = app(NodeAllocationAlgorithm::class);
     }

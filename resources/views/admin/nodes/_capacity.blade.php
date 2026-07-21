@@ -52,3 +52,22 @@
     min="0"
     :hint="__('Peak inbound/outbound bandwidth available for allocation.')"
 />
+
+@php
+    $allocationWeight = old(
+        'allocation_weight',
+        is_array($node?->config['allocation'] ?? null)
+            ? ($node->config['allocation']['weight'] ?? null)
+            : null,
+    );
+@endphp
+
+<x-ui.input
+    name="allocation_weight"
+    type="number"
+    :label="__('Allocation weight')"
+    :value="$allocationWeight ?? config('corepanel.nodes.allocation.load_balancing.default_weight', 100)"
+    min="1"
+    max="1000"
+    :hint="__('Higher values receive more provisioning assignments within the same utilization band.')"
+/>

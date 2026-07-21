@@ -19,6 +19,12 @@
     </x-slot:breadcrumbs>
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        @can('viewAny', Core\Nodes\Models\Node::class)
+            <x-ui.button :href="route('admin.nodes.monitoring')" variant="secondary" size="sm">
+                {{ __('Monitoring') }}
+            </x-ui.button>
+        @endcan
+
         @can('create', Core\Nodes\Models\Node::class)
             <x-ui.button :href="route('admin.nodes.create')" variant="primary" size="sm">
                 {{ __('Create server') }}

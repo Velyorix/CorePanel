@@ -11,6 +11,7 @@ use Core\Nodes\Enums\NodeType;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Services\NodeLogService;
+use Core\Nodes\Services\NodeMonitoringService;
 use Core\Nodes\Services\NodeService;
 use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,7 @@ class NodeController extends Controller
     public function __construct(
         private readonly NodeService $nodeService,
         private readonly NodeLogService $nodeLogs,
+        private readonly NodeMonitoringService $monitoring,
         private readonly ProviderRegistry $providers,
     ) {
     }
@@ -81,6 +83,7 @@ class NodeController extends Controller
         return view('admin.nodes.show', [
             'node' => $found ?? $node,
             'logs' => $this->nodeLogs->forNode($found ?? $node, limit: 20),
+            'monitoring' => $this->monitoring->forNode($found ?? $node),
         ]);
     }
 

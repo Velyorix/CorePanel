@@ -3,11 +3,16 @@
 namespace Core\Nodes\Models;
 
 use Core\Nodes\Enums\NodeMetricStatus;
+use Database\Factories\NodeMetricFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NodeMetric extends Model
 {
+    /** @use HasFactory<NodeMetricFactory> */
+    use HasFactory;
+
     public $timestamps = false;
 
     /**
@@ -58,5 +63,10 @@ class NodeMetric extends Model
     public function node(): BelongsTo
     {
         return $this->belongsTo(Node::class);
+    }
+
+    protected static function newFactory(): NodeMetricFactory
+    {
+        return NodeMetricFactory::new();
     }
 }

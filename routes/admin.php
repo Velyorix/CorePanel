@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
+use App\Http\Controllers\Admin\NodeMonitoringController;
 use App\Http\Controllers\Admin\NodeGroupController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -123,6 +124,7 @@ Route::middleware('admin')
         Route::post('provisioning-dead-letters/{provisioningDeadLetter}/discard', [ProvisioningDeadLetterActionController::class, 'discard'])->name('provisioning-dead-letters.discard');
         Route::post('provisioning-dead-letters/{provisioningDeadLetter}/rollback', [ProvisioningDeadLetterActionController::class, 'rollback'])->name('provisioning-dead-letters.rollback');
 
+        Route::get('nodes/monitoring', [NodeMonitoringController::class, 'index'])->name('nodes.monitoring');
         Route::get('nodes', [NodeController::class, 'index'])->name('nodes.index');
         Route::get('nodes/create', [NodeController::class, 'create'])->name('nodes.create');
         Route::get('nodes/{node}', [NodeController::class, 'show'])->name('nodes.show');

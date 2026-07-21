@@ -179,7 +179,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Metrics'),
-                        'route' => null,
+                        'route' => 'admin.nodes.monitoring',
+                        'routeIs' => ['admin.nodes.monitoring'],
                         'permission' => 'nodes.view',
                     ],
                 ],

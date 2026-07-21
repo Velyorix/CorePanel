@@ -216,6 +216,8 @@
             </dl>
         </x-ui.card>
 
+        @include('admin.nodes._monitoring')
+
         <x-ui.card :title="__('Configuration')">
             @if (! empty($node->config))
                 <pre class="max-h-96 overflow-auto rounded-md border border-border bg-surface p-4 text-small text-foreground">{{ json_encode($node->config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>

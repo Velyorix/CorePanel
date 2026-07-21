@@ -539,6 +539,10 @@ return [
             ),
             'degraded_utilization_threshold' => (float) env('COREPANEL_NODE_HEALTH_DEGRADED_THRESHOLD', 0.85),
         ],
+        'monitoring' => [
+            'history_hours' => (int) env('COREPANEL_NODE_MONITORING_HISTORY_HOURS', 24),
+            'bucket_minutes' => (int) env('COREPANEL_NODE_MONITORING_BUCKET_MINUTES', 15),
+        ],
     ],
 
     /*

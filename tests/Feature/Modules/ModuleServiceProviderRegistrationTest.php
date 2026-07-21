@@ -4,13 +4,14 @@ namespace Tests\Feature\Modules;
 
 use Core\Modules\Enums\ModuleCapability;
 use Core\Modules\Exceptions\ModuleBootstrapException;
+use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleResourceLoader;
 use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleServiceProviderRegistrar;
-use Core\Modules\Services\ModuleStateRepository;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\Support\Modules\StubExampleModule;
 use Tests\Support\Modules\StubExampleServiceProvider;
@@ -18,9 +19,9 @@ use Tests\TestCase;
 
 class ModuleServiceProviderRegistrationTest extends TestCase
 {
-    private string $modulesPath;
+    use RefreshDatabase;
 
-    private string $statePath;
+    private string $modulesPath;
 
     protected function setUp(): void
     {
@@ -30,28 +31,27 @@ class ModuleServiceProviderRegistrationTest extends TestCase
         StubExampleServiceProvider::$booted = false;
 
         $this->modulesPath = storage_path('framework/testing/modules-providers-'.uniqid('', true));
-        $this->statePath = storage_path('framework/testing/module-state-providers-'.uniqid('', true).'.json');
 
         File::ensureDirectoryExists($this->modulesPath);
 
         config([
             'corepanel.modules.path' => $this->modulesPath,
-            'corepanel.modules.state_path' => $this->statePath,
             'corepanel.modules.enabled' => [],
             'corepanel.modules.auto_load_enabled' => false,
             'corepanel.modules.sandbox.enabled' => true,
+            'corepanel.modules.signature.required' => false,
+            'corepanel.modules.signature.verify_on_load' => false,
         ]);
 
-        $this->app->forgetInstance(ModuleStateRepository::class);
+        $this->app->forgetInstance(InstalledModuleRepository::class);
         $this->app->forgetInstance(ModuleFactory::class);
         $this->app->forgetInstance(ModuleRequirementChecker::class);
         $this->app->forgetInstance(ModuleServiceProviderRegistrar::class);
         $this->app->forgetInstance(ModuleManager::class);
 
-        $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
         $this->app->singleton(ModuleServiceProviderRegistrar::class);
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
-            app(ModuleStateRepository::class),
+            app(InstalledModuleRepository::class),
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
             app(ModuleSandbox::class),
@@ -64,10 +64,6 @@ class ModuleServiceProviderRegistrationTest extends TestCase
     protected function tearDown(): void
     {
         File::deleteDirectory($this->modulesPath);
-
-        if (is_file($this->statePath)) {
-            File::delete($this->statePath);
-        }
 
         parent::tearDown();
     }

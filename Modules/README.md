@@ -81,6 +81,9 @@ Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
 - No direct access to Core database tables (sandbox)
 - Module-owned tables must use the prefix `module_{key}_`
 - Use `ModuleHostApi` for mediated Core operations (config, logging, permissions)
+- Install registry: `installed_modules` (version, enabled, checksum, signature)
+- Integrity: declare `checksum` in `module.json` or `module.sha256` (SHA-256 of package)
+- Optional `signature` (HMAC of checksum); set `COREPANEL_MODULES_SIGNATURE_REQUIRED=true` to enforce
 - Dynamic loading via `ModuleManager`
 - Declare Laravel providers in `module.json` → `providers` (registered on load)
 - Prefer extending `AbstractModuleServiceProvider`

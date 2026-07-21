@@ -842,6 +842,17 @@ return [
                 'api.php' => ['api'],
             ],
         ],
+        'signature' => [
+            'required' => filter_var(
+                env('COREPANEL_MODULES_SIGNATURE_REQUIRED', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'verify_on_load' => filter_var(
+                env('COREPANEL_MODULES_VERIFY_ON_LOAD', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'secret' => env('COREPANEL_MODULES_SIGNATURE_SECRET'),
+        ],
     ],
 
 ];

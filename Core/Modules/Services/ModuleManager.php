@@ -7,6 +7,7 @@ use Core\Modules\DataTransferObjects\ModuleLoadedResources;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
+use Core\Modules\Models\InstalledModule;
 use Illuminate\Support\Collection;
 use JsonException;
 
@@ -24,7 +25,7 @@ class ModuleManager
     private bool $scanned = false;
 
     public function __construct(
-        private readonly ModuleStateRepository $state,
+        private readonly InstalledModuleRepository $installed,
         private readonly ModuleFactory $factory,
         private readonly ModuleRequirementChecker $requirements,
         private readonly ModuleSandbox $sandbox,
@@ -85,6 +86,23 @@ class ModuleManager
     }
 
     /**
+     * Verify integrity and register the module in the install registry.
+     */
+    public function install(string $key, bool $enable = false): InstalledModule
+    {
+        $manifest = $this->findOrFail($key);
+        $this->requirements->assertSatisfied($manifest);
+
+        $record = $this->installed->install($manifest, $enable);
+
+        if ($enable) {
+            $this->load($key);
+        }
+
+        return $record;
+    }
+
+    /**
      * Load a discovered module into the runtime registry.
      */
     public function load(string $key): ModuleManifest
@@ -92,6 +110,11 @@ class ModuleManager
         $manifest = $this->findOrFail($key);
 
         $this->requirements->assertSatisfied($manifest);
+
+        if ((bool) config('corepanel.modules.signature.verify_on_load', true)
+            && $this->installed->find($manifest->key) !== null) {
+            $this->installed->assertIntegrity($manifest);
+        }
 
         if (! isset($this->loaded[$manifest->key])) {
             $this->providers->register($manifest);
@@ -115,13 +138,15 @@ class ModuleManager
     }
 
     /**
-     * Persist enabled state and load the module.
+     * Verify, persist enabled state, and load the module.
      */
     public function enable(string $key): ModuleManifest
     {
-        $manifest = $this->load($key);
+        $manifest = $this->findOrFail($key);
+        $this->requirements->assertSatisfied($manifest);
 
-        $this->state->enable($manifest->key);
+        $this->installed->enable($manifest);
+        $manifest = $this->load($key);
 
         $instance = $this->instance($manifest->key);
 
@@ -145,13 +170,22 @@ class ModuleManager
             $this->sandbox->run($manifest->key, fn () => $instance->disable());
         }
 
-        $this->state->disable($manifest->key);
+        $this->installed->disable($manifest->key);
 
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
         $this->providers->forget($manifest->key);
         $this->resources->forget($manifest->key);
 
         return $manifest;
+    }
+
+    public function uninstall(string $key): bool
+    {
+        if ($this->isLoaded($key) || $this->isEnabled($key)) {
+            $this->disable($key);
+        }
+
+        return $this->installed->uninstall($key);
     }
 
     /**
@@ -165,7 +199,7 @@ class ModuleManager
 
         $loaded = collect();
 
-        foreach ($this->state->enabledKeys() as $key) {
+        foreach ($this->installed->enabledKeys() as $key) {
             if (! $this->has($key)) {
                 continue;
             }
@@ -195,9 +229,14 @@ class ModuleManager
         return $this->instances[$key] ?? null;
     }
 
+    public function installation(string $key): ?InstalledModule
+    {
+        return $this->installed->find($key);
+    }
+
     public function isEnabled(string $key): bool
     {
-        return $this->state->isEnabled($key);
+        return $this->installed->isEnabled($key);
     }
 
     public function isLoaded(string $key): bool

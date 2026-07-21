@@ -4,6 +4,7 @@ namespace Tests\Feature\Modules;
 
 use Core\Modules\Enums\ModuleCapability;
 use Core\Modules\Exceptions\ModuleSandboxViolationException;
+use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
@@ -11,9 +12,7 @@ use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleResourceLoader;
 use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleServiceProviderRegistrar;
-use Core\Modules\Services\ModuleStateRepository;
 use Core\Modules\Services\ModuleTableAccessPolicy;
-use Core\Providers\Services\ModulePermissionRegistrar;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -29,8 +28,6 @@ class ModuleSandboxTest extends TestCase
 
     private string $modulesPath;
 
-    private string $statePath;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,22 +35,22 @@ class ModuleSandboxTest extends TestCase
         $this->seed(RoleAndPermissionSeeder::class);
 
         $this->modulesPath = storage_path('framework/testing/modules-sandbox-'.uniqid('', true));
-        $this->statePath = storage_path('framework/testing/module-state-sandbox-'.uniqid('', true).'.json');
 
         File::ensureDirectoryExists($this->modulesPath);
 
         config([
             'corepanel.version' => '1.2.0',
             'corepanel.modules.path' => $this->modulesPath,
-            'corepanel.modules.state_path' => $this->statePath,
             'corepanel.modules.enabled' => [],
             'corepanel.modules.auto_load_enabled' => false,
             'corepanel.modules.sandbox.enabled' => true,
+            'corepanel.modules.signature.required' => false,
+            'corepanel.modules.signature.verify_on_load' => false,
             'corepanel.rbac.cache.enabled' => false,
             'corepanel.rbac.permissions_registry.cache_enabled' => false,
         ]);
 
-        $this->app->forgetInstance(ModuleStateRepository::class);
+        $this->app->forgetInstance(InstalledModuleRepository::class);
         $this->app->forgetInstance(ModuleSandbox::class);
         $this->app->forgetInstance(ModuleTableAccessPolicy::class);
         $this->app->forgetInstance(ModuleDatabaseGuard::class);
@@ -63,12 +60,11 @@ class ModuleSandboxTest extends TestCase
         $this->app->forgetInstance(ModuleResourceLoader::class);
         $this->app->forgetInstance(ModuleManager::class);
 
-        $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
         $this->app->singleton(ModuleSandbox::class);
         $this->app->singleton(ModuleTableAccessPolicy::class);
         $this->app->singleton(ModuleDatabaseGuard::class);
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
-            app(ModuleStateRepository::class),
+            app(InstalledModuleRepository::class),
             app(ModuleFactory::class),
             app(ModuleRequirementChecker::class),
             app(ModuleSandbox::class),
@@ -84,10 +80,6 @@ class ModuleSandboxTest extends TestCase
     {
         Schema::dropIfExists('module_sandbox_probe_settings');
         File::deleteDirectory($this->modulesPath);
-
-        if (is_file($this->statePath)) {
-            File::delete($this->statePath);
-        }
 
         parent::tearDown();
     }

@@ -5,64 +5,45 @@ namespace Tests\Feature\Modules;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
+use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleResourceLoader;
 use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleServiceProviderRegistrar;
-use Core\Modules\Services\ModuleStateRepository;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class ModuleManagerTest extends TestCase
 {
-    private string $modulesPath;
+    use RefreshDatabase;
 
-    private string $statePath;
+    private string $modulesPath;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->modulesPath = storage_path('framework/testing/modules-'.uniqid('', true));
-        $this->statePath = storage_path('framework/testing/module-state-'.uniqid('', true).'.json');
 
         File::ensureDirectoryExists($this->modulesPath);
 
         config([
             'corepanel.modules.path' => $this->modulesPath,
-            'corepanel.modules.state_path' => $this->statePath,
             'corepanel.modules.enabled' => [],
             'corepanel.modules.auto_load_enabled' => false,
+            'corepanel.modules.signature.required' => false,
+            'corepanel.modules.signature.verify_on_load' => false,
         ]);
 
-        $this->app->forgetInstance(ModuleStateRepository::class);
-        $this->app->forgetInstance(ModuleFactory::class);
-        $this->app->forgetInstance(ModuleRequirementChecker::class);
-        $this->app->forgetInstance(ModuleServiceProviderRegistrar::class);
-        $this->app->forgetInstance(ModuleResourceLoader::class);
-        $this->app->forgetInstance(ModuleManager::class);
-
-        $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
-        $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
-            app(ModuleStateRepository::class),
-            app(ModuleFactory::class),
-            app(ModuleRequirementChecker::class),
-            app(ModuleSandbox::class),
-            app(ModuleServiceProviderRegistrar::class),
-            app(ModuleResourceLoader::class),
-            $this->modulesPath,
-        ));
+        $this->rebindModuleManager();
     }
 
     protected function tearDown(): void
     {
         File::deleteDirectory($this->modulesPath);
-
-        if (is_file($this->statePath)) {
-            File::delete($this->statePath);
-        }
 
         parent::tearDown();
     }
@@ -70,7 +51,7 @@ class ModuleManagerTest extends TestCase
     public function test_module_manager_is_registered_as_singleton(): void
     {
         $this->assertSame(app(ModuleManager::class), app(ModuleManager::class));
-        $this->assertSame(app(ModuleStateRepository::class), app(ModuleStateRepository::class));
+        $this->assertSame(app(InstalledModuleRepository::class), app(InstalledModuleRepository::class));
     }
 
     public function test_discovers_modules_with_valid_manifests(): void
@@ -120,12 +101,12 @@ class ModuleManagerTest extends TestCase
         $manager->enable('gamma');
         $this->assertTrue($manager->isEnabled('gamma'));
         $this->assertTrue($manager->isLoaded('gamma'));
-        $this->assertSame(['gamma'], app(ModuleStateRepository::class)->enabledKeys());
+        $this->assertSame(['gamma'], app(InstalledModuleRepository::class)->enabledKeys());
 
         $manager->disable('gamma');
         $this->assertFalse($manager->isEnabled('gamma'));
         $this->assertFalse($manager->isLoaded('gamma'));
-        $this->assertSame([], app(ModuleStateRepository::class)->enabledKeys());
+        $this->assertSame([], app(InstalledModuleRepository::class)->enabledKeys());
     }
 
     public function test_load_enabled_hydrates_runtime_registry_from_persisted_state(): void
@@ -144,16 +125,7 @@ class ModuleManagerTest extends TestCase
 
         app(ModuleManager::class)->enable('delta');
 
-        $this->app->forgetInstance(ModuleManager::class);
-        $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
-            app(ModuleStateRepository::class),
-            app(ModuleFactory::class),
-            app(ModuleRequirementChecker::class),
-            app(ModuleSandbox::class),
-            app(ModuleServiceProviderRegistrar::class),
-            app(ModuleResourceLoader::class),
-            $this->modulesPath,
-        ));
+        $this->rebindModuleManager();
 
         $fresh = app(ModuleManager::class);
         $this->assertFalse($fresh->isLoaded('delta'));
@@ -185,7 +157,7 @@ class ModuleManagerTest extends TestCase
         ], $this->modulesPath.'/invalid', 'invalid');
     }
 
-    public function test_enable_persists_state_file(): void
+    public function test_enable_persists_install_registry_row(): void
     {
         $this->writeModule('zeta', [
             'name' => 'zeta',
@@ -195,12 +167,31 @@ class ModuleManagerTest extends TestCase
 
         app(ModuleManager::class)->enable('zeta');
 
-        $this->assertFileExists($this->statePath);
+        $this->assertDatabaseHas('installed_modules', [
+            'name' => 'zeta',
+            'version' => '3.0.0',
+            'enabled' => true,
+        ]);
+    }
 
-        /** @var array{enabled?: list<string>} $payload */
-        $payload = json_decode((string) file_get_contents($this->statePath), true, flags: JSON_THROW_ON_ERROR);
+    private function rebindModuleManager(): void
+    {
+        $this->app->forgetInstance(InstalledModuleRepository::class);
+        $this->app->forgetInstance(ModuleFactory::class);
+        $this->app->forgetInstance(ModuleRequirementChecker::class);
+        $this->app->forgetInstance(ModuleServiceProviderRegistrar::class);
+        $this->app->forgetInstance(ModuleResourceLoader::class);
+        $this->app->forgetInstance(ModuleManager::class);
 
-        $this->assertSame(['zeta'], $payload['enabled'] ?? null);
+        $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
+            app(InstalledModuleRepository::class),
+            app(ModuleFactory::class),
+            app(ModuleRequirementChecker::class),
+            app(ModuleSandbox::class),
+            app(ModuleServiceProviderRegistrar::class),
+            app(ModuleResourceLoader::class),
+            $this->modulesPath,
+        ));
     }
 
     /**

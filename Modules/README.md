@@ -21,13 +21,23 @@ Modules/
     ├── config/
     ├── src/
     ├── routes/
+    │   ├── web.php
+    │   ├── admin.php
+    │   └── api.php
     ├── resources/
     │   ├── views/
     │   └── lang/
     ├── database/
+    │   └── migrations/
     ├── Providers/
     └── module.json
 ```
+
+On load, `ModuleResourceLoader` auto-registers:
+
+- `routes/*.php` (middleware by filename: web/admin/client/api)
+- `resources/views` as Blade namespace `{moduleKey}::`
+- `database/migrations` into the migrator paths
 
 ## `module.json` schema
 
@@ -74,5 +84,6 @@ Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
 - Dynamic loading via `ModuleManager`
 - Declare Laravel providers in `module.json` → `providers` (registered on load)
 - Prefer extending `AbstractModuleServiceProvider`
+- Routes / views / migrations under the package are auto-loaded on module load
 - Implement `ModuleInterface` (extend `AbstractModule`) when declaring `module`
 - `module.json` is required (`name`, `version`, `capabilities`)

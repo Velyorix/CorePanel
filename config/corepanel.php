@@ -831,6 +831,17 @@ return [
                 'main',
             ],
         ],
+        'resources' => [
+            'routes' => filter_var(env('COREPANEL_MODULES_LOAD_ROUTES', true), FILTER_VALIDATE_BOOL),
+            'views' => filter_var(env('COREPANEL_MODULES_LOAD_VIEWS', true), FILTER_VALIDATE_BOOL),
+            'migrations' => filter_var(env('COREPANEL_MODULES_LOAD_MIGRATIONS', true), FILTER_VALIDATE_BOOL),
+            'route_middleware' => [
+                'web.php' => ['web'],
+                'admin.php' => ['admin'],
+                'client.php' => ['client'],
+                'api.php' => ['api'],
+            ],
+        ],
     ],
 
 ];

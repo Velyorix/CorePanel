@@ -8,6 +8,7 @@ use Core\Modules\Exceptions\ModuleNotFoundException;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
 use Core\Modules\Services\ModuleRequirementChecker;
+use Core\Modules\Services\ModuleResourceLoader;
 use Core\Modules\Services\ModuleSandbox;
 use Core\Modules\Services\ModuleServiceProviderRegistrar;
 use Core\Modules\Services\ModuleStateRepository;
@@ -40,6 +41,7 @@ class ModuleManagerTest extends TestCase
         $this->app->forgetInstance(ModuleFactory::class);
         $this->app->forgetInstance(ModuleRequirementChecker::class);
         $this->app->forgetInstance(ModuleServiceProviderRegistrar::class);
+        $this->app->forgetInstance(ModuleResourceLoader::class);
         $this->app->forgetInstance(ModuleManager::class);
 
         $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
@@ -49,6 +51,7 @@ class ModuleManagerTest extends TestCase
             app(ModuleRequirementChecker::class),
             app(ModuleSandbox::class),
             app(ModuleServiceProviderRegistrar::class),
+            app(ModuleResourceLoader::class),
             $this->modulesPath,
         ));
     }
@@ -148,6 +151,7 @@ class ModuleManagerTest extends TestCase
             app(ModuleRequirementChecker::class),
             app(ModuleSandbox::class),
             app(ModuleServiceProviderRegistrar::class),
+            app(ModuleResourceLoader::class),
             $this->modulesPath,
         ));
 

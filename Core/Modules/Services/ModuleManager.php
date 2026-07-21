@@ -3,6 +3,7 @@
 namespace Core\Modules\Services;
 
 use Core\Modules\Contracts\ModuleInterface;
+use Core\Modules\DataTransferObjects\ModuleLoadedResources;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
@@ -28,6 +29,7 @@ class ModuleManager
         private readonly ModuleRequirementChecker $requirements,
         private readonly ModuleSandbox $sandbox,
         private readonly ModuleServiceProviderRegistrar $providers,
+        private readonly ModuleResourceLoader $resources,
         private readonly ?string $modulesPath = null,
     ) {
     }
@@ -93,6 +95,7 @@ class ModuleManager
 
         if (! isset($this->loaded[$manifest->key])) {
             $this->providers->register($manifest);
+            $this->resources->load($manifest);
 
             $instance = $this->factory->make($manifest);
 
@@ -146,6 +149,7 @@ class ModuleManager
 
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
         $this->providers->forget($manifest->key);
+        $this->resources->forget($manifest->key);
 
         return $manifest;
     }
@@ -243,6 +247,11 @@ class ModuleManager
     public function registeredProviders(string $key): array
     {
         return $this->providers->providersFor($key);
+    }
+
+    public function loadedResources(string $key): ?ModuleLoadedResources
+    {
+        return $this->resources->resourcesFor($key);
     }
 
     public function path(): string

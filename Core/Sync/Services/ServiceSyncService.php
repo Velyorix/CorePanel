@@ -11,6 +11,7 @@ use Core\Services\Models\Service;
 use Core\Sync\DataTransferObjects\ServiceSyncComparisonResult;
 use Core\Sync\DataTransferObjects\ServiceSyncResolutionResult;
 use Core\Sync\DataTransferObjects\ServiceSyncResult;
+use Core\Sync\Enums\SyncLogOutcome;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -21,6 +22,8 @@ class ServiceSyncService
         private readonly ProviderResourceMappingService $mappings,
         private readonly ServiceSyncComparisonService $comparison,
         private readonly ServiceSyncResolutionService $resolution,
+        private readonly SyncLogService $logs,
+        private readonly SyncAlertService $alerts,
     ) {
     }
 
@@ -65,15 +68,15 @@ class ServiceSyncService
         $module = trim((string) ($service->module ?? ''));
 
         if ($module === '') {
-            return 'skipped';
+            return $this->finalizeServicePoll($service, 'skipped', message: 'missing_module');
         }
 
         if (! filled($service->external_id)) {
-            return 'skipped';
+            return $this->finalizeServicePoll($service, 'skipped', message: 'missing_external_id');
         }
 
         if (! in_array($service->status, [ServiceStatus::Active, ServiceStatus::Suspended], true)) {
-            return 'skipped';
+            return $this->finalizeServicePoll($service, 'skipped', message: 'ineligible_status');
         }
 
         if (! $this->providers->hasServer($module)) {
@@ -82,7 +85,7 @@ class ServiceSyncService
                 'module' => $module,
             ]);
 
-            return 'skipped';
+            return $this->finalizeServicePoll($service, 'skipped', message: 'unknown_module');
         }
 
         $service->loadMissing('node');
@@ -99,7 +102,11 @@ class ServiceSyncService
                 'message' => $exception->getMessage(),
             ]);
 
-            return 'skipped';
+            return $this->finalizeServicePoll(
+                $service,
+                'skipped',
+                message: $exception->getMessage(),
+            );
         }
 
         $response = $this->providers->server($module)->getStatus($request);
@@ -118,7 +125,13 @@ class ServiceSyncService
                     'resolutions' => $resolution->appliedArrays(),
                 ]);
 
-                return 'resolved';
+                return $this->finalizeServicePoll(
+                    $service,
+                    'resolved',
+                    comparison: $comparison,
+                    resolution: $resolution,
+                    response: $response,
+                );
             }
 
             if ($resolution->hasApplied()) {
@@ -136,7 +149,13 @@ class ServiceSyncService
                 ]);
             }
 
-            return 'diverged';
+            return $this->finalizeServicePoll(
+                $service,
+                'diverged',
+                comparison: $comparison,
+                resolution: $resolution,
+                response: $response,
+            );
         }
 
         if (! $response->status->isSuccessful()) {
@@ -147,12 +166,22 @@ class ServiceSyncService
                 'payload' => $response->payload === [] ? null : $response->payload,
             ]);
 
-            return 'failed';
+            return $this->finalizeServicePoll(
+                $service,
+                'failed',
+                response: $response,
+                message: $response->message,
+            );
         }
 
         $this->recordComparison($service, $response, $comparison);
 
-        return 'polled';
+        return $this->finalizeServicePoll(
+            $service,
+            'polled',
+            comparison: $comparison,
+            response: $response,
+        );
     }
 
     /**
@@ -171,6 +200,37 @@ class ServiceSyncService
             ])
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * @return 'polled'|'resolved'|'diverged'|'failed'|'skipped'
+     */
+    private function finalizeServicePoll(
+        Service $service,
+        string $outcome,
+        ?ServiceSyncComparisonResult $comparison = null,
+        ?ServiceSyncResolutionResult $resolution = null,
+        ?ProvisioningResponse $response = null,
+        ?string $message = null,
+    ): string {
+        $this->logs->recordServicePoll(
+            service: $service,
+            outcome: SyncLogOutcome::from($outcome),
+            comparison: $comparison,
+            resolution: $resolution,
+            response: $response,
+            message: $message,
+        );
+
+        $this->alerts->handleServicePollOutcome(
+            service: $service,
+            outcome: $outcome,
+            comparison: $comparison,
+            resolution: $resolution,
+            message: $message ?? $response?->message,
+        );
+
+        return $outcome;
     }
 
     private function recordComparison(

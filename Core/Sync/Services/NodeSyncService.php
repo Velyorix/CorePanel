@@ -5,8 +5,10 @@ namespace Core\Sync\Services;
 use Core\Nodes\Enums\NodeStatus;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Services\NodeService;
+use Core\Providers\DataTransferObjects\NodeOperationResponse;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Sync\DataTransferObjects\NodeSyncResult;
+use Core\Sync\Enums\SyncLogOutcome;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -16,6 +18,8 @@ class NodeSyncService
     public function __construct(
         private readonly NodeService $nodes,
         private readonly ProviderRegistry $providers,
+        private readonly SyncLogService $logs,
+        private readonly SyncAlertService $alerts,
     ) {
     }
 
@@ -52,13 +56,13 @@ class NodeSyncService
     public function syncNode(Node $node): string
     {
         if ($node->status === NodeStatus::Disabled) {
-            return 'skipped';
+            return $this->finalizeNodeSync($node, 'skipped', message: 'node_disabled');
         }
 
         $module = trim((string) ($node->module ?? ''));
 
         if ($module === '') {
-            return 'skipped';
+            return $this->finalizeNodeSync($node, 'skipped', message: 'missing_module');
         }
 
         if (! $this->providers->hasNode($module)) {
@@ -67,7 +71,7 @@ class NodeSyncService
                 'module' => $module,
             ]);
 
-            return 'skipped';
+            return $this->finalizeNodeSync($node, 'skipped', message: 'unknown_module');
         }
 
         try {
@@ -79,7 +83,7 @@ class NodeSyncService
                 'message' => $exception->getMessage(),
             ]);
 
-            return 'skipped';
+            return $this->finalizeNodeSync($node, 'skipped', message: $exception->getMessage());
         }
 
         if (! $response->status->isSuccessful()) {
@@ -90,10 +94,15 @@ class NodeSyncService
                 'payload' => $response->payload === [] ? null : $response->payload,
             ]);
 
-            return 'failed';
+            return $this->finalizeNodeSync(
+                $node,
+                'failed',
+                response: $response,
+                message: $response->message,
+            );
         }
 
-        return 'synced';
+        return $this->finalizeNodeSync($node, 'synced', response: $response);
     }
 
     /**
@@ -106,5 +115,30 @@ class NodeSyncService
             ->where('module', '!=', '')
             ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * @return 'synced'|'failed'|'skipped'
+     */
+    private function finalizeNodeSync(
+        Node $node,
+        string $outcome,
+        ?NodeOperationResponse $response = null,
+        ?string $message = null,
+    ): string {
+        $this->logs->recordNodeSync(
+            node: $node,
+            outcome: SyncLogOutcome::from($outcome),
+            response: $response,
+            message: $message,
+        );
+
+        if ($outcome === 'failed') {
+            $this->alerts->handleNodeSyncFailure($node, $message ?? $response?->message);
+        } elseif ($outcome === 'synced') {
+            $this->alerts->handleNodeSyncSuccess($node);
+        }
+
+        return $outcome;
     }
 }

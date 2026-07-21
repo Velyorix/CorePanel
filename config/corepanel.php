@@ -566,6 +566,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sync logging & admin alerts
+    |--------------------------------------------------------------------------
+    */
+
+    'sync' => [
+        'logs' => [
+            'service' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SYNC_LOG_SERVICE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+            'node' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_SYNC_LOG_NODE', true),
+                    FILTER_VALIDATE_BOOL,
+                ),
+            ],
+        ],
+        'alerts' => [
+            'enabled' => filter_var(
+                env('COREPANEL_SYNC_ALERTS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Nodes infrastructure
     |--------------------------------------------------------------------------
     */

@@ -3,7 +3,10 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\User;
+use Core\Admin\Models\AdminNotification;
 use Core\Admin\Notifications\AdminNotificationFeed;
+use Core\Admin\Services\AdminNotificationService;
+use Core\Sync\Services\SyncAlertService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,29 +28,57 @@ class AdminNotificationsDropdownTest extends TestCase
         ]);
     }
 
-    public function test_admin_topbar_renders_notifications_dropdown_placeholder(): void
+    public function test_admin_topbar_renders_notifications_dropdown_with_sync_alert(): void
     {
         $admin = User::factory()->withRole('admin')->create();
+
+        app(AdminNotificationService::class)->upsert(
+            type: SyncAlertService::TYPE_SERVICE_DIVERGED,
+            dedupeKey: 'sync.service.42',
+            title: __('Service sync divergence'),
+            message: __('Service #42 diverged from provider.'),
+            variant: 'warning',
+        );
 
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('aria-label="'.__('Notifications').'"', false)
-            ->assertSee(__('Placeholder feed until the notification center is connected.'), false)
-            ->assertSee(__('High CPU usage detected'), false)
-            ->assertSee(__('Payment webhook failed'), false)
-            ->assertSee(__('New support ticket'), false)
+            ->assertSee(__('Recent system alerts from sync and infrastructure jobs.'), false)
+            ->assertSee(__('Service sync divergence'), false)
+            ->assertSee(__('Service #42 diverged from provider.'), false)
             ->assertSee(__('View all notifications'), false)
             ->assertSee(__('Coming soon'), false)
-            ->assertSee('data-notification="node_cpu"', false)
-            ->assertSee('data-notification="payment_webhook"', false)
-            ->assertSee('data-notification="support_ticket"', false);
+            ->assertSee('data-notification="sync.service.42"', false);
     }
 
     public function test_notifications_dropdown_shows_unread_count_badge(): void
     {
         $admin = User::factory()->withRole('admin')->create();
+
+        app(AdminNotificationService::class)->upsert(
+            type: SyncAlertService::TYPE_SERVICE_FAILED,
+            dedupeKey: 'sync.service.7',
+            title: __('Service sync failed'),
+            message: __('Poll failed'),
+            variant: 'danger',
+        );
+
+        app(AdminNotificationService::class)->upsert(
+            type: SyncAlertService::TYPE_NODE_FAILED,
+            dedupeKey: 'sync.node.3',
+            title: __('Node sync failed'),
+            message: __('Node sync failed'),
+            variant: 'danger',
+        );
+
+        AdminNotification::query()
+            ->where('dedupe_key', 'sync.node.3')
+            ->update(['read_at' => now()]);
+
         $unreadCount = app(AdminNotificationFeed::class)->unreadCount();
+
+        $this->assertSame(1, $unreadCount);
 
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
@@ -75,12 +106,30 @@ class AdminNotificationsDropdownTest extends TestCase
             ->assertSee('aria-label="'.__('Notifications').'"', false);
     }
 
-    public function test_notification_feed_exposes_placeholder_items_and_unread_count(): void
+    public function test_notification_feed_exposes_recent_items_and_unread_count(): void
     {
+        app(AdminNotificationService::class)->upsert(
+            type: SyncAlertService::TYPE_SERVICE_DIVERGED,
+            dedupeKey: 'sync.service.99',
+            title: __('Service sync divergence'),
+            message: __('Diverged service'),
+            variant: 'warning',
+        );
+
         $feed = app(AdminNotificationFeed::class);
 
-        $this->assertCount(3, $feed->placeholders());
-        $this->assertSame(2, $feed->unreadCount());
-        $this->assertSame('node_cpu', $feed->placeholders()[0]['key']);
+        $this->assertCount(1, $feed->recent());
+        $this->assertSame(1, $feed->unreadCount());
+        $this->assertSame('sync.service.99', $feed->recent()[0]['key']);
+    }
+
+    public function test_notifications_dropdown_shows_empty_state_when_no_alerts(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(__('No alerts yet.'), false);
     }
 }

@@ -2,7 +2,7 @@
     use Core\Admin\Notifications\AdminNotificationFeed;
 
     $feed = app(AdminNotificationFeed::class);
-    $notifications = $feed->placeholders();
+    $notifications = $feed->recent();
     $unreadCount = $feed->unreadCount();
 @endphp
 
@@ -31,12 +31,12 @@
     <div class="border-b border-border px-4 py-3">
         <p class="text-body-sm font-semibold text-foreground">{{ __('Notifications') }}</p>
         <p class="mt-0.5 text-small text-muted-foreground">
-            {{ __('Placeholder feed until the notification center is connected.') }}
+            {{ __('Recent system alerts from sync and infrastructure jobs.') }}
         </p>
     </div>
 
     <div class="max-h-80 overflow-y-auto" role="list" aria-label="{{ __('Recent notifications') }}">
-        @foreach ($notifications as $notification)
+        @forelse ($notifications as $notification)
             <div
                 class="border-b border-border px-4 py-3 last:border-b-0"
                 role="listitem"
@@ -53,7 +53,11 @@
                 </div>
                 <p class="mt-2 text-small text-muted-foreground">{{ $notification['time'] }}</p>
             </div>
-        @endforeach
+        @empty
+            <div class="px-4 py-6 text-center">
+                <p class="text-small text-muted-foreground">{{ __('No alerts yet.') }}</p>
+            </div>
+        @endforelse
     </div>
 
     <div class="border-t border-border px-4 py-3 text-center">

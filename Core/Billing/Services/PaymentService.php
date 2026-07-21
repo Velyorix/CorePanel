@@ -4,6 +4,7 @@ namespace Core\Billing\Services;
 
 use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\DataTransferObjects\PaymentGatewayResult;
+use Core\Billing\DataTransferObjects\PaymentGatewayWebhookResult;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\PaymentStatus;
 use Core\Billing\Events\InvoicePaid;
@@ -279,6 +280,41 @@ class PaymentService
     }
 
     /**
+     * Dispatch an inbound provider webhook to the registered gateway and apply the result.
+     *
+     * Signature verification is the gateway's responsibility. Disabled gateways may still
+     * receive webhooks so in-flight payments can settle.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
+    public function handleWebhook(string $gatewayKey, array $payload, array $headers): ?Payment
+    {
+        $gateway = $this->gateways->resolve($gatewayKey, onlyEnabled: false);
+        $result = $gateway->handleWebhook($payload, $headers);
+
+        if ($result->paymentId === null) {
+            return null;
+        }
+
+        $payment = Payment::query()->find($result->paymentId);
+
+        if ($payment === null) {
+            throw new InvalidPaymentException(
+                "Payment [{$result->paymentId}] referenced by webhook was not found.",
+            );
+        }
+
+        if ($payment->method !== $gatewayKey) {
+            throw new InvalidPaymentException(
+                'Webhook gateway key does not match the payment method.',
+            );
+        }
+
+        return $this->applyWebhookResult($payment, $result);
+    }
+
+    /**
      * Refund a completed payment via the gateway.
      */
     public function refund(Payment $payment, ?string $amount = null, ?string $notes = null): Payment
@@ -308,35 +344,13 @@ class PaymentService
                 );
             }
 
-            $before = $this->auditLogger->paymentSnapshot($payment);
-
-            $payment->forceFill([
-                'status' => PaymentStatus::Refunded,
-                'transaction_id' => $result->transactionId ?? $payment->transaction_id,
-                'gateway_reference' => $result->gatewayReference ?? $payment->gateway_reference,
-                'notes' => $notes ?? $result->message ?? $payment->notes,
-                'paid_at' => $payment->paid_at,
-            ])->save();
-
-            $invoice = $payment->invoice()->first();
-
-            if ($invoice !== null) {
-                $this->applyToInvoice($invoice);
-            }
-
-            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
-
-            $this->auditLogger->log(
-                BillingAuditLogger::ACTION_PAYMENT_REFUNDED,
-                Payment::class,
-                $fresh->id,
-                $before,
-                [...$this->auditLogger->paymentSnapshot($fresh), 'refund_amount' => $refundAmount],
+            return $this->markRefunded(
+                $payment,
+                $refundAmount,
+                $result->transactionId,
+                $result->gatewayReference,
+                $notes ?? $result->message,
             );
-
-            event(new PaymentRefunded($fresh, $refundAmount));
-
-            return $fresh;
         });
     }
 
@@ -365,7 +379,12 @@ class PaymentService
                 $result->gatewayReference,
             ),
             PaymentStatus::Failed => $this->fail($payment, $result->message),
-            PaymentStatus::Pending => $this->updatePendingRefs($payment, $result),
+            PaymentStatus::Pending => $this->updatePendingRefs(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+                $result->message,
+            ),
             PaymentStatus::Refunded => throw new InvalidPaymentException(
                 'Gateway returned refunded status outside of refund().',
             ),
@@ -375,13 +394,91 @@ class PaymentService
         };
     }
 
-    private function updatePendingRefs(Payment $payment, PaymentGatewayResult $result): Payment
+    private function applyWebhookResult(Payment $payment, PaymentGatewayWebhookResult $result): Payment
     {
+        return match ($result->status) {
+            PaymentStatus::Completed => $this->complete(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Failed => $this->fail($payment),
+            PaymentStatus::Pending => $this->updatePendingRefs(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Refunded => $this->markRefunded(
+                $payment,
+                $this->money((float) $payment->amount),
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Chargeback => throw new InvalidPaymentException(
+                'Chargeback status is not handled by PaymentService yet.',
+            ),
+        };
+    }
+
+    private function markRefunded(
+        Payment $payment,
+        string $refundAmount,
+        ?string $transactionId = null,
+        ?string $gatewayReference = null,
+        ?string $notes = null,
+    ): Payment {
+        if ($payment->status === PaymentStatus::Refunded) {
+            return $payment->fresh(['invoice', 'client']) ?? $payment;
+        }
+
+        if ($payment->status !== PaymentStatus::Completed) {
+            throw new InvalidPaymentException('Only completed payments can be refunded.');
+        }
+
+        return DB::transaction(function () use ($payment, $refundAmount, $transactionId, $gatewayReference, $notes): Payment {
+            $before = $this->auditLogger->paymentSnapshot($payment);
+
+            $payment->forceFill([
+                'status' => PaymentStatus::Refunded,
+                'transaction_id' => $transactionId ?? $payment->transaction_id,
+                'gateway_reference' => $gatewayReference ?? $payment->gateway_reference,
+                'notes' => $notes ?? $payment->notes,
+                'paid_at' => $payment->paid_at,
+            ])->save();
+
+            $invoice = $payment->invoice()->first();
+
+            if ($invoice !== null) {
+                $this->applyToInvoice($invoice);
+            }
+
+            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_PAYMENT_REFUNDED,
+                Payment::class,
+                $fresh->id,
+                $before,
+                [...$this->auditLogger->paymentSnapshot($fresh), 'refund_amount' => $refundAmount],
+            );
+
+            event(new PaymentRefunded($fresh, $refundAmount));
+
+            return $fresh;
+        });
+    }
+
+    private function updatePendingRefs(
+        Payment $payment,
+        ?string $transactionId = null,
+        ?string $gatewayReference = null,
+        ?string $notes = null,
+    ): Payment {
         $payment->forceFill([
             'status' => PaymentStatus::Pending,
-            'transaction_id' => $result->transactionId ?? $payment->transaction_id,
-            'gateway_reference' => $result->gatewayReference ?? $payment->gateway_reference,
-            'notes' => $result->message ?? $payment->notes,
+            'transaction_id' => $transactionId ?? $payment->transaction_id,
+            'gateway_reference' => $gatewayReference ?? $payment->gateway_reference,
+            'notes' => $notes ?? $payment->notes,
         ])->save();
 
         return $payment->fresh(['invoice', 'client']) ?? $payment;

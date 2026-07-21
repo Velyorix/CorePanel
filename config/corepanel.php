@@ -518,6 +518,12 @@ return [
             ),
             'schedule' => env('COREPANEL_NODE_METRICS_SCHEDULE', 'everyFiveMinutes'),
         ],
+        'allocation' => [
+            'require_credentials' => filter_var(
+                env('COREPANEL_NODE_ALLOCATION_REQUIRE_CREDENTIALS', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
     ],
 
     /*

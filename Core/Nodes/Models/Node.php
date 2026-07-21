@@ -266,6 +266,19 @@ class Node extends Model
      * @param  Builder<Node>  $query
      * @return Builder<Node>
      */
+    public function scopeAssignedToGroup(Builder $query, int $groupId): Builder
+    {
+        return $query->where(function (Builder $builder) use ($groupId): void {
+            $builder
+                ->where('node_group_id', $groupId)
+                ->orWhereHas('groups', fn (Builder $relation): Builder => $relation->where('node_groups.id', $groupId));
+        });
+    }
+
+    /**
+     * @param  Builder<Node>  $query
+     * @return Builder<Node>
+     */
     public function scopeWithAllocatedCount(Builder $query): Builder
     {
         return $query->withCount([

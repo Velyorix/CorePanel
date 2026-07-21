@@ -26,8 +26,18 @@ class InvalidModuleManifestException extends RuntimeException
         return new self("Module key [{$key}] is invalid. Use lowercase alphanumeric keys.");
     }
 
+    public static function invalidVersion(string $version): self
+    {
+        return new self("Module version [{$version}] is invalid. Use semver (e.g. 1.0.0).");
+    }
+
     public static function invalidCapabilities(): self
     {
         return new self('Module manifest [capabilities] must be a list of non-empty strings.');
+    }
+
+    public static function invalidField(string $field, string $reason): self
+    {
+        return new self("Module manifest [{$field}] {$reason}");
     }
 }

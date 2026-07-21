@@ -2,6 +2,7 @@
 
 namespace Core\Modules\Services;
 
+use Core\Modules\Contracts\ModuleInterface;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
@@ -16,10 +17,15 @@ class ModuleManager
     /** @var array<string, ModuleManifest> */
     private array $loaded = [];
 
+    /** @var array<string, ModuleInterface> */
+    private array $instances = [];
+
     private bool $scanned = false;
 
     public function __construct(
         private readonly ModuleStateRepository $state,
+        private readonly ModuleFactory $factory,
+        private readonly ModuleRequirementChecker $requirements,
         private readonly ?string $modulesPath = null,
     ) {
     }
@@ -81,7 +87,19 @@ class ModuleManager
     {
         $manifest = $this->findOrFail($key);
 
-        $this->loaded[$manifest->key] = $manifest;
+        $this->requirements->assertSatisfied($manifest);
+
+        if (! isset($this->loaded[$manifest->key])) {
+            $instance = $this->factory->make($manifest);
+
+            if ($instance !== null) {
+                $instance->register();
+                $instance->boot();
+                $this->instances[$manifest->key] = $instance;
+            }
+
+            $this->loaded[$manifest->key] = $manifest;
+        }
 
         return $manifest;
     }
@@ -91,10 +109,10 @@ class ModuleManager
      */
     public function enable(string $key): ModuleManifest
     {
-        $manifest = $this->findOrFail($key);
+        $manifest = $this->load($key);
 
         $this->state->enable($manifest->key);
-        $this->loaded[$manifest->key] = $manifest;
+        $this->instance($manifest->key)?->enable();
 
         return $manifest;
     }
@@ -106,8 +124,10 @@ class ModuleManager
     {
         $manifest = $this->findOrFail($key);
 
+        $this->instance($manifest->key)?->disable();
         $this->state->disable($manifest->key);
-        unset($this->loaded[$manifest->key]);
+
+        unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
 
         return $manifest;
     }
@@ -148,6 +168,11 @@ class ModuleManager
         return $this->modules[$key] ?? null;
     }
 
+    public function instance(string $key): ?ModuleInterface
+    {
+        return $this->instances[$key] ?? null;
+    }
+
     public function isEnabled(string $key): bool
     {
         return $this->state->isEnabled($key);
@@ -184,6 +209,14 @@ class ModuleManager
     public function loaded(): Collection
     {
         return collect(array_values($this->loaded));
+    }
+
+    /**
+     * @return Collection<int, ModuleInterface>
+     */
+    public function instances(): Collection
+    {
+        return collect(array_values($this->instances));
     }
 
     public function path(): string

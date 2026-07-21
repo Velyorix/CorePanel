@@ -111,7 +111,9 @@ use Core\Provisioning\Services\NodeSelectionService;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
+use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
+use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleStateRepository;
 use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
@@ -157,6 +159,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
+        $this->app->singleton(ModuleFactory::class);
+        $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
         $this->app->singleton(LicenseSettings::class);

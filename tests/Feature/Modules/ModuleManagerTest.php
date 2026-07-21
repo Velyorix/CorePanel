@@ -5,7 +5,9 @@ namespace Tests\Feature\Modules;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
+use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\ModuleManager;
+use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleStateRepository;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -33,11 +35,15 @@ class ModuleManagerTest extends TestCase
         ]);
 
         $this->app->forgetInstance(ModuleStateRepository::class);
+        $this->app->forgetInstance(ModuleFactory::class);
+        $this->app->forgetInstance(ModuleRequirementChecker::class);
         $this->app->forgetInstance(ModuleManager::class);
 
         $this->app->singleton(ModuleStateRepository::class, fn (): ModuleStateRepository => new ModuleStateRepository($this->statePath));
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
             app(ModuleStateRepository::class),
+            app(ModuleFactory::class),
+            app(ModuleRequirementChecker::class),
             $this->modulesPath,
         ));
     }
@@ -133,6 +139,8 @@ class ModuleManagerTest extends TestCase
         $this->app->forgetInstance(ModuleManager::class);
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(
             app(ModuleStateRepository::class),
+            app(ModuleFactory::class),
+            app(ModuleRequirementChecker::class),
             $this->modulesPath,
         ));
 

@@ -34,9 +34,25 @@ class InvoicePaymentController extends Controller
         abort_if($invoice->status === InvoiceStatus::Draft, 404);
 
         try {
-            $this->payments->initiate($invoice, ManualTransferGateway::KEY);
+            $result = $this->payments->collect(
+                $invoice,
+                ManualTransferGateway::KEY,
+                actor: $request->user() instanceof User ? $request->user() : null,
+            );
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['invoice' => $exception->getMessage()]);
+        }
+
+        if ($result->paidWithCreditOnly()) {
+            return redirect()
+                ->route('client.invoices.show', $invoice)
+                ->with('status', __('Invoice paid using your account credit.'));
+        }
+
+        if ($result->creditApplied()) {
+            return redirect()
+                ->route('client.invoices.show', $invoice)
+                ->with('status', __('Account credit applied. Please complete the remaining payment.'));
         }
 
         return redirect()

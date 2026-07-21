@@ -8,6 +8,7 @@ use Core\Auth\Models\User;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Services\BillingDocumentPdfService;
+use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\InvoiceService;
 use Core\Clients\Models\Client;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class InvoiceController extends Controller
     public function __construct(
         private readonly InvoiceService $invoices,
         private readonly BillingDocumentPdfService $pdfs,
+        private readonly ClientCreditService $credits,
     ) {
     }
 
@@ -51,9 +53,11 @@ class InvoiceController extends Controller
         $this->authorizeInvoice($request, $invoice);
 
         $invoice->load(['items', 'payments']);
+        $client = $this->resolveClient($request);
 
         return view('client.invoices.show', [
             'invoice' => $invoice,
+            'creditBalance' => $client !== null ? $this->credits->balance($client) : '0.00',
         ]);
     }
 

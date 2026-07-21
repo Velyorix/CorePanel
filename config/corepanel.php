@@ -395,6 +395,14 @@ return [
             'bank_name' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BANK_NAME'),
             'instructions' => env('COREPANEL_BILLING_MANUAL_TRANSFER_INSTRUCTIONS'),
         ],
+
+        /*
+        | Prepaid client wallet. When enabled, available credit is applied to the
+        | invoice before charging the selected payment gateway.
+        */
+        'client_credit' => [
+            'auto_apply_on_pay' => (bool) env('COREPANEL_BILLING_CLIENT_CREDIT_AUTO_APPLY', true),
+        ],
     ],
 
     /*

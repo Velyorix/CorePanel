@@ -2,6 +2,8 @@
 
 namespace Core\Billing\Services;
 
+use Core\Auth\Models\User;
+use Core\Billing\DataTransferObjects\PaymentCollectionResult;
 use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\DataTransferObjects\PaymentGatewayResult;
 use Core\Billing\DataTransferObjects\PaymentGatewayWebhookResult;
@@ -11,6 +13,7 @@ use Core\Billing\Events\InvoicePaid;
 use Core\Billing\Events\PaymentCompleted;
 use Core\Billing\Events\PaymentFailed;
 use Core\Billing\Events\PaymentRefunded;
+use Core\Billing\Exceptions\InsufficientClientCreditException;
 use Core\Billing\Exceptions\InvalidPaymentException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
@@ -24,9 +27,12 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentService
 {
+    public const METHOD_CLIENT_CREDIT = 'client_credit';
+
     public function __construct(
         private readonly GatewayManager $gateways,
         private readonly BillingAuditLogger $auditLogger,
+        private readonly ClientCreditService $credits,
     ) {
     }
 
@@ -164,6 +170,75 @@ class PaymentService
             $result = $gateway->createPayment($payment, $context);
 
             return $this->applyGatewayResult($payment->fresh() ?? $payment, $result);
+        });
+    }
+
+    /**
+     * Collect payment for an invoice: apply available client credit first, then charge
+     * the selected gateway for any remaining balance.
+     */
+    public function collect(
+        Invoice $invoice,
+        string $method,
+        ?string $amount = null,
+        ?PaymentContext $context = null,
+        ?string $notes = null,
+        ?User $actor = null,
+    ): PaymentCollectionResult {
+        return DB::transaction(function () use ($invoice, $method, $amount, $context, $notes, $actor): PaymentCollectionResult {
+            $invoice = Invoice::query()
+                ->whereKey($invoice->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $invoice->isPayable()) {
+                throw new InvalidPaymentException(
+                    'Only unpaid or overdue invoices with a remaining balance can accept payments.',
+                );
+            }
+
+            $due = $invoice->amountDue();
+            $targetAmount = $this->money((float) ($amount ?? $due));
+
+            if ((float) $targetAmount <= 0) {
+                throw new InvalidPaymentException('Payment amount must be greater than zero.');
+            }
+
+            if ((float) $targetAmount > (float) $due + 0.00001) {
+                throw new InvalidPaymentException('Payment amount cannot exceed the invoice balance due.');
+            }
+
+            $creditPayment = null;
+            $remaining = $targetAmount;
+
+            if ($this->shouldAutoApplyCredit()) {
+                $creditPayment = $this->applyAvailableCredit($invoice, $remaining, $actor);
+                $invoice = $invoice->fresh() ?? $invoice;
+
+                if ($creditPayment !== null) {
+                    $remaining = $this->money(
+                        max(0, (float) $remaining - (float) $creditPayment->amount),
+                    );
+                }
+            }
+
+            $gatewayPayment = null;
+
+            if ((float) $remaining > 0.00001) {
+                $gatewayPayment = $this->initiate(
+                    $invoice,
+                    $method,
+                    $remaining,
+                    $context,
+                    $notes,
+                );
+            }
+
+            if ($creditPayment === null && $gatewayPayment === null) {
+                throw new InvalidPaymentException('No payment could be collected for this invoice.');
+            }
+
+            return new PaymentCollectionResult($creditPayment, $gatewayPayment);
         });
     }
 
@@ -515,6 +590,64 @@ class PaymentService
                 'paid_at' => null,
             ])->save();
         }
+    }
+
+    private function shouldAutoApplyCredit(): bool
+    {
+        return (bool) config('corepanel.billing.client_credit.auto_apply_on_pay', true);
+    }
+
+    /**
+     * Deduct wallet credit and record an immediately completed payment for the invoice.
+     */
+    private function applyAvailableCredit(Invoice $invoice, string $targetAmount, ?User $actor = null): ?Payment
+    {
+        $client = $invoice->client ?? Client::query()->find($invoice->client_id);
+
+        if ($client === null) {
+            return null;
+        }
+
+        $balance = $this->credits->balance($client);
+        $apply = $this->money(min((float) $targetAmount, (float) $balance));
+
+        if ((float) $apply <= 0) {
+            return null;
+        }
+
+        try {
+            $transaction = $this->credits->deduct(
+                $client,
+                $apply,
+                description: (string) __('Applied to invoice :number', [
+                    'number' => $invoice->invoice_number ?: '#'.$invoice->id,
+                ]),
+                reference: 'invoice:'.$invoice->id,
+                createdBy: $actor,
+                currency: $invoice->currency ?? 'EUR',
+            );
+        } catch (InsufficientClientCreditException) {
+            return null;
+        }
+
+        $payment = Payment::query()->create([
+            'invoice_id' => $invoice->id,
+            'client_id' => $invoice->client_id,
+            'method' => self::METHOD_CLIENT_CREDIT,
+            'currency' => $invoice->currency ?? 'EUR',
+            'amount' => $apply,
+            'status' => PaymentStatus::Pending,
+            'transaction_id' => null,
+            'gateway_reference' => 'credit-txn-'.$transaction->id,
+            'notes' => (string) __('Paid from account credit'),
+            'paid_at' => null,
+        ]);
+
+        return $this->complete(
+            $payment,
+            transactionId: 'credit-'.$transaction->id,
+            gatewayReference: 'credit-txn-'.$transaction->id,
+        );
     }
 
     private function money(float $amount): string

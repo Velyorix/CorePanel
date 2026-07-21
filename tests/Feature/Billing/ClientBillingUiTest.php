@@ -11,6 +11,8 @@ use Core\Billing\Models\InvoiceItem;
 use Core\Billing\Models\Payment;
 use Core\Billing\Models\Quote;
 use Core\Billing\Models\QuoteItem;
+use Core\Billing\Services\ClientCreditService;
+use Core\Billing\Services\PaymentService;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
 use Database\Seeders\RoleAndPermissionSeeder;
@@ -109,6 +111,37 @@ class ClientBillingUiTest extends TestCase
         $payment = Payment::query()->where('invoice_id', $invoice->id)->firstOrFail();
         $this->assertSame(PaymentStatus::Pending, $payment->status);
         $this->assertSame($client->id, $payment->client_id);
+    }
+
+    public function test_client_pay_applies_account_credit_before_gateway(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $client->forceFill(['credit_balance' => '0.00'])->save();
+        app(ClientCreditService::class)->add($client, '25.00');
+
+        $invoice = Invoice::factory()->unpaid()->create([
+            'client_id' => $client->id,
+            'subtotal' => '25.00',
+            'tax_amount' => '0.00',
+            'total_amount' => '25.00',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('client.invoices.show', $invoice))
+            ->assertOk()
+            ->assertSee(__('Available credit: :amount', ['amount' => '25.00']));
+
+        $this->actingAs($user)
+            ->post(route('client.invoices.pay', $invoice))
+            ->assertRedirect(route('client.invoices.show', $invoice))
+            ->assertSessionHas('status', __('Invoice paid using your account credit.'));
+
+        $this->assertSame(InvoiceStatus::Paid, $invoice->fresh()->status);
+        $this->assertSame('0.00', app(ClientCreditService::class)->balance($client));
+        $this->assertSame(
+            PaymentService::METHOD_CLIENT_CREDIT,
+            Payment::query()->where('invoice_id', $invoice->id)->value('method'),
+        );
     }
 
     public function test_client_cannot_pay_another_clients_invoice(): void

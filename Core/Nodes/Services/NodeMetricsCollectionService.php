@@ -15,6 +15,7 @@ class NodeMetricsCollectionService
 {
     public function __construct(
         private readonly ProviderRegistry $providers,
+        private readonly NodeCapacityService $capacity,
     ) {
     }
 
@@ -79,13 +80,17 @@ class NodeMetricsCollectionService
             ], static fn (mixed $value): bool => $value !== null));
         }
 
-        return $this->storeMetric(
+        $metric = $this->storeMetric(
             node: $node,
             status: NodeMetricStatus::Success,
             collectedAt: $collectedAt,
             resources: $response->resources,
             payload: $response->payload !== [] ? $response->payload : null,
         );
+
+        $this->capacity->applyResources($node, $response->resources, 'metrics');
+
+        return $metric;
     }
 
     /**

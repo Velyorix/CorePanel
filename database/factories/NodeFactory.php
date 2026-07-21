@@ -76,7 +76,8 @@ class NodeFactory extends Factory
      *     max_services?: int|null,
      *     max_cpu_cores?: int|null,
      *     max_ram_mb?: int|null,
-     *     max_disk_gb?: int|null
+     *     max_disk_gb?: int|null,
+     *     max_bandwidth_mbps?: int|null
      * }  $limits
      */
     public function withCapacityLimits(array $limits): static
@@ -86,6 +87,7 @@ class NodeFactory extends Factory
             'max_cpu_cores' => $limits['max_cpu_cores'] ?? null,
             'max_ram_mb' => $limits['max_ram_mb'] ?? null,
             'max_disk_gb' => $limits['max_disk_gb'] ?? null,
+            'max_bandwidth_mbps' => $limits['max_bandwidth_mbps'] ?? null,
         ], static fn (mixed $value): bool => $value !== null));
     }
 }

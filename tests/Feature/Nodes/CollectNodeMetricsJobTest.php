@@ -76,8 +76,16 @@ class CollectNodeMetricsJobTest extends TestCase
             'current_services' => 0,
             'max_services' => 50,
             'cpu_usage' => 5.00,
+            'ram_usage' => 8192.00,
+            'disk_usage' => 120.00,
+            'network_in' => 45.50,
+            'network_out' => 22.00,
             'capacity_available' => 1,
         ]);
+
+        $node->refresh();
+        $this->assertSame(5, $node->capacityUsage()->cpuCores);
+        $this->assertSame('metrics', $node->capacityUsage()->source);
 
         $this->assertDatabaseHas('node_metrics', [
             'status' => NodeMetricStatus::Skipped->value,

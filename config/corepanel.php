@@ -524,6 +524,9 @@ return [
                 FILTER_VALIDATE_BOOL,
             ),
         ],
+        'capacity' => [
+            'stale_after_seconds' => (int) env('COREPANEL_NODE_CAPACITY_STALE_AFTER_SECONDS', 600),
+        ],
     ],
 
     /*

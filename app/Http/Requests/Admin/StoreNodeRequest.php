@@ -40,6 +40,7 @@ class StoreNodeRequest extends FormRequest
             'max_cpu_cores' => ['nullable', 'integer', 'min:0'],
             'max_ram_mb' => ['nullable', 'integer', 'min:0'],
             'max_disk_gb' => ['nullable', 'integer', 'min:0'],
+            'max_bandwidth_mbps' => ['nullable', 'integer', 'min:0'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'node_group_id' => ['nullable', 'integer', 'exists:node_groups,id'],
             'credentials' => ['nullable', 'array'],
@@ -79,6 +80,7 @@ class StoreNodeRequest extends FormRequest
             'max_cpu_cores' => filled($this->input('max_cpu_cores')) ? $this->input('max_cpu_cores') : null,
             'max_ram_mb' => filled($this->input('max_ram_mb')) ? $this->input('max_ram_mb') : null,
             'max_disk_gb' => filled($this->input('max_disk_gb')) ? $this->input('max_disk_gb') : null,
+            'max_bandwidth_mbps' => filled($this->input('max_bandwidth_mbps')) ? $this->input('max_bandwidth_mbps') : null,
             'credentials' => is_array($credentials) ? $credentials : null,
         ]);
     }

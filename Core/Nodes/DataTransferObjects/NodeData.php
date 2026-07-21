@@ -25,6 +25,7 @@ readonly class NodeData
         public ?int $maxCpuCores = null,
         public ?int $maxRamMb = null,
         public ?int $maxDiskGb = null,
+        public ?int $maxBandwidthMbps = null,
         public int $sortOrder = 0,
         public ?int $nodeGroupId = null,
         public ?array $credentials = null,
@@ -47,6 +48,7 @@ readonly class NodeData
      *     max_cpu_cores?: int|null,
      *     max_ram_mb?: int|null,
      *     max_disk_gb?: int|null,
+     *     max_bandwidth_mbps?: int|null,
      *     sort_order?: int|null,
      *     node_group_id?: int|null,
      *     credentials?: array<string, mixed>|null,
@@ -77,6 +79,7 @@ readonly class NodeData
         $maxCpuCores = self::nullableNonNegativeInt($data['max_cpu_cores'] ?? null);
         $maxRamMb = self::nullableNonNegativeInt($data['max_ram_mb'] ?? null);
         $maxDiskGb = self::nullableNonNegativeInt($data['max_disk_gb'] ?? null);
+        $maxBandwidthMbps = self::nullableNonNegativeInt($data['max_bandwidth_mbps'] ?? null);
 
         $nodeGroupId = $data['node_group_id'] ?? null;
 
@@ -109,6 +112,7 @@ readonly class NodeData
             maxCpuCores: $maxCpuCores,
             maxRamMb: $maxRamMb,
             maxDiskGb: $maxDiskGb,
+            maxBandwidthMbps: $maxBandwidthMbps,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             nodeGroupId: $nodeGroupId,
             credentials: $credentials,
@@ -135,6 +139,7 @@ readonly class NodeData
             'max_cpu_cores' => $this->maxCpuCores,
             'max_ram_mb' => $this->maxRamMb,
             'max_disk_gb' => $this->maxDiskGb,
+            'max_bandwidth_mbps' => $this->maxBandwidthMbps,
             'sort_order' => $this->sortOrder,
             'node_group_id' => $this->nodeGroupId,
             'config' => $this->config,

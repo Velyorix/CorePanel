@@ -85,6 +85,11 @@ class NodeAllocationAlgorithm
             $ratios[] = $allocated['disk_gb'] / $node->max_disk_gb;
         }
 
+        if ($node->max_bandwidth_mbps !== null && $node->max_bandwidth_mbps > 0) {
+            $usage = $node->capacityUsage();
+            $ratios[] = $usage->peakBandwidthMbps() / $node->max_bandwidth_mbps;
+        }
+
         if ($ratios === []) {
             return (float) $node->allocatedServicesCount();
         }

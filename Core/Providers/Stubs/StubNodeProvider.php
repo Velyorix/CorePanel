@@ -65,6 +65,11 @@ class StubNodeProvider implements NodeProviderInterface
                 maxServices: $max,
                 currentServices: $current,
                 cpuUsage: 5.0,
+                ramUsage: 8192.0,
+                diskUsage: 120.0,
+                networkIn: 45.5,
+                networkOut: 22.0,
+                loadAverage: 1.25,
                 capacityAvailable: true,
             ),
             payload: [

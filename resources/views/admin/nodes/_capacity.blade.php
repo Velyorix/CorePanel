@@ -43,3 +43,12 @@
     min="0"
     :hint="__('Gigabytes of storage available for allocation.')"
 />
+
+<x-ui.input
+    name="max_bandwidth_mbps"
+    type="number"
+    :label="__('Max bandwidth (Mbps)')"
+    :value="old('max_bandwidth_mbps', $node?->max_bandwidth_mbps)"
+    min="0"
+    :hint="__('Peak inbound/outbound bandwidth available for allocation.')"
+/>

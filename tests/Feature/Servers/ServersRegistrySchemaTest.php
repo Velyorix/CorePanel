@@ -38,6 +38,7 @@ class ServersRegistrySchemaTest extends TestCase
             'max_cpu_cores',
             'max_ram_mb',
             'max_disk_gb',
+            'max_bandwidth_mbps',
             'sort_order',
             'node_group_id',
             'credentials',

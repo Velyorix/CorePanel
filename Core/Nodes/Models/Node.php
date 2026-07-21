@@ -2,6 +2,7 @@
 
 namespace Core\Nodes\Models;
 
+use Core\Nodes\DataTransferObjects\NodeCapacityUsage;
 use Core\Nodes\Enums\NodeStatus;
 use Core\Nodes\Enums\NodeType;
 use Core\Providers\DataTransferObjects\NodeConnectionRequest;
@@ -44,6 +45,7 @@ class Node extends Model
         'max_cpu_cores',
         'max_ram_mb',
         'max_disk_gb',
+        'max_bandwidth_mbps',
         'sort_order',
         'node_group_id',
         'credentials',
@@ -62,6 +64,7 @@ class Node extends Model
             'max_cpu_cores' => 'integer',
             'max_ram_mb' => 'integer',
             'max_disk_gb' => 'integer',
+            'max_bandwidth_mbps' => 'integer',
             'sort_order' => 'integer',
             'credentials' => 'encrypted:array',
             'config' => 'array',
@@ -155,7 +158,8 @@ class Node extends Model
 
     public function hasResourceCapacity(): bool
     {
-        $allocated = $this->allocatedResources();
+        $usage = NodeCapacityUsage::fromNode($this);
+        $allocated = $usage->allocatedResources();
 
         if ($this->max_cpu_cores !== null && $allocated['cpu_cores'] >= $this->max_cpu_cores) {
             return false;
@@ -169,6 +173,14 @@ class Node extends Model
             return false;
         }
 
+        if ($this->max_bandwidth_mbps !== null && $usage->peakBandwidthMbps() >= $this->max_bandwidth_mbps) {
+            return false;
+        }
+
+        if ($usage->capacityAvailable === false) {
+            return false;
+        }
+
         return true;
     }
 
@@ -177,7 +189,8 @@ class Node extends Model
         return $this->max_services !== null
             || $this->max_cpu_cores !== null
             || $this->max_ram_mb !== null
-            || $this->max_disk_gb !== null;
+            || $this->max_disk_gb !== null
+            || $this->max_bandwidth_mbps !== null;
     }
 
     /**
@@ -185,18 +198,12 @@ class Node extends Model
      */
     public function allocatedResources(): array
     {
-        $capacity = is_array($this->config['capacity'] ?? null)
-            ? $this->config['capacity']
-            : [];
-        $allocated = is_array($capacity['allocated'] ?? null)
-            ? $capacity['allocated']
-            : [];
+        return NodeCapacityUsage::fromNode($this)->allocatedResources();
+    }
 
-        return [
-            'cpu_cores' => max(0, (int) ($allocated['cpu_cores'] ?? 0)),
-            'ram_mb' => max(0, (int) ($allocated['ram_mb'] ?? 0)),
-            'disk_gb' => max(0, (int) ($allocated['disk_gb'] ?? 0)),
-        ];
+    public function capacityUsage(): NodeCapacityUsage
+    {
+        return NodeCapacityUsage::fromNode($this);
     }
 
     public function allocatedServicesCount(): int

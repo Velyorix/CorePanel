@@ -3,6 +3,7 @@
 
     /** @var \Core\Nodes\Models\Node $node */
     $credentialValues = is_array($node->credentials) ? $node->credentials : [];
+    $capacityUsage = $node->capacityUsage();
 @endphp
 
 <x-layout.admin
@@ -156,18 +157,30 @@
                             @endif
                             {{ __('services') }}
                         </span>
-                        @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null)
+                        @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null || $node->max_bandwidth_mbps !== null)
                             <div class="mt-2 text-small text-muted-foreground">
                                 @if ($node->max_cpu_cores !== null)
-                                    {{ $node->allocatedResources()['cpu_cores'] }}/{{ $node->max_cpu_cores }} {{ __('CPU') }}
+                                    {{ $capacityUsage->cpuCores }}/{{ $node->max_cpu_cores }} {{ __('CPU') }}
                                 @endif
                                 @if ($node->max_ram_mb !== null)
                                     @if ($node->max_cpu_cores !== null) · @endif
-                                    {{ number_format($node->allocatedResources()['ram_mb']) }}/{{ number_format($node->max_ram_mb) }} {{ __('MB RAM') }}
+                                    {{ number_format($capacityUsage->ramMb) }}/{{ number_format($node->max_ram_mb) }} {{ __('MB RAM') }}
                                 @endif
                                 @if ($node->max_disk_gb !== null)
                                     @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null) · @endif
-                                    {{ $node->allocatedResources()['disk_gb'] }}/{{ $node->max_disk_gb }} {{ __('GB disk') }}
+                                    {{ $capacityUsage->diskGb }}/{{ $node->max_disk_gb }} {{ __('GB disk') }}
+                                @endif
+                                @if ($node->max_bandwidth_mbps !== null)
+                                    @if ($node->max_cpu_cores !== null || $node->max_ram_mb !== null || $node->max_disk_gb !== null) · @endif
+                                    {{ number_format($capacityUsage->peakBandwidthMbps(), 1) }}/{{ $node->max_bandwidth_mbps }} {{ __('Mbps') }}
+                                @endif
+                            </div>
+                        @endif
+                        @if ($capacityUsage->syncedAt)
+                            <div class="mt-2 text-small text-muted-foreground">
+                                {{ __('Last synced') }}: {{ $capacityUsage->syncedAt }}
+                                @if ($capacityUsage->source)
+                                    ({{ $capacityUsage->source }})
                                 @endif
                             </div>
                         @endif

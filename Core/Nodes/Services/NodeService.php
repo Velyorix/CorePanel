@@ -9,6 +9,7 @@ use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Models\NodeGroupRelation;
 use Core\Nodes\Services\NodeCredentialsService;
+use Core\Nodes\Services\NodeCapacityService;
 use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ class NodeService
     public function __construct(
         private readonly ProviderRegistry $providers,
         private readonly NodeCredentialsService $credentials,
+        private readonly NodeCapacityService $capacity,
     ) {
     }
 
@@ -181,36 +183,7 @@ class NodeService
             return $sync;
         }
 
-        $capacityConfig = is_array($node->config['capacity'] ?? null)
-            ? $node->config['capacity']
-            : [];
-
-        $allocated = is_array($capacityConfig['allocated'] ?? null)
-            ? $capacityConfig['allocated']
-            : [];
-
-        if ($resources->resources->cpuUsage !== null) {
-            $allocated['cpu_cores'] = (int) round($resources->resources->cpuUsage);
-        }
-
-        if ($resources->resources->ramUsage !== null) {
-            $allocated['ram_mb'] = (int) round($resources->resources->ramUsage);
-        }
-
-        if ($resources->resources->diskUsage !== null) {
-            $allocated['disk_gb'] = (int) round($resources->resources->diskUsage);
-        }
-
-        $node->forceFill([
-            'config' => array_merge_recursive(
-                is_array($node->config) ? $node->config : [],
-                [
-                    'capacity' => [
-                        'allocated' => $allocated,
-                    ],
-                ],
-            ),
-        ])->save();
+        $this->capacity->applyResources($node, $resources->resources, 'sync');
 
         return $sync;
     }

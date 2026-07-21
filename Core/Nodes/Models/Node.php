@@ -111,6 +111,14 @@ class Node extends Model
         return $this->hasMany(NodeLog::class)->orderByDesc('id');
     }
 
+    /**
+     * @return HasMany<NodeMetric, $this>
+     */
+    public function metrics(): HasMany
+    {
+        return $this->hasMany(NodeMetric::class)->orderByDesc('collected_at');
+    }
+
     public function isSelectable(): bool
     {
         return $this->status->isSelectable();

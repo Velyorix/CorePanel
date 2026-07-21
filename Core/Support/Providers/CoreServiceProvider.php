@@ -40,6 +40,7 @@ use Core\License\Services\LicenseValidationService;
 use Core\Nodes\Services\NodeConnectionTestService;
 use Core\Nodes\Services\NodeCredentialsService;
 use Core\Nodes\Services\NodeGroupService;
+use Core\Nodes\Services\NodeMetricsCollectionService;
 use Core\Nodes\Services\NodeService;
 use Core\Nodes\Models\Node;
 use Core\Orders\Models\Order;
@@ -139,6 +140,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(NodeCredentialsService::class);
         $this->app->singleton(NodeConnectionTestService::class);
+        $this->app->singleton(NodeMetricsCollectionService::class);
         $this->app->singleton(NodeService::class);
         $this->app->singleton(CartService::class);
         $this->app->singleton(TaxCalculationService::class);

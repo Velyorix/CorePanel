@@ -4,6 +4,7 @@ use App\Jobs\ValidateLicenseJob;
 use App\Jobs\GenerateRenewalInvoices;
 use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
+use Core\Nodes\Jobs\CollectNodeMetricsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -41,4 +42,15 @@ $suspensions = Schedule::job(new ProcessOverdueSuspensions)->withoutOverlapping(
 match ($suspensionSchedule) {
     'hourly' => $suspensions->hourly(),
     default => $suspensions->daily(),
+};
+
+$nodeMetricsSchedule = (string) config('corepanel.nodes.metrics.schedule', 'everyFiveMinutes');
+
+$nodeMetrics = Schedule::job(new CollectNodeMetricsJob)->withoutOverlapping();
+
+match ($nodeMetricsSchedule) {
+    'everyMinute' => $nodeMetrics->everyMinute(),
+    'everyTenMinutes' => $nodeMetrics->everyTenMinutes(),
+    'hourly' => $nodeMetrics->hourly(),
+    default => $nodeMetrics->everyFiveMinutes(),
 };

@@ -112,6 +112,12 @@ class AdminNavigation
                         'routeIs' => ['admin.provisioning-dead-letters.*'],
                         'permission' => 'services.view',
                     ],
+                    [
+                        'label' => __('Sync history'),
+                        'route' => 'admin.sync-logs.index',
+                        'routeIs' => ['admin.sync-logs.*', 'admin.sync.*'],
+                        'permission' => 'services.view',
+                    ],
                 ],
             ],
             [

@@ -57,6 +57,15 @@
 
     <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
         @can('manage', $service)
+            @if ($canSync ?? false)
+                <form method="POST" action="{{ route('admin.services.sync', $service) }}" class="inline">
+                    @csrf
+                    <x-ui.button type="submit" variant="ghost" size="sm">
+                        {{ __('Sync with provider') }}
+                    </x-ui.button>
+                </form>
+            @endif
+
             @foreach ($allowedActions as $action)
                 @continue(! isset($actionRoutes[$action->value]))
                 <form
@@ -254,6 +263,61 @@
                                     <td class="px-2 py-2">{{ $log->performer?->name ?: __('System') }}</td>
                                     <td class="px-2 py-2">
                                         {{ $log->created_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s') ?: '—' }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-ui.card>
+    </div>
+
+    <div class="mt-6">
+        <x-ui.card :title="__('Sync history')">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <p class="text-body-sm text-muted-foreground">
+                    {{ __('Recent provider sync runs for this service.') }}
+                </p>
+                <x-ui.button :href="route('admin.sync-logs.index', ['q' => $service->id])" variant="ghost" size="sm">
+                    {{ __('View all sync logs') }}
+                </x-ui.button>
+            </div>
+
+            @if ($syncLogs->isEmpty())
+                <x-ui.empty
+                    :title="__('No sync logs yet')"
+                    :description="__('Run a manual sync or wait for the scheduled job.')"
+                />
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-body-sm">
+                        <thead>
+                            <tr class="border-b border-border text-muted-foreground">
+                                <th class="px-2 py-2 font-medium">{{ __('When') }}</th>
+                                <th class="px-2 py-2 font-medium">{{ __('Outcome') }}</th>
+                                <th class="px-2 py-2 font-medium">{{ __('Message') }}</th>
+                                <th class="px-2 py-2 font-medium"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($syncLogs as $syncLog)
+                                <tr class="border-b border-border/60">
+                                    <td class="px-2 py-2">
+                                        {{ $syncLog->created_at?->timezone(config('app.timezone'))->format('Y-m-d H:i:s') ?: '—' }}
+                                    </td>
+                                    <td class="px-2 py-2">
+                                        <x-ui.badge :variant="$syncLog->outcome->badgeVariant()">
+                                            {{ $syncLog->outcome->label() }}
+                                        </x-ui.badge>
+                                    </td>
+                                    <td class="max-w-md truncate px-2 py-2 text-muted-foreground" title="{{ $syncLog->message }}">
+                                        {{ $syncLog->message ?: '—' }}
+                                    </td>
+                                    <td class="px-2 py-2 text-end">
+                                        <x-ui.button :href="route('admin.sync-logs.show', $syncLog)" variant="ghost" size="sm">
+                                            {{ __('Details') }}
+                                        </x-ui.button>
                                     </td>
                                 </tr>
                             @endforeach

@@ -14,6 +14,9 @@ use Core\Nodes\Services\NodeAuditLogger;
 use Core\Nodes\Services\NodeLogService;
 use Core\Nodes\Services\NodeMonitoringService;
 use Core\Nodes\Services\NodeService;
+use Core\Sync\Enums\SyncLogSubject;
+use Core\Sync\Models\SyncLog;
+use Core\Sync\Services\NodeSyncService;
 use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -24,6 +27,7 @@ class NodeController extends Controller
 {
     public function __construct(
         private readonly NodeService $nodeService,
+        private readonly NodeSyncService $nodeSync,
         private readonly NodeLogService $nodeLogs,
         private readonly NodeAuditLogger $audit,
         private readonly NodeMonitoringService $monitoring,
@@ -105,23 +109,14 @@ class NodeController extends Controller
     {
         Gate::authorize('update', $node);
 
-        try {
-            $response = $this->nodeService->sync($node);
-        } catch (InvalidArgumentException $exception) {
-            $this->nodeLogs->record(
-                node: $node,
-                action: 'node.sync',
-                status: NodeLogStatus::Failed,
-                performedBy: auth()->id(),
-                response: ['message' => $exception->getMessage()],
-            );
+        $outcome = $this->nodeSync->syncNode($node);
+        $latestLog = SyncLog::query()
+            ->where('subject_type', SyncLogSubject::Node)
+            ->where('subject_id', $node->id)
+            ->orderByDesc('id')
+            ->first();
 
-            return redirect()
-                ->route('admin.nodes.show', $node)
-                ->withErrors(['node' => $exception->getMessage()]);
-        }
-
-        if ($response->status->isSuccessful()) {
+        if ($outcome === 'synced') {
             $fresh = $node->fresh() ?? $node;
 
             $this->nodeLogs->record(
@@ -129,37 +124,43 @@ class NodeController extends Controller
                 action: 'node.sync',
                 status: NodeLogStatus::Success,
                 performedBy: auth()->id(),
-                response: $response->payload,
+                response: is_array($latestLog?->payload) ? $latestLog->payload : null,
             );
 
             $this->audit->log(
                 action: NodeAuditLogger::ACTION_SYNCED,
                 node: $fresh,
                 after: [
-                    'message' => $response->message,
-                    'payload' => $response->payload,
+                    'message' => $latestLog?->message,
+                    'payload' => $latestLog?->payload,
                 ],
             );
 
             return redirect()
                 ->route('admin.nodes.show', $node)
-                ->with('status', $response->message ?? __('Node synced successfully.'));
+                ->with('status', $latestLog?->message ?? __('Node synced successfully.'));
         }
 
-        $this->nodeLogs->record(
-            node: $node,
-            action: 'node.sync',
-            status: NodeLogStatus::Failed,
-            performedBy: auth()->id(),
-            response: array_filter([
-                'message' => $response->message,
-                'payload' => $response->payload,
-            ], static fn (mixed $value): bool => $value !== null && $value !== []),
-        );
+        if ($outcome === 'failed') {
+            $this->nodeLogs->record(
+                node: $node,
+                action: 'node.sync',
+                status: NodeLogStatus::Failed,
+                performedBy: auth()->id(),
+                response: array_filter([
+                    'message' => $latestLog?->message,
+                    'payload' => $latestLog?->payload,
+                ], static fn (mixed $value): bool => $value !== null && $value !== []),
+            );
+
+            return redirect()
+                ->route('admin.nodes.show', $node)
+                ->withErrors(['node' => $latestLog?->message ?? __('Node sync failed.')]);
+        }
 
         return redirect()
             ->route('admin.nodes.show', $node)
-            ->withErrors(['node' => $response->message ?? __('Node sync failed.')]);
+            ->with('status', $latestLog?->message ?? __('Node sync was skipped.'));
     }
 
     public function maintenance(Node $node): RedirectResponse

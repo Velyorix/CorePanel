@@ -115,7 +115,7 @@ use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
 use Core\Sync\Services\ServiceSyncResolutionService;
 use Core\Sync\Services\ServiceSyncService;
-use Core\Sync\Services\SyncAlertService;
+use Core\Sync\Services\SyncLogQueryService;
 use Core\Sync\Services\SyncLogService;
 use Core\Provisioning\Services\ProvisioningRollbackService;
 use Core\Services\Contracts\ModuleAccessLinkProvider;
@@ -203,6 +203,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceSyncComparisonService::class);
         $this->app->singleton(ServiceSyncResolutionService::class);
         $this->app->singleton(SyncLogService::class);
+        $this->app->singleton(SyncLogQueryService::class);
         $this->app->singleton(SyncAlertService::class);
         $this->app->singleton(ServiceSyncService::class);
         $this->app->singleton(NodeSyncService::class);

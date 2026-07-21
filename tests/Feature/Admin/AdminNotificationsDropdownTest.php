@@ -47,8 +47,7 @@ class AdminNotificationsDropdownTest extends TestCase
             ->assertSee(__('Recent system alerts from sync and infrastructure jobs.'), false)
             ->assertSee(__('Service sync divergence'), false)
             ->assertSee(__('Service #42 diverged from provider.'), false)
-            ->assertSee(__('View all notifications'), false)
-            ->assertSee(__('Coming soon'), false)
+            ->assertSee(__('View sync history'), false)
             ->assertSee('data-notification="sync.service.42"', false);
     }
 
@@ -130,6 +129,7 @@ class AdminNotificationsDropdownTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee(__('No alerts yet.'), false);
+            ->assertSee(__('No alerts yet.'), false)
+            ->assertSee(__('View sync history'), false);
     }
 }

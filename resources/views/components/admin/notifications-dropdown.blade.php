@@ -61,9 +61,8 @@
     </div>
 
     <div class="border-t border-border px-4 py-3 text-center">
-        <p class="text-small text-muted-foreground">
-            {{ __('View all notifications') }}
-            <span class="text-muted-foreground/80">· {{ __('Coming soon') }}</span>
-        </p>
+        <a href="{{ route('admin.sync-logs.index') }}" class="text-small text-primary hover:underline">
+            {{ __('View sync history') }}
+        </a>
     </div>
 </x-ui.dropdown>

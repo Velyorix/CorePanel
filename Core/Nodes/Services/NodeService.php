@@ -155,6 +155,73 @@ class NodeService
         });
     }
 
+    public function sync(Node $node): \Core\Providers\DataTransferObjects\NodeOperationResponse
+    {
+        $module = trim((string) ($node->module ?? ''));
+
+        if ($module === '') {
+            throw new InvalidArgumentException('A provider module is required to sync the node.');
+        }
+
+        if (! $this->providers->hasNode($module)) {
+            throw new InvalidArgumentException("Unknown provider module [{$module}].");
+        }
+
+        $request = $node->toConnectionRequest();
+
+        $sync = $this->providers->node($module)->sync($request);
+
+        if (! $sync->status->isSuccessful()) {
+            return $sync;
+        }
+
+        $resources = $this->providers->node($module)->getResources($request);
+
+        if (! $resources->status->isSuccessful()) {
+            return $sync;
+        }
+
+        $capacityConfig = is_array($node->config['capacity'] ?? null)
+            ? $node->config['capacity']
+            : [];
+
+        $allocated = is_array($capacityConfig['allocated'] ?? null)
+            ? $capacityConfig['allocated']
+            : [];
+
+        if ($resources->resources->cpuUsage !== null) {
+            $allocated['cpu_cores'] = (int) round($resources->resources->cpuUsage);
+        }
+
+        if ($resources->resources->ramUsage !== null) {
+            $allocated['ram_mb'] = (int) round($resources->resources->ramUsage);
+        }
+
+        if ($resources->resources->diskUsage !== null) {
+            $allocated['disk_gb'] = (int) round($resources->resources->diskUsage);
+        }
+
+        $node->forceFill([
+            'config' => array_merge_recursive(
+                is_array($node->config) ? $node->config : [],
+                [
+                    'capacity' => [
+                        'allocated' => $allocated,
+                    ],
+                ],
+            ),
+        ])->save();
+
+        return $sync;
+    }
+
+    public function setStatus(Node $node, NodeStatus $status): void
+    {
+        $node->forceFill([
+            'status' => $status->value,
+        ])->save();
+    }
+
     private function syncGroupRelations(Node $node, NodeData $data): void
     {
         $groupIds = $data->resolvedGroupIds();

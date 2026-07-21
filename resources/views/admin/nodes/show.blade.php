@@ -34,6 +34,13 @@
         <div class="flex flex-wrap items-center gap-2">
             @can('update', $node)
                 @if (filled($node->module))
+                    <form method="POST" action="{{ route('admin.nodes.sync', $node) }}" class="inline">
+                        @csrf
+                        <x-ui.button type="submit" variant="ghost" size="sm">
+                            {{ __('Sync') }}
+                        </x-ui.button>
+                    </form>
+
                     <form method="POST" action="{{ route('admin.nodes.test-connection.node', $node) }}" class="inline">
                         @csrf
                         <x-ui.button type="submit" variant="ghost" size="sm">
@@ -41,9 +48,65 @@
                         </x-ui.button>
                     </form>
                 @endif
+
+                @if ($node->status === \Core\Nodes\Enums\NodeStatus::Maintenance)
+                    <form method="POST" action="{{ route('admin.nodes.enable', $node) }}" class="inline">
+                        @csrf
+                        <x-ui.button type="submit" variant="secondary" size="sm">
+                            {{ __('Exit maintenance') }}
+                        </x-ui.button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('admin.nodes.maintenance', $node) }}" class="inline">
+                        @csrf
+                        <x-ui.button type="submit" variant="secondary" size="sm">
+                            {{ __('Set maintenance') }}
+                        </x-ui.button>
+                    </form>
+                @endif
+
+                @if ($node->status !== \Core\Nodes\Enums\NodeStatus::Disabled)
+                    <form method="POST" action="{{ route('admin.nodes.disable', $node) }}" class="inline">
+                        @csrf
+                        <x-ui.button type="submit" variant="ghost" size="sm">
+                            {{ __('Disable') }}
+                        </x-ui.button>
+                    </form>
+                @endif
+
+                @if ($node->status !== \Core\Nodes\Enums\NodeStatus::Active)
+                    <form method="POST" action="{{ route('admin.nodes.enable', $node) }}" class="inline">
+                        @csrf
+                        <x-ui.button type="submit" variant="ghost" size="sm">
+                            {{ __('Enable') }}
+                        </x-ui.button>
+                    </form>
+                @endif
+            @endcan
+
+            @can('delete', $node)
+                <form method="POST" action="{{ route('admin.nodes.destroy', $node) }}" class="inline" onsubmit="return confirm(@js(__('Delete this node?')))">
+                    @csrf
+                    @method('DELETE')
+                    <x-ui.button type="submit" variant="danger" size="sm">
+                        {{ __('Delete') }}
+                    </x-ui.button>
+                </form>
             @endcan
         </div>
     </div>
+
+    @if (session('status'))
+        <div class="mb-6">
+            <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>
+        </div>
+    @endif
+
+    @if ($errors->has('node'))
+        <div class="mb-6">
+            <x-ui.alert variant="danger">{{ $errors->first('node') }}</x-ui.alert>
+        </div>
+    @endif
 
     <div class="grid gap-6 lg:grid-cols-2">
         <x-ui.card :title="__('Overview')">

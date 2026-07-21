@@ -129,6 +129,11 @@ Route::middleware('admin')
         Route::post('nodes', [NodeController::class, 'store'])->name('nodes.store');
         Route::post('nodes/test-connection', [NodeConnectionController::class, 'test'])->name('nodes.test-connection');
         Route::post('nodes/{node}/test-connection', [NodeConnectionController::class, 'testNode'])->name('nodes.test-connection.node');
+        Route::post('nodes/{node}/sync', [NodeController::class, 'sync'])->name('nodes.sync');
+        Route::post('nodes/{node}/maintenance', [NodeController::class, 'maintenance'])->name('nodes.maintenance');
+        Route::post('nodes/{node}/enable', [NodeController::class, 'enable'])->name('nodes.enable');
+        Route::post('nodes/{node}/disable', [NodeController::class, 'disable'])->name('nodes.disable');
+        Route::delete('nodes/{node}', [NodeController::class, 'destroy'])->name('nodes.destroy');
 
         Route::get('node-groups', [NodeGroupController::class, 'index'])->name('node-groups.index');
         Route::get('node-groups/create', [NodeGroupController::class, 'create'])->name('node-groups.create');

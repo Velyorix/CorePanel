@@ -69,6 +69,83 @@ class NodeController extends Controller
         ]);
     }
 
+    public function sync(Node $node): RedirectResponse
+    {
+        Gate::authorize('update', $node);
+
+        try {
+            $response = $this->nodeService->sync($node);
+        } catch (InvalidArgumentException $exception) {
+            return redirect()
+                ->route('admin.nodes.show', $node)
+                ->withErrors(['node' => $exception->getMessage()]);
+        }
+
+        if ($response->status->isSuccessful()) {
+            return redirect()
+                ->route('admin.nodes.show', $node)
+                ->with('status', $response->message ?? __('Node synced successfully.'));
+        }
+
+        return redirect()
+            ->route('admin.nodes.show', $node)
+            ->withErrors(['node' => $response->message ?? __('Node sync failed.')]);
+    }
+
+    public function maintenance(Node $node): RedirectResponse
+    {
+        Gate::authorize('update', $node);
+
+        $target = $node->status === NodeStatus::Maintenance
+            ? NodeStatus::Active
+            : NodeStatus::Maintenance;
+
+        $this->nodeService->setStatus($node, $target);
+
+        return redirect()
+            ->route('admin.nodes.show', $node)
+            ->with('status', __('Node status updated.'));
+    }
+
+    public function disable(Node $node): RedirectResponse
+    {
+        Gate::authorize('update', $node);
+
+        $this->nodeService->setStatus($node, NodeStatus::Disabled);
+
+        return redirect()
+            ->route('admin.nodes.show', $node)
+            ->with('status', __('Node disabled.'));
+    }
+
+    public function enable(Node $node): RedirectResponse
+    {
+        Gate::authorize('update', $node);
+
+        $this->nodeService->setStatus($node, NodeStatus::Active);
+
+        return redirect()
+            ->route('admin.nodes.show', $node)
+            ->with('status', __('Node enabled.'));
+    }
+
+    public function destroy(Node $node): RedirectResponse
+    {
+        Gate::authorize('delete', $node);
+
+        try {
+            $this->nodeService->delete($node);
+        } catch (InvalidArgumentException $exception) {
+            return redirect()
+                ->route('admin.nodes.show', $node)
+                ->withErrors(['node' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.nodes.index')
+            ->with('status', __('Node deleted successfully.'));
+    }
+
     /**
      * @return array{
      *     types: list<NodeType>,

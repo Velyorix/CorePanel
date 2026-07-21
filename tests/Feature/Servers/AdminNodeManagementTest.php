@@ -97,6 +97,80 @@ class AdminNodeManagementTest extends TestCase
             ->assertDontSee('panel-secret-key');
     }
 
+    public function test_admin_can_sync_and_toggle_node_status(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $node = Node::factory()->forModule('stub')->create([
+            'hostname' => 'sync.example.test',
+            'status' => NodeStatus::Active->value,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.nodes.sync', $node))
+            ->assertRedirect(route('admin.nodes.show', $node))
+            ->assertSessionHas('status');
+
+        $this->actingAs($admin)
+            ->post(route('admin.nodes.maintenance', $node))
+            ->assertRedirect(route('admin.nodes.show', $node))
+            ->assertSessionHas('status');
+
+        $this->assertSame(NodeStatus::Maintenance, $node->fresh()->status);
+
+        $this->actingAs($admin)
+            ->post(route('admin.nodes.disable', $node))
+            ->assertRedirect(route('admin.nodes.show', $node))
+            ->assertSessionHas('status');
+
+        $this->assertSame(NodeStatus::Disabled, $node->fresh()->status);
+
+        $this->actingAs($admin)
+            ->post(route('admin.nodes.enable', $node))
+            ->assertRedirect(route('admin.nodes.show', $node))
+            ->assertSessionHas('status');
+
+        $this->assertSame(NodeStatus::Active, $node->fresh()->status);
+    }
+
+    public function test_support_cannot_sync_or_toggle_node_status(): void
+    {
+        $support = User::factory()->withRole('support')->create();
+        $node = Node::factory()->forModule('stub')->create([
+            'hostname' => 'blocked-sync.example.test',
+        ]);
+
+        $this->actingAs($support)
+            ->post(route('admin.nodes.sync', $node))
+            ->assertForbidden();
+
+        $this->actingAs($support)
+            ->post(route('admin.nodes.maintenance', $node))
+            ->assertForbidden();
+
+        $this->actingAs($support)
+            ->post(route('admin.nodes.disable', $node))
+            ->assertForbidden();
+
+        $this->actingAs($support)
+            ->post(route('admin.nodes.enable', $node))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_delete_node(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $node = Node::factory()->forModule('stub')->create([
+            'hostname' => 'delete-me.example.test',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.nodes.destroy', $node))
+            ->assertRedirect(route('admin.nodes.index'))
+            ->assertSessionHas('status');
+
+        $this->assertSoftDeleted('nodes', ['id' => $node->id]);
+    }
+
     public function test_admin_can_create_server_with_module_binding(): void
     {
         $admin = User::factory()->withRole('admin')->create();

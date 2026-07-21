@@ -25,6 +25,13 @@ class Node extends Model
     /**
      * @var list<string>
      */
+    protected $hidden = [
+        'credentials',
+    ];
+
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
         'type',
@@ -93,6 +100,21 @@ class Node extends Model
     public function isSelectable(): bool
     {
         return $this->status->isSelectable();
+    }
+
+    public function hasConfiguredCredentials(): bool
+    {
+        if (! is_array($this->credentials)) {
+            return false;
+        }
+
+        foreach ($this->credentials as $value) {
+            if (filled($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function hasCapacity(): bool

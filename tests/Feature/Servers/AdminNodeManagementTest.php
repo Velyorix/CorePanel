@@ -11,6 +11,7 @@ use Core\Providers\Services\ProviderRegistry;
 use Core\Providers\Stubs\StubServerProvider;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AdminNodeManagementTest extends TestCase
@@ -54,6 +55,7 @@ class AdminNodeManagementTest extends TestCase
             ->assertOk()
             ->assertSee(__('Create server'))
             ->assertSee(__('Provider module'))
+            ->assertSee(__('Credentials'))
             ->assertSee('stub');
     }
 
@@ -86,6 +88,32 @@ class AdminNodeManagementTest extends TestCase
         $this->assertSame('https://panel.example.test', $node->api_url);
         $this->assertSame($group->id, $node->node_group_id);
         $this->assertSame(40, $node->max_services);
+    }
+
+    public function test_admin_can_create_server_with_encrypted_credentials(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.nodes.store'), [
+                'name' => 'Secure Node',
+                'hostname' => 'secure.example.test',
+                'type' => NodeType::Vps->value,
+                'module' => 'stub',
+                'credentials' => [
+                    'api_key' => 'panel-secret-key',
+                    'ssh_password' => 'ssh-secret-pass',
+                ],
+            ])
+            ->assertRedirect(route('admin.nodes.index'));
+
+        $node = Node::query()->where('hostname', 'secure.example.test')->firstOrFail();
+        $raw = DB::table('nodes')->where('id', $node->id)->value('credentials');
+
+        $this->assertStringNotContainsString('panel-secret-key', (string) $raw);
+        $this->assertStringNotContainsString('ssh-secret-pass', (string) $raw);
+        $this->assertSame('panel-secret-key', $node->credentials['api_key']);
+        $this->assertTrue($node->hasConfiguredCredentials());
     }
 
     public function test_support_cannot_create_servers(): void

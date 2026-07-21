@@ -85,4 +85,6 @@
         :value="old('sort_order', $node?->sort_order ?? 0)"
         min="0"
     />
+
+    @include('admin.nodes._credentials')
 </div>

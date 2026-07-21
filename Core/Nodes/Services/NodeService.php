@@ -8,6 +8,7 @@ use Core\Nodes\Enums\NodeType;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Models\NodeGroupRelation;
+use Core\Nodes\Services\NodeCredentialsService;
 use Core\Providers\Services\ProviderRegistry;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class NodeService
 
     public function __construct(
         private readonly ProviderRegistry $providers,
+        private readonly NodeCredentialsService $credentials,
     ) {
     }
 
@@ -105,7 +107,13 @@ class NodeService
         $this->assertModuleRegistered($data->module);
 
         return DB::transaction(function () use ($data): Node {
-            $node = Node::query()->create($data->toAttributes());
+            $attributes = $data->toAttributes();
+
+            if ($data->credentialsProvided) {
+                $attributes['credentials'] = $this->credentials->buildForCreate($data->credentials);
+            }
+
+            $node = Node::query()->create($attributes);
             $this->syncGroupRelations($node, $data);
 
             return $node->fresh(self::RELATIONS) ?? $node;
@@ -119,7 +127,13 @@ class NodeService
         $this->assertModuleRegistered($data->module);
 
         return DB::transaction(function () use ($node, $data): Node {
-            $node->update($data->toAttributes());
+            $attributes = $data->toAttributes();
+
+            if ($data->credentialsProvided) {
+                $attributes['credentials'] = $this->credentials->mergeForUpdate($node, $data->credentials);
+            }
+
+            $node->update($attributes);
 
             if ($data->shouldSyncGroupRelations()) {
                 $this->syncGroupRelations($node->fresh() ?? $node, $data);

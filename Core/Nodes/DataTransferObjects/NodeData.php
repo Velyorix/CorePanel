@@ -25,6 +25,7 @@ readonly class NodeData
         public int $sortOrder = 0,
         public ?int $nodeGroupId = null,
         public ?array $credentials = null,
+        public bool $credentialsProvided = false,
         public ?array $config = null,
         public ?array $groupIds = null,
     ) {
@@ -84,6 +85,13 @@ readonly class NodeData
             $groupIds = self::normalizeGroupIds($data['group_ids']);
         }
 
+        $credentialsProvided = array_key_exists('credentials', $data);
+        $credentials = null;
+
+        if ($credentialsProvided) {
+            $credentials = self::nullableArray($data['credentials'] ?? null) ?? [];
+        }
+
         return new self(
             name: $name,
             hostname: $hostname,
@@ -95,7 +103,8 @@ readonly class NodeData
             maxServices: $maxServices,
             sortOrder: max(0, (int) ($data['sort_order'] ?? 0)),
             nodeGroupId: $nodeGroupId,
-            credentials: self::nullableArray($data['credentials'] ?? null),
+            credentials: $credentials,
+            credentialsProvided: $credentialsProvided,
             config: self::nullableArray($data['config'] ?? null),
             groupIds: $groupIds,
         );
@@ -117,7 +126,6 @@ readonly class NodeData
             'max_services' => $this->maxServices,
             'sort_order' => $this->sortOrder,
             'node_group_id' => $this->nodeGroupId,
-            'credentials' => $this->credentials,
             'config' => $this->config,
         ];
     }

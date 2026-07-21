@@ -8,7 +8,7 @@ use Core\Billing\Exceptions\InvalidPaymentException;
 use Core\Billing\Exceptions\UnknownPaymentGatewayException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
-use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Billing\FakePaymentGateway;
@@ -27,9 +27,10 @@ class PaymentServiceTest extends TestCase
         parent::setUp();
 
         $this->gateway = new FakePaymentGateway;
-        $registry = app(PaymentGatewayRegistry::class);
-        $registry->flush();
-        $registry->register($this->gateway);
+        $gateways = app(GatewayManager::class);
+        $gateways->flush();
+        $gateways->register($this->gateway);
+        $gateways->enable('fake');
         $this->payments = app(PaymentService::class);
     }
 

@@ -15,7 +15,7 @@ use Core\Billing\Models\Payment;
 use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CreditNoteNumberService;
 use Core\Billing\Services\CreditNoteService;
-use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Billing\FakePaymentGateway;
@@ -36,9 +36,10 @@ class CreditNoteServiceTest extends TestCase
         parent::setUp();
 
         $this->gateway = new FakePaymentGateway;
-        $registry = app(PaymentGatewayRegistry::class);
-        $registry->flush();
-        $registry->register($this->gateway);
+        $gateways = app(GatewayManager::class);
+        $gateways->flush();
+        $gateways->register($this->gateway);
+        $gateways->enable('fake');
 
         $this->payments = app(PaymentService::class);
         $this->creditNotes = app(CreditNoteService::class);

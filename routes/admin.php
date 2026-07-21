@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\NodeClusterController;
 use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
@@ -67,6 +68,14 @@ Route::middleware('admin')
         Route::post('modules/{module}/disable', [ModuleController::class, 'disable'])->name('modules.disable');
         Route::put('modules/{module}/config', [ModuleController::class, 'updateConfig'])->name('modules.config');
         Route::delete('modules/{module}', [ModuleController::class, 'uninstall'])->name('modules.uninstall');
+
+        Route::get('gateways', [PaymentGatewayController::class, 'index'])->name('gateways.index');
+        Route::get('gateways/{gateway}', [PaymentGatewayController::class, 'show'])->name('gateways.show');
+        Route::post('gateways/{gateway}/enable', [PaymentGatewayController::class, 'enable'])->name('gateways.enable');
+        Route::post('gateways/{gateway}/disable', [PaymentGatewayController::class, 'disable'])->name('gateways.disable');
+        Route::post('gateways/{gateway}/move-up', [PaymentGatewayController::class, 'moveUp'])->name('gateways.move-up');
+        Route::post('gateways/{gateway}/move-down', [PaymentGatewayController::class, 'moveDown'])->name('gateways.move-down');
+        Route::put('gateways/{gateway}/config', [PaymentGatewayController::class, 'updateConfig'])->name('gateways.config');
 
         Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
         Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');

@@ -28,7 +28,8 @@ use Core\Billing\Services\BillingDocumentPdfService;
 use Core\Billing\Services\DiscountCalculator;
 use Core\Billing\Services\OverdueSuspensionService;
 use Core\Billing\Services\ProrataCalculationService;
-use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\GatewayManager;
+use Core\Billing\Services\PaymentGatewayInjector;
 use Core\Billing\Services\PaymentService;
 use Core\Billing\Services\QuoteNumberService;
 use Core\Billing\Services\QuoteService;
@@ -249,7 +250,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(InvoiceService::class);
         $this->app->singleton(RenewableBillableSource::class, NullRenewableBillableSource::class);
         $this->app->singleton(RenewalInvoiceService::class);
-        $this->app->singleton(PaymentGatewayRegistry::class);
+        $this->app->singleton(GatewayManager::class);
+        $this->app->singleton(PaymentGatewayInjector::class);
         $this->app->singleton(ManualTransferGateway::class);
         $this->app->singleton(StubServerProvider::class);
         $this->app->singleton(StubNodeProvider::class);
@@ -291,11 +293,10 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();
 
-        if ((bool) config('corepanel.billing.manual_transfer.enabled', true)) {
-            $this->app->make(PaymentGatewayRegistry::class)->register(
-                $this->app->make(ManualTransferGateway::class),
-            );
-        }
+        $gateways = $this->app->make(GatewayManager::class);
+        $manualGateway = $this->app->make(ManualTransferGateway::class);
+        $gateways->register($manualGateway);
+        $this->app->make(ProviderRegistry::class)->registerPaymentGateway($manualGateway);
 
         if ((bool) config('corepanel.provisioning.stub.enabled', false)) {
             $registry = $this->app->make(ProviderRegistry::class);
@@ -309,6 +310,9 @@ class CoreServiceProvider extends ServiceProvider
         if ((bool) config('corepanel.modules.auto_load_enabled', true)) {
             $this->app->make(ModuleManager::class)->loadEnabled();
         }
+
+        $this->app->make(PaymentGatewayInjector::class)->bootPlugins();
+        $gateways->sync();
 
         $this->app->make(ModuleDatabaseGuard::class)->register();
 

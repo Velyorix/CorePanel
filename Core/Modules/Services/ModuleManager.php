@@ -8,6 +8,7 @@ use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
 use Core\Modules\Models\InstalledModule;
+use Core\Billing\Services\PaymentGatewayInjector;
 use Illuminate\Support\Collection;
 use JsonException;
 
@@ -32,6 +33,7 @@ class ModuleManager
         private readonly ModuleServiceProviderRegistrar $providers,
         private readonly ModuleResourceLoader $resources,
         private readonly ?string $modulesPath = null,
+        private readonly ?PaymentGatewayInjector $paymentGateways = null,
     ) {
     }
 
@@ -118,6 +120,7 @@ class ModuleManager
 
         if (! isset($this->loaded[$manifest->key])) {
             $this->providers->register($manifest);
+            $this->paymentGateways?->registerFromModule($manifest);
             $this->resources->load($manifest);
 
             $instance = $this->factory->make($manifest);
@@ -174,6 +177,7 @@ class ModuleManager
 
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
         $this->providers->forget($manifest->key);
+        $this->paymentGateways?->forgetModule($manifest->key);
         $this->resources->forget($manifest->key);
 
         return $manifest;

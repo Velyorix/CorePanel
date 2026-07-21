@@ -7,11 +7,12 @@ use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\DataTransferObjects\PaymentGatewayResult;
 use Core\Billing\DataTransferObjects\PaymentGatewayWebhookResult;
 use Core\Billing\Enums\PaymentStatus;
+use Core\Billing\Exceptions\InvalidPaymentWebhookException;
 use Core\Billing\Exceptions\UnsupportedGatewayOperationException;
 use Core\Billing\Models\Payment;
 
 /**
- * Test double payment gateway with configurable create/verify/refund behavior.
+ * Test double payment gateway with configurable create/verify/refund/webhook behavior.
  */
 class FakePaymentGateway implements PaymentGateway
 {
@@ -21,6 +22,8 @@ class FakePaymentGateway implements PaymentGateway
 
     public int $refundCalls = 0;
 
+    public int $webhookCalls = 0;
+
     public function __construct(
         private string $key = 'fake',
         private string $label = 'Fake Gateway',
@@ -28,6 +31,8 @@ class FakePaymentGateway implements PaymentGateway
         private PaymentStatus $verifyStatus = PaymentStatus::Completed,
         private bool $supportRefund = true,
         private bool $supportWebhook = false,
+        private ?string $expectedSignature = null,
+        private PaymentStatus $webhookStatus = PaymentStatus::Completed,
     ) {
     }
 
@@ -93,15 +98,29 @@ class FakePaymentGateway implements PaymentGateway
 
     public function handleWebhook(array $payload, array $headers): PaymentGatewayWebhookResult
     {
+        $this->webhookCalls++;
+
         if (! $this->supportWebhook) {
             throw UnsupportedGatewayOperationException::forOperation($this->key, 'webhook');
         }
 
+        if ($this->expectedSignature !== null) {
+            $provided = $headers['x-signature'] ?? null;
+
+            if (! is_string($provided) || ! hash_equals($this->expectedSignature, $provided)) {
+                throw InvalidPaymentWebhookException::invalidSignature($this->key);
+            }
+        }
+
         return new PaymentGatewayWebhookResult(
             paymentId: isset($payload['payment_id']) ? (int) $payload['payment_id'] : null,
-            status: PaymentStatus::Completed,
-            transactionId: $payload['transaction_id'] ?? null,
-            gatewayReference: $payload['gateway_reference'] ?? null,
+            status: $this->webhookStatus,
+            transactionId: isset($payload['transaction_id']) && is_string($payload['transaction_id'])
+                ? $payload['transaction_id']
+                : null,
+            gatewayReference: isset($payload['gateway_reference']) && is_string($payload['gateway_reference'])
+                ? $payload['gateway_reference']
+                : null,
             raw: $payload,
         );
     }
@@ -116,6 +135,28 @@ class FakePaymentGateway implements PaymentGateway
     public function failingOnCreate(): self
     {
         $this->createStatus = PaymentStatus::Failed;
+
+        return $this;
+    }
+
+    public function withWebhookSupport(?string $expectedSignature = 'valid-signature'): self
+    {
+        $this->supportWebhook = true;
+        $this->expectedSignature = $expectedSignature;
+
+        return $this;
+    }
+
+    public function webhookCompletes(): self
+    {
+        $this->webhookStatus = PaymentStatus::Completed;
+
+        return $this;
+    }
+
+    public function webhookFails(): self
+    {
+        $this->webhookStatus = PaymentStatus::Failed;
 
         return $this;
     }

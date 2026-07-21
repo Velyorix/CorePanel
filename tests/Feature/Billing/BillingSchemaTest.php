@@ -27,6 +27,7 @@ class BillingSchemaTest extends TestCase
             'client_credit_transactions',
             'coupons',
             'coupon_redemptions',
+            'payment_gateways',
         ] as $table) {
             $this->assertTrue(
                 Schema::hasTable($table),
@@ -298,6 +299,24 @@ class BillingSchemaTest extends TestCase
         foreach (['coupon_id', 'discount_amount'] as $column) {
             $this->assertTrue(Schema::hasColumn('orders', $column));
             $this->assertTrue(Schema::hasColumn('invoices', $column));
+        }
+    }
+
+    public function test_payment_gateways_have_expected_columns(): void
+    {
+        foreach ([
+            'id',
+            'key',
+            'enabled',
+            'config',
+            'sort_order',
+            'created_at',
+            'updated_at',
+        ] as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('payment_gateways', $column),
+                "Expected payment_gateways.{$column} to exist.",
+            );
         }
     }
 }

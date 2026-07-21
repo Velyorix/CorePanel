@@ -3,6 +3,7 @@
 namespace Core\Orders\Services;
 
 use Core\Auth\Models\User;
+use Core\Billing\Services\GatewayManager;
 use Core\Clients\Models\Client;
 use Core\Orders\DataTransferObjects\CheckoutDraftData;
 use Illuminate\Contracts\Session\Session;
@@ -13,6 +14,11 @@ use Illuminate\Contracts\Session\Session;
 class CheckoutDraftService
 {
     public const SESSION_KEY = 'corepanel.checkout.draft';
+
+    public function __construct(
+        private readonly GatewayManager $gateways,
+    ) {
+    }
 
     public function load(Session $session): ?CheckoutDraftData
     {
@@ -38,6 +44,12 @@ class CheckoutDraftService
     public function prefill(?Client $client, ?User $user, ?CheckoutDraftData $existing = null): CheckoutDraftData
     {
         $base = $existing?->toArray() ?? [];
+        $enabledKeys = $this->enabledPaymentMethodKeys();
+        $paymentMethod = $base['payment_method'] ?? null;
+
+        if (! is_string($paymentMethod) || ! in_array($paymentMethod, $enabledKeys, true)) {
+            $paymentMethod = $this->defaultPaymentMethodKey();
+        }
 
         return CheckoutDraftData::fromArray([
             'company_name' => $base['company_name'] ?? $client?->company_name,
@@ -50,36 +62,25 @@ class CheckoutDraftService
             'contact_name' => $base['contact_name'] ?? $user?->name,
             'contact_email' => $base['contact_email'] ?? $user?->email,
             'coupon_code' => $base['coupon_code'] ?? null,
-            'payment_method' => $base['payment_method']
-                ?? $this->defaultPaymentMethodKey(),
+            'payment_method' => $paymentMethod,
         ]);
     }
 
     /**
+     * Active gateways registered in the runtime registry and enabled in DB.
+     *
      * @return list<array{key: string, label: string, enabled: bool, hint: string|null}>
      */
     public function paymentMethods(): array
     {
-        $configured = config('corepanel.checkout.payment_methods', []);
-
-        if (! is_array($configured)) {
-            return [];
-        }
-
         $methods = [];
 
-        foreach ($configured as $method) {
-            if (! is_array($method) || blank($method['key'] ?? null)) {
-                continue;
-            }
-
+        foreach ($this->gateways->enabled() as $gateway) {
             $methods[] = [
-                'key' => (string) $method['key'],
-                'label' => (string) ($method['label'] ?? $method['key']),
-                'enabled' => (bool) ($method['enabled'] ?? false),
-                'hint' => isset($method['hint']) && filled($method['hint'])
-                    ? (string) $method['hint']
-                    : null,
+                'key' => $gateway->key(),
+                'label' => $gateway->label(),
+                'enabled' => true,
+                'hint' => null,
             ];
         }
 
@@ -93,10 +94,7 @@ class CheckoutDraftService
     {
         return array_values(array_map(
             static fn (array $method): string => $method['key'],
-            array_filter(
-                $this->paymentMethods(),
-                static fn (array $method): bool => $method['enabled'],
-            ),
+            $this->paymentMethods(),
         ));
     }
 

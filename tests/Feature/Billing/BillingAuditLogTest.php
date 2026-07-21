@@ -25,7 +25,7 @@ use Core\Billing\Services\ClientCreditService;
 use Core\Billing\Services\CreditNoteService;
 use Core\Billing\Services\InvoiceService;
 use Core\Billing\Services\OverdueSuspensionService;
-use Core\Billing\Services\PaymentGatewayRegistry;
+use Core\Billing\Services\GatewayManager;
 use Core\Billing\Services\PaymentService;
 use Core\Billing\Services\QuoteService;
 use Core\Clients\Models\Client;
@@ -62,9 +62,10 @@ class BillingAuditLogTest extends TestCase
             'corepanel.billing.suspension.skip_vip_clients' => true,
         ]);
 
-        $registry = app(PaymentGatewayRegistry::class);
-        $registry->flush();
-        $registry->register(new FakePaymentGateway);
+        $gateways = app(GatewayManager::class);
+        $gateways->flush();
+        $gateways->register(new FakePaymentGateway);
+        $gateways->enable('fake');
     }
 
     public function test_invoice_issue_creates_audit_and_dispatches_event(): void

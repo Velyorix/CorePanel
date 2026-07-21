@@ -2,6 +2,8 @@
 
 namespace Core\Modules\Support;
 
+use Core\Billing\Contracts\PaymentGateway;
+use Core\Billing\Services\GatewayManager;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -13,6 +15,14 @@ abstract class AbstractModuleServiceProvider extends ServiceProvider
      * Stable module key this provider belongs to.
      */
     abstract public function moduleKey(): string;
+
+    /**
+     * Register a payment gateway implementation into the runtime GatewayManager.
+     */
+    protected function registerPaymentGateway(PaymentGateway $gateway): void
+    {
+        $this->app->make(GatewayManager::class)->register($gateway);
+    }
 
     /**
      * Absolute path to the module package root (directory containing module.json).

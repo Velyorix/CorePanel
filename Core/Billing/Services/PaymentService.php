@@ -2,14 +2,18 @@
 
 namespace Core\Billing\Services;
 
+use Core\Auth\Models\User;
+use Core\Billing\DataTransferObjects\PaymentCollectionResult;
 use Core\Billing\DataTransferObjects\PaymentContext;
 use Core\Billing\DataTransferObjects\PaymentGatewayResult;
+use Core\Billing\DataTransferObjects\PaymentGatewayWebhookResult;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Enums\PaymentStatus;
 use Core\Billing\Events\InvoicePaid;
 use Core\Billing\Events\PaymentCompleted;
 use Core\Billing\Events\PaymentFailed;
 use Core\Billing\Events\PaymentRefunded;
+use Core\Billing\Exceptions\InsufficientClientCreditException;
 use Core\Billing\Exceptions\InvalidPaymentException;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
@@ -23,9 +27,12 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentService
 {
+    public const METHOD_CLIENT_CREDIT = 'client_credit';
+
     public function __construct(
-        private readonly PaymentGatewayRegistry $gateways,
+        private readonly GatewayManager $gateways,
         private readonly BillingAuditLogger $auditLogger,
+        private readonly ClientCreditService $credits,
     ) {
     }
 
@@ -143,7 +150,7 @@ class PaymentService
             throw new InvalidPaymentException('Payment amount cannot exceed the invoice balance due.');
         }
 
-        $gateway = $this->gateways->get($method);
+        $gateway = $this->gateways->resolve($method);
         $context ??= new PaymentContext;
 
         return DB::transaction(function () use ($invoice, $method, $resolvedAmount, $context, $notes, $gateway): Payment {
@@ -163,6 +170,75 @@ class PaymentService
             $result = $gateway->createPayment($payment, $context);
 
             return $this->applyGatewayResult($payment->fresh() ?? $payment, $result);
+        });
+    }
+
+    /**
+     * Collect payment for an invoice: apply available client credit first, then charge
+     * the selected gateway for any remaining balance.
+     */
+    public function collect(
+        Invoice $invoice,
+        string $method,
+        ?string $amount = null,
+        ?PaymentContext $context = null,
+        ?string $notes = null,
+        ?User $actor = null,
+    ): PaymentCollectionResult {
+        return DB::transaction(function () use ($invoice, $method, $amount, $context, $notes, $actor): PaymentCollectionResult {
+            $invoice = Invoice::query()
+                ->whereKey($invoice->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $invoice->isPayable()) {
+                throw new InvalidPaymentException(
+                    'Only unpaid or overdue invoices with a remaining balance can accept payments.',
+                );
+            }
+
+            $due = $invoice->amountDue();
+            $targetAmount = $this->money((float) ($amount ?? $due));
+
+            if ((float) $targetAmount <= 0) {
+                throw new InvalidPaymentException('Payment amount must be greater than zero.');
+            }
+
+            if ((float) $targetAmount > (float) $due + 0.00001) {
+                throw new InvalidPaymentException('Payment amount cannot exceed the invoice balance due.');
+            }
+
+            $creditPayment = null;
+            $remaining = $targetAmount;
+
+            if ($this->shouldAutoApplyCredit()) {
+                $creditPayment = $this->applyAvailableCredit($invoice, $remaining, $actor);
+                $invoice = $invoice->fresh() ?? $invoice;
+
+                if ($creditPayment !== null) {
+                    $remaining = $this->money(
+                        max(0, (float) $remaining - (float) $creditPayment->amount),
+                    );
+                }
+            }
+
+            $gatewayPayment = null;
+
+            if ((float) $remaining > 0.00001) {
+                $gatewayPayment = $this->initiate(
+                    $invoice,
+                    $method,
+                    $remaining,
+                    $context,
+                    $notes,
+                );
+            }
+
+            if ($creditPayment === null && $gatewayPayment === null) {
+                throw new InvalidPaymentException('No payment could be collected for this invoice.');
+            }
+
+            return new PaymentCollectionResult($creditPayment, $gatewayPayment);
         });
     }
 
@@ -272,10 +348,45 @@ class PaymentService
      */
     public function verify(Payment $payment): Payment
     {
-        $gateway = $this->gateways->get($payment->method);
+        $gateway = $this->gateways->resolve($payment->method, onlyEnabled: false);
         $result = $gateway->verifyPayment($payment);
 
         return $this->applyGatewayResult($payment, $result);
+    }
+
+    /**
+     * Dispatch an inbound provider webhook to the registered gateway and apply the result.
+     *
+     * Signature verification is the gateway's responsibility. Disabled gateways may still
+     * receive webhooks so in-flight payments can settle.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
+    public function handleWebhook(string $gatewayKey, array $payload, array $headers): ?Payment
+    {
+        $gateway = $this->gateways->resolve($gatewayKey, onlyEnabled: false);
+        $result = $gateway->handleWebhook($payload, $headers);
+
+        if ($result->paymentId === null) {
+            return null;
+        }
+
+        $payment = Payment::query()->find($result->paymentId);
+
+        if ($payment === null) {
+            throw new InvalidPaymentException(
+                "Payment [{$result->paymentId}] referenced by webhook was not found.",
+            );
+        }
+
+        if ($payment->method !== $gatewayKey) {
+            throw new InvalidPaymentException(
+                'Webhook gateway key does not match the payment method.',
+            );
+        }
+
+        return $this->applyWebhookResult($payment, $result);
     }
 
     /**
@@ -297,7 +408,7 @@ class PaymentService
             throw new InvalidPaymentException('Refund amount cannot exceed the payment amount.');
         }
 
-        $gateway = $this->gateways->get($payment->method);
+        $gateway = $this->gateways->resolve($payment->method, onlyEnabled: false);
 
         return DB::transaction(function () use ($payment, $refundAmount, $notes, $gateway): Payment {
             $result = $gateway->refundPayment($payment, $refundAmount);
@@ -308,35 +419,13 @@ class PaymentService
                 );
             }
 
-            $before = $this->auditLogger->paymentSnapshot($payment);
-
-            $payment->forceFill([
-                'status' => PaymentStatus::Refunded,
-                'transaction_id' => $result->transactionId ?? $payment->transaction_id,
-                'gateway_reference' => $result->gatewayReference ?? $payment->gateway_reference,
-                'notes' => $notes ?? $result->message ?? $payment->notes,
-                'paid_at' => $payment->paid_at,
-            ])->save();
-
-            $invoice = $payment->invoice()->first();
-
-            if ($invoice !== null) {
-                $this->applyToInvoice($invoice);
-            }
-
-            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
-
-            $this->auditLogger->log(
-                BillingAuditLogger::ACTION_PAYMENT_REFUNDED,
-                Payment::class,
-                $fresh->id,
-                $before,
-                [...$this->auditLogger->paymentSnapshot($fresh), 'refund_amount' => $refundAmount],
+            return $this->markRefunded(
+                $payment,
+                $refundAmount,
+                $result->transactionId,
+                $result->gatewayReference,
+                $notes ?? $result->message,
             );
-
-            event(new PaymentRefunded($fresh, $refundAmount));
-
-            return $fresh;
         });
     }
 
@@ -365,7 +454,12 @@ class PaymentService
                 $result->gatewayReference,
             ),
             PaymentStatus::Failed => $this->fail($payment, $result->message),
-            PaymentStatus::Pending => $this->updatePendingRefs($payment, $result),
+            PaymentStatus::Pending => $this->updatePendingRefs(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+                $result->message,
+            ),
             PaymentStatus::Refunded => throw new InvalidPaymentException(
                 'Gateway returned refunded status outside of refund().',
             ),
@@ -375,13 +469,91 @@ class PaymentService
         };
     }
 
-    private function updatePendingRefs(Payment $payment, PaymentGatewayResult $result): Payment
+    private function applyWebhookResult(Payment $payment, PaymentGatewayWebhookResult $result): Payment
     {
+        return match ($result->status) {
+            PaymentStatus::Completed => $this->complete(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Failed => $this->fail($payment),
+            PaymentStatus::Pending => $this->updatePendingRefs(
+                $payment,
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Refunded => $this->markRefunded(
+                $payment,
+                $this->money((float) $payment->amount),
+                $result->transactionId,
+                $result->gatewayReference,
+            ),
+            PaymentStatus::Chargeback => throw new InvalidPaymentException(
+                'Chargeback status is not handled by PaymentService yet.',
+            ),
+        };
+    }
+
+    private function markRefunded(
+        Payment $payment,
+        string $refundAmount,
+        ?string $transactionId = null,
+        ?string $gatewayReference = null,
+        ?string $notes = null,
+    ): Payment {
+        if ($payment->status === PaymentStatus::Refunded) {
+            return $payment->fresh(['invoice', 'client']) ?? $payment;
+        }
+
+        if ($payment->status !== PaymentStatus::Completed) {
+            throw new InvalidPaymentException('Only completed payments can be refunded.');
+        }
+
+        return DB::transaction(function () use ($payment, $refundAmount, $transactionId, $gatewayReference, $notes): Payment {
+            $before = $this->auditLogger->paymentSnapshot($payment);
+
+            $payment->forceFill([
+                'status' => PaymentStatus::Refunded,
+                'transaction_id' => $transactionId ?? $payment->transaction_id,
+                'gateway_reference' => $gatewayReference ?? $payment->gateway_reference,
+                'notes' => $notes ?? $payment->notes,
+                'paid_at' => $payment->paid_at,
+            ])->save();
+
+            $invoice = $payment->invoice()->first();
+
+            if ($invoice !== null) {
+                $this->applyToInvoice($invoice);
+            }
+
+            $fresh = $payment->fresh(['invoice', 'client']) ?? $payment;
+
+            $this->auditLogger->log(
+                BillingAuditLogger::ACTION_PAYMENT_REFUNDED,
+                Payment::class,
+                $fresh->id,
+                $before,
+                [...$this->auditLogger->paymentSnapshot($fresh), 'refund_amount' => $refundAmount],
+            );
+
+            event(new PaymentRefunded($fresh, $refundAmount));
+
+            return $fresh;
+        });
+    }
+
+    private function updatePendingRefs(
+        Payment $payment,
+        ?string $transactionId = null,
+        ?string $gatewayReference = null,
+        ?string $notes = null,
+    ): Payment {
         $payment->forceFill([
             'status' => PaymentStatus::Pending,
-            'transaction_id' => $result->transactionId ?? $payment->transaction_id,
-            'gateway_reference' => $result->gatewayReference ?? $payment->gateway_reference,
-            'notes' => $result->message ?? $payment->notes,
+            'transaction_id' => $transactionId ?? $payment->transaction_id,
+            'gateway_reference' => $gatewayReference ?? $payment->gateway_reference,
+            'notes' => $notes ?? $payment->notes,
         ])->save();
 
         return $payment->fresh(['invoice', 'client']) ?? $payment;
@@ -418,6 +590,64 @@ class PaymentService
                 'paid_at' => null,
             ])->save();
         }
+    }
+
+    private function shouldAutoApplyCredit(): bool
+    {
+        return (bool) config('corepanel.billing.client_credit.auto_apply_on_pay', true);
+    }
+
+    /**
+     * Deduct wallet credit and record an immediately completed payment for the invoice.
+     */
+    private function applyAvailableCredit(Invoice $invoice, string $targetAmount, ?User $actor = null): ?Payment
+    {
+        $client = $invoice->client ?? Client::query()->find($invoice->client_id);
+
+        if ($client === null) {
+            return null;
+        }
+
+        $balance = $this->credits->balance($client);
+        $apply = $this->money(min((float) $targetAmount, (float) $balance));
+
+        if ((float) $apply <= 0) {
+            return null;
+        }
+
+        try {
+            $transaction = $this->credits->deduct(
+                $client,
+                $apply,
+                description: (string) __('Applied to invoice :number', [
+                    'number' => $invoice->invoice_number ?: '#'.$invoice->id,
+                ]),
+                reference: 'invoice:'.$invoice->id,
+                createdBy: $actor,
+                currency: $invoice->currency ?? 'EUR',
+            );
+        } catch (InsufficientClientCreditException) {
+            return null;
+        }
+
+        $payment = Payment::query()->create([
+            'invoice_id' => $invoice->id,
+            'client_id' => $invoice->client_id,
+            'method' => self::METHOD_CLIENT_CREDIT,
+            'currency' => $invoice->currency ?? 'EUR',
+            'amount' => $apply,
+            'status' => PaymentStatus::Pending,
+            'transaction_id' => null,
+            'gateway_reference' => 'credit-txn-'.$transaction->id,
+            'notes' => (string) __('Paid from account credit'),
+            'paid_at' => null,
+        ]);
+
+        return $this->complete(
+            $payment,
+            transactionId: 'credit-'.$transaction->id,
+            gatewayReference: 'credit-txn-'.$transaction->id,
+        );
     }
 
     private function money(float $amount): string

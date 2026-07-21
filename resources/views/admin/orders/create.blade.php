@@ -77,15 +77,17 @@
                 <x-ui.input name="postal_code" :label="__('Postal code')" :value="old('postal_code', $draft->postalCode)" required />
                 <x-ui.input name="country" :label="__('Country')" :value="old('country', $draft->country)" maxlength="2" required />
                 <x-ui.input name="phone" :label="__('Phone')" :value="old('phone', $draft->phone)" />
-                <x-ui.select name="payment_method" :label="__('Payment method')" required>
+                <x-ui.select name="payment_method" :label="__('Payment method')" :required="$paymentMethods !== []">
                     <option value="">{{ __('Select payment method') }}</option>
-                    @foreach ($paymentMethods as $method)
+                    @forelse ($paymentMethods as $method)
                         @if ($method['enabled'])
                             <option value="{{ $method['key'] }}" @selected(old('payment_method', $draft->paymentMethod) === $method['key'])>
                                 {{ $method['label'] }}
                             </option>
                         @endif
-                    @endforeach
+                    @empty
+                        <option value="" disabled>{{ __('No payment methods available') }}</option>
+                    @endforelse
                 </x-ui.select>
                 <x-ui.input name="coupon_code" :label="__('Coupon')" :value="old('coupon_code', $draft->couponCode)" />
                 <div class="md:col-span-2">

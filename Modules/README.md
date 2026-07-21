@@ -76,6 +76,33 @@ Required fields: `name`, `version`, `capabilities`.
 Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
 `notification_channel`, `dns_provider`, `other` (custom strings allowed).
 
+## Payment gateways
+
+Modules can inject billing payment gateways in two ways:
+
+1. **Declarative** — list gateway classes in `module.json` → `gateways` (must implement
+   `Core\Billing\Contracts\PaymentGateway`). They are registered into `GatewayManager`
+   when the module is loaded.
+2. **Imperative** — from a module `ServiceProvider`, call
+   `$this->registerPaymentGateway($gateway)` (helper on `AbstractModuleServiceProvider`).
+
+```json
+{
+  "name": "stripe_billing",
+  "version": "1.0.0",
+  "capabilities": ["payment_gateway"],
+  "gateways": [
+    "Modules\\StripeBilling\\StripePaymentGateway"
+  ],
+  "providers": [
+    "Modules\\StripeBilling\\Providers\\StripeBillingServiceProvider"
+  ]
+}
+```
+
+Plugins use the same `GatewayManager` via `RegistersPaymentGateways` hooks registered on
+`PaymentGatewayInjector` (plugin package loading arrives with the plugins framework).
+
 ## Rules
 
 - No direct access to Core database tables (sandbox)

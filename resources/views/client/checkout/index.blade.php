@@ -133,41 +133,47 @@
                 @endif
 
                 <x-ui.card :title="__('Payment method')">
-                    <div class="space-y-3">
-                        @foreach ($paymentMethods as $method)
-                            @php
-                                $isEnabled = $method['enabled'];
-                                $selected = old('payment_method', $draft->paymentMethod) === $method['key'];
-                            @endphp
-                            <label @class([
-                                'flex cursor-pointer items-start gap-3 rounded-md border border-border p-3',
-                                'hover:bg-muted/40' => $isEnabled,
-                                'cursor-not-allowed opacity-60' => ! $isEnabled,
-                            ])>
-                                <input
-                                    type="radio"
-                                    name="payment_method"
-                                    value="{{ $method['key'] }}"
-                                    class="mt-1"
-                                    @checked($selected && $isEnabled)
-                                    @disabled(! $isEnabled)
-                                    @if ($isEnabled) required @endif
-                                >
-                                <span class="flex-1">
-                                    <span class="block font-medium">{{ __($method['label']) }}</span>
-                                    @if ($method['hint'])
-                                        <span class="mt-1 block text-small text-muted-foreground">
-                                            {{ __($method['hint']) }}
-                                        </span>
-                                    @endif
-                                </span>
-                            </label>
-                        @endforeach
-                    </div>
+                    @if ($paymentMethods === [])
+                        <x-ui.alert variant="warning">
+                            {{ __('No payment methods are available right now. Please contact support.') }}
+                        </x-ui.alert>
+                    @else
+                        <div class="space-y-3">
+                            @foreach ($paymentMethods as $method)
+                                @php
+                                    $isEnabled = $method['enabled'];
+                                    $selected = old('payment_method', $draft->paymentMethod) === $method['key'];
+                                @endphp
+                                <label @class([
+                                    'flex cursor-pointer items-start gap-3 rounded-md border border-border p-3',
+                                    'hover:bg-muted/40' => $isEnabled,
+                                    'cursor-not-allowed opacity-60' => ! $isEnabled,
+                                ])>
+                                    <input
+                                        type="radio"
+                                        name="payment_method"
+                                        value="{{ $method['key'] }}"
+                                        class="mt-1"
+                                        @checked($selected && $isEnabled)
+                                        @disabled(! $isEnabled)
+                                        @if ($isEnabled) required @endif
+                                    >
+                                    <span class="flex-1">
+                                        <span class="block font-medium">{{ $method['label'] }}</span>
+                                        @if ($method['hint'])
+                                            <span class="mt-1 block text-small text-muted-foreground">
+                                                {{ $method['hint'] }}
+                                            </span>
+                                        @endif
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
                 </x-ui.card>
 
                 <div class="flex flex-wrap gap-2">
-                    <x-ui.button type="submit" variant="primary">
+                    <x-ui.button type="submit" variant="primary" :disabled="$paymentMethods === []">
                         {{ __('Save and continue') }}
                     </x-ui.button>
                     <x-ui.button :href="route('client.cart.index')" variant="secondary">

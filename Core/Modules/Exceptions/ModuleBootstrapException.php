@@ -30,4 +30,14 @@ class ModuleBootstrapException extends RuntimeException
     {
         return new self("Module [{$key}] provider [{$class}] must extend Illuminate\\Support\\ServiceProvider.");
     }
+
+    public static function gatewayMissing(string $key, string $class): self
+    {
+        return new self("Module [{$key}] declares gateway [{$class}] which could not be found.");
+    }
+
+    public static function invalidGateway(string $key, string $class): self
+    {
+        return new self("Module [{$key}] gateway [{$class}] must implement Core\\Billing\\Contracts\\PaymentGateway.");
+    }
 }

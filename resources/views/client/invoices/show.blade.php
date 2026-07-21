@@ -48,8 +48,13 @@
             </x-ui.button>
 
             @if ($invoice->isPayable())
-                <form method="POST" action="{{ route('client.invoices.pay', $invoice) }}">
+                <form method="POST" action="{{ route('client.invoices.pay', $invoice) }}" class="flex flex-wrap items-center gap-2">
                     @csrf
+                    @if ((float) ($creditBalance ?? 0) > 0)
+                        <span class="text-body-sm text-muted-foreground">
+                            {{ __('Available credit: :amount', ['amount' => $creditBalance]) }}
+                        </span>
+                    @endif
                     <x-ui.button type="submit" variant="primary" size="sm">
                         {{ __('Pay now') }}
                     </x-ui.button>

@@ -387,13 +387,21 @@ return [
         */
         'manual_transfer' => [
             'enabled' => (bool) env('COREPANEL_BILLING_MANUAL_TRANSFER_ENABLED', true),
-            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer'),
+            'label' => env('COREPANEL_BILLING_MANUAL_TRANSFER_LABEL', 'Bank transfer / cheque'),
             'reference_prefix' => env('COREPANEL_BILLING_MANUAL_TRANSFER_REFERENCE_PREFIX', 'PAY'),
             'beneficiary' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BENEFICIARY'),
             'iban' => env('COREPANEL_BILLING_MANUAL_TRANSFER_IBAN'),
             'bic' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BIC'),
             'bank_name' => env('COREPANEL_BILLING_MANUAL_TRANSFER_BANK_NAME'),
             'instructions' => env('COREPANEL_BILLING_MANUAL_TRANSFER_INSTRUCTIONS'),
+        ],
+
+        /*
+        | Prepaid client wallet. When enabled, available credit is applied to the
+        | invoice before charging the selected payment gateway.
+        */
+        'client_credit' => [
+            'auto_apply_on_pay' => (bool) env('COREPANEL_BILLING_CLIENT_CREDIT_AUTO_APPLY', true),
         ],
     ],
 
@@ -402,26 +410,13 @@ return [
     | Checkout
     |--------------------------------------------------------------------------
     |
-    | Coupon UI toggle and available payment methods for client checkout.
+    | Coupon UI toggle. Available payment methods are resolved dynamically from
+    | enabled gateways registered in GatewayManager (admin Settings → Payment gateways).
     |
     */
 
     'checkout' => [
         'coupon_enabled' => (bool) env('COREPANEL_CHECKOUT_COUPON_ENABLED', true),
-        'payment_methods' => [
-            [
-                'key' => 'manual_transfer',
-                'label' => 'Bank transfer',
-                'enabled' => true,
-                'hint' => null,
-            ],
-            [
-                'key' => 'card',
-                'label' => 'Credit card',
-                'enabled' => false,
-                'hint' => 'Coming soon',
-            ],
-        ],
     ],
 
     /*

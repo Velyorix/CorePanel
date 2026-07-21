@@ -77,6 +77,13 @@ use Core\Permissions\Services\UserPermissionService;
 use Core\Permissions\Support\BladeAuthorizationDirectives;
 use Core\Providers\Services\ModulePermissionRegistrar;
 use Core\Providers\Services\ProviderRegistry;
+use Core\Providers\Stubs\StubNodeProvider;
+use Core\Providers\Stubs\StubServerProvider;
+use Core\Provisioning\Services\NodeSelectionService;
+use Core\Provisioning\Services\ProviderResourceMappingService;
+use Core\Provisioning\Services\ProvisioningDeadLetterService;
+use Core\Provisioning\Services\ProvisioningEngine;
+use Core\Provisioning\Services\ProvisioningRollbackService;
 use Core\Services\Contracts\ModuleAccessLinkProvider;
 use Core\Services\Contracts\ModuleActionDispatcher;
 use Core\Services\Contracts\ServiceActionLogger;
@@ -133,6 +140,11 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceCreationService::class);
         $this->app->singleton(ProviderRegistry::class);
         $this->app->singleton(ModulePermissionRegistrar::class);
+        $this->app->singleton(ProviderResourceMappingService::class);
+        $this->app->singleton(ProvisioningRollbackService::class);
+        $this->app->singleton(NodeSelectionService::class);
+        $this->app->singleton(ProvisioningEngine::class);
+        $this->app->singleton(ProvisioningDeadLetterService::class);
         $this->app->singleton(ModuleActionDispatcher::class, NullModuleActionDispatcher::class);
         $this->app->singleton(ModuleAccessLinkProvider::class, NullModuleAccessLinkProvider::class);
         $this->app->singleton(ServiceActionLogger::class, DatabaseServiceActionLogger::class);
@@ -151,6 +163,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(RenewalInvoiceService::class);
         $this->app->singleton(PaymentGatewayRegistry::class);
         $this->app->singleton(ManualTransferGateway::class);
+        $this->app->singleton(StubServerProvider::class);
+        $this->app->singleton(StubNodeProvider::class);
         $this->app->singleton(PaymentService::class);
         $this->app->singleton(QuoteNumberService::class);
         $this->app->singleton(QuoteService::class);
@@ -190,6 +204,15 @@ class CoreServiceProvider extends ServiceProvider
             $this->app->make(PaymentGatewayRegistry::class)->register(
                 $this->app->make(ManualTransferGateway::class),
             );
+        }
+
+        if ((bool) config('corepanel.provisioning.stub.enabled', false)) {
+            $registry = $this->app->make(ProviderRegistry::class);
+            $registry->registerServer($this->app->make(StubServerProvider::class));
+
+            if ((bool) config('corepanel.provisioning.stub.register_node_provider', true)) {
+                $registry->registerNode($this->app->make(StubNodeProvider::class));
+            }
         }
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);

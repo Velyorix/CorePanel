@@ -24,6 +24,8 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServiceActionController;
 use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\ProvisioningDeadLetterActionController;
+use App\Http\Controllers\Admin\ProvisioningDeadLetterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -110,6 +112,13 @@ Route::middleware('admin')
         Route::post('services/{service}/unsuspend', [ServiceActionController::class, 'unsuspend'])->name('services.unsuspend');
         Route::post('services/{service}/terminate', [ServiceActionController::class, 'terminate'])->name('services.terminate');
         Route::post('services/{service}/reinstall', [ServiceActionController::class, 'reinstall'])->name('services.reinstall');
+
+        Route::get('provisioning-dead-letters', [ProvisioningDeadLetterController::class, 'index'])->name('provisioning-dead-letters.index');
+        Route::get('provisioning-dead-letters/{provisioningDeadLetter}', [ProvisioningDeadLetterController::class, 'show'])->name('provisioning-dead-letters.show');
+        Route::post('provisioning-dead-letters/{provisioningDeadLetter}/requeue', [ProvisioningDeadLetterActionController::class, 'requeue'])->name('provisioning-dead-letters.requeue');
+        Route::post('provisioning-dead-letters/{provisioningDeadLetter}/resolve', [ProvisioningDeadLetterActionController::class, 'resolve'])->name('provisioning-dead-letters.resolve');
+        Route::post('provisioning-dead-letters/{provisioningDeadLetter}/discard', [ProvisioningDeadLetterActionController::class, 'discard'])->name('provisioning-dead-letters.discard');
+        Route::post('provisioning-dead-letters/{provisioningDeadLetter}/rollback', [ProvisioningDeadLetterActionController::class, 'rollback'])->name('provisioning-dead-letters.rollback');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

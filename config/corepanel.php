@@ -454,6 +454,58 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Provisioning
+    |--------------------------------------------------------------------------
+    |
+    | Queue retry / backoff / uniqueness for ProvisionServiceJob.
+    | Definitive failures are stored in provisioning_dead_letters.
+    |
+    */
+
+    'provisioning' => [
+        'tries' => (int) env('COREPANEL_PROVISIONING_TRIES', 3),
+        'timeout_seconds' => (int) env('COREPANEL_PROVISIONING_TIMEOUT_SECONDS', 120),
+        'unique_for_seconds' => (int) env('COREPANEL_PROVISIONING_UNIQUE_FOR_SECONDS', 3600),
+        'backoff_seconds' => array_values(array_filter(array_map(
+            static fn (string $value): int => (int) trim($value),
+            explode(',', (string) env('COREPANEL_PROVISIONING_BACKOFF_SECONDS', '30,60,120')),
+        ), static fn (int $value): bool => $value > 0)) ?: [30, 60, 120],
+        /*
+        | When a product has a node group assigned, provisioning requires an eligible node.
+        */
+        'require_node_for_assigned_group' => (bool) env('COREPANEL_PROVISIONING_REQUIRE_NODE', true),
+        /*
+        | Clear orphan mapping / external_id after definitive failure (keeps node_id for retry affinity).
+        */
+        'rollback_on_failure' => (bool) env('COREPANEL_PROVISIONING_ROLLBACK_ON_FAILURE', true),
+
+        /*
+        | Local / test stub provider (no remote API). Disabled by default outside local.
+        | fail_operations: list of operations that return Failed (create, suspend, …) or ['*'].
+        */
+        'stub' => [
+            'enabled' => filter_var(
+                env('COREPANEL_PROVISIONING_STUB_ENABLED', env('APP_ENV') === 'local'),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'key' => env('COREPANEL_PROVISIONING_STUB_KEY', 'stub'),
+            'label' => env('COREPANEL_PROVISIONING_STUB_LABEL', 'Stub Provider'),
+            'register_node_provider' => filter_var(
+                env('COREPANEL_PROVISIONING_STUB_REGISTER_NODE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'external_id_prefix' => env('COREPANEL_PROVISIONING_STUB_EXTERNAL_PREFIX', 'stub'),
+            'hostname_suffix' => env('COREPANEL_PROVISIONING_STUB_HOSTNAME_SUFFIX', '.stub.local'),
+            'ip_prefix' => env('COREPANEL_PROVISIONING_STUB_IP_PREFIX', '10.255.0.'),
+            'fail_operations' => array_values(array_filter(array_map(
+                trim(...),
+                explode(',', (string) env('COREPANEL_PROVISIONING_STUB_FAIL_OPERATIONS', '')),
+            ))),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | UI theme
     |--------------------------------------------------------------------------
     |

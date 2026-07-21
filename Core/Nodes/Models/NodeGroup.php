@@ -51,6 +51,14 @@ class NodeGroup extends Model
         return $this->hasMany(ProductProvisioningRules::class);
     }
 
+    /**
+     * @return HasMany<Node, $this>
+     */
+    public function nodes(): HasMany
+    {
+        return $this->hasMany(Node::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === NodeGroupStatus::Active;

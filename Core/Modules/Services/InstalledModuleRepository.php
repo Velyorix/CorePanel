@@ -3,6 +3,7 @@
 namespace Core\Modules\Services;
 
 use Core\Modules\DataTransferObjects\ModuleManifest;
+use Core\Modules\Exceptions\ModuleNotFoundException;
 use Core\Modules\Models\InstalledModule;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -152,6 +153,21 @@ class InstalledModuleRepository
         $record->path = $manifest->path;
         $record->updated_at = now();
         $record->save();
+    }
+
+    public function updateConfig(string $key, ?array $config): InstalledModule
+    {
+        $record = $this->find($key);
+
+        if ($record === null) {
+            throw ModuleNotFoundException::withKey($key);
+        }
+
+        $record->config = $config;
+        $record->updated_at = now();
+        $record->save();
+
+        return $record->refresh();
     }
 
     public function ready(): bool

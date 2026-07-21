@@ -234,6 +234,16 @@ class ModuleManager
         return $this->installed->find($key);
     }
 
+    /**
+     * @param  array<string, mixed>|null  $config
+     */
+    public function updateConfig(string $key, ?array $config): InstalledModule
+    {
+        $this->findOrFail($key);
+
+        return $this->installed->updateConfig($key, $config);
+    }
+
     public function isEnabled(string $key): bool
     {
         return $this->installed->isEnabled($key);

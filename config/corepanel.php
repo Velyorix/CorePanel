@@ -793,4 +793,66 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Modules
+    |--------------------------------------------------------------------------
+    |
+    | Dynamic integration packages under Modules/. Each package must ship a
+    | module.json manifest (name, version, capabilities).
+    |
+    */
+
+    'modules' => [
+        'path' => env('COREPANEL_MODULES_PATH', base_path('Modules')),
+        'state_path' => env('COREPANEL_MODULES_STATE_PATH', storage_path('app/modules/enabled.json')),
+        'enabled' => array_values(array_filter(array_map(
+            static fn (string $key): string => trim($key),
+            explode(',', (string) env('COREPANEL_MODULES_ENABLED', '')),
+        ))),
+        'auto_load_enabled' => filter_var(
+            env('COREPANEL_MODULES_AUTO_LOAD', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'sandbox' => [
+            'enabled' => filter_var(
+                env('COREPANEL_MODULES_SANDBOX', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            /*
+            | Module-owned tables must use: module_{key}_*
+            | Example: module_pterodactyl_nodes
+            */
+            'module_table_prefix' => env('COREPANEL_MODULES_TABLE_PREFIX', 'module_'),
+            'ignored_tables' => [
+                'sqlite_master',
+                'sqlite_sequence',
+                'sqlite_temp_master',
+                'main',
+            ],
+        ],
+        'resources' => [
+            'routes' => filter_var(env('COREPANEL_MODULES_LOAD_ROUTES', true), FILTER_VALIDATE_BOOL),
+            'views' => filter_var(env('COREPANEL_MODULES_LOAD_VIEWS', true), FILTER_VALIDATE_BOOL),
+            'migrations' => filter_var(env('COREPANEL_MODULES_LOAD_MIGRATIONS', true), FILTER_VALIDATE_BOOL),
+            'route_middleware' => [
+                'web.php' => ['web'],
+                'admin.php' => ['admin'],
+                'client.php' => ['client'],
+                'api.php' => ['api'],
+            ],
+        ],
+        'signature' => [
+            'required' => filter_var(
+                env('COREPANEL_MODULES_SIGNATURE_REQUIRED', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'verify_on_load' => filter_var(
+                env('COREPANEL_MODULES_VERIFY_ON_LOAD', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'secret' => env('COREPANEL_MODULES_SIGNATURE_SECRET'),
+        ],
+    ],
+
 ];

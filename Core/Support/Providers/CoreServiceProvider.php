@@ -111,6 +111,18 @@ use Core\Provisioning\Services\NodeSelectionService;
 use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
+use Core\Modules\Services\ModuleDatabaseGuard;
+use Core\Modules\Services\ModuleFactory;
+use Core\Modules\Services\InstalledModuleRepository;
+use Core\Modules\Services\ModuleManager;
+use Core\Modules\Services\ModulePackageHasher;
+use Core\Modules\Services\ModuleRequirementChecker;
+use Core\Modules\Services\ModuleResourceLoader;
+use Core\Modules\Services\ModuleSandbox;
+use Core\Modules\Services\ModuleServiceProviderRegistrar;
+use Core\Modules\Services\ModuleSignatureVerifier;
+use Core\Modules\Services\ModuleStateRepository;
+use Core\Modules\Services\ModuleTableAccessPolicy;
 use Core\Sync\Services\NodeSyncService;
 use Core\Sync\Services\ServiceSyncComparisonService;
 use Core\Sync\Services\ServiceSyncResolutionService;
@@ -154,6 +166,18 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ClientNavigation::class);
         $this->app->singleton(AdminNotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
+        $this->app->singleton(ModuleStateRepository::class);
+        $this->app->singleton(ModuleSandbox::class);
+        $this->app->singleton(ModuleTableAccessPolicy::class);
+        $this->app->singleton(ModuleDatabaseGuard::class);
+        $this->app->singleton(ModulePackageHasher::class);
+        $this->app->singleton(ModuleSignatureVerifier::class);
+        $this->app->singleton(InstalledModuleRepository::class);
+        $this->app->singleton(ModuleServiceProviderRegistrar::class);
+        $this->app->singleton(ModuleResourceLoader::class);
+        $this->app->singleton(ModuleFactory::class);
+        $this->app->singleton(ModuleRequirementChecker::class);
+        $this->app->singleton(ModuleManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);
@@ -281,6 +305,12 @@ class CoreServiceProvider extends ServiceProvider
                 $registry->registerNode($this->app->make(StubNodeProvider::class));
             }
         }
+
+        if ((bool) config('corepanel.modules.auto_load_enabled', true)) {
+            $this->app->make(ModuleManager::class)->loadEnabled();
+        }
+
+        $this->app->make(ModuleDatabaseGuard::class)->register();
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
     }

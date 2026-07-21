@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\NodeClusterController;
 use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
@@ -58,6 +59,14 @@ Route::middleware('admin')
         Route::get('license', [LicenseController::class, 'show'])->name('license.show');
         Route::put('license', [LicenseController::class, 'update'])->name('license.update');
         Route::post('license/revalidate', [LicenseController::class, 'revalidate'])->name('license.revalidate');
+
+        Route::get('modules', [ModuleController::class, 'index'])->name('modules.index');
+        Route::get('modules/{module}', [ModuleController::class, 'show'])->name('modules.show');
+        Route::post('modules/{module}/install', [ModuleController::class, 'install'])->name('modules.install');
+        Route::post('modules/{module}/enable', [ModuleController::class, 'enable'])->name('modules.enable');
+        Route::post('modules/{module}/disable', [ModuleController::class, 'disable'])->name('modules.disable');
+        Route::put('modules/{module}/config', [ModuleController::class, 'updateConfig'])->name('modules.config');
+        Route::delete('modules/{module}', [ModuleController::class, 'uninstall'])->name('modules.uninstall');
 
         Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
         Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');

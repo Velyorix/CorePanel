@@ -208,8 +208,9 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Modules'),
-                        'route' => null,
-                        'permission' => null,
+                        'route' => 'admin.modules.index',
+                        'routeIs' => ['admin.modules.*'],
+                        'permission' => 'modules.view',
                     ],
                     [
                         'label' => __('Themes'),

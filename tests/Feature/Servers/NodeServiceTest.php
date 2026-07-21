@@ -10,6 +10,7 @@ use Core\Nodes\Models\NodeGroup;
 use Core\Nodes\Models\NodeGroupRelation;
 use Core\Nodes\Services\NodeService;
 use Core\Providers\Stubs\StubServerProvider;
+use Core\Providers\Stubs\StubNodeProvider;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Services\Enums\ServiceStatus;
 use Core\Services\Models\Service;
@@ -33,6 +34,7 @@ class NodeServiceTest extends TestCase
         $this->registry = app(ProviderRegistry::class);
         $this->registry->flush();
         $this->registry->registerServer(app(StubServerProvider::class));
+        $this->registry->registerNode(app(StubNodeProvider::class));
 
         $this->nodeService = app(NodeService::class);
     }

@@ -27,7 +27,7 @@ class TestNodeConnectionRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::in(app(ProviderRegistry::class)->provisioningModuleKeys()),
+                Rule::in(app(ProviderRegistry::class)->nodeKeys()),
             ],
             'ip_address' => ['nullable', 'string', 'max:45'],
             'api_url' => ['nullable', 'string', 'max:2048', 'url'],

@@ -9,6 +9,7 @@ use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeGroup;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Providers\Stubs\StubServerProvider;
+use Core\Providers\Stubs\StubNodeProvider;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,7 @@ class AdminNodeManagementTest extends TestCase
         $registry = app(ProviderRegistry::class);
         $registry->flush();
         $registry->registerServer(app(StubServerProvider::class));
+        $registry->registerNode(app(StubNodeProvider::class));
     }
 
     public function test_admin_can_view_nodes_index_and_create_form(): void

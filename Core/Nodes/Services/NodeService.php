@@ -212,7 +212,7 @@ class NodeService
             return;
         }
 
-        if ($this->providers->hasServer($module) || $this->providers->hasNode($module)) {
+        if ($this->providers->hasNode($module)) {
             return;
         }
 

@@ -83,10 +83,6 @@ class NodeController extends Controller
     {
         $options = [];
 
-        foreach ($this->providers->allServers() as $provider) {
-            $options[$provider->key()] = $provider->label();
-        }
-
         foreach ($this->providers->allNodes() as $provider) {
             $options[$provider->key()] ??= $provider->label();
         }

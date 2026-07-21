@@ -7,6 +7,7 @@ use Core\Nodes\Enums\NodeType;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Services\NodeService;
 use Core\Providers\DataTransferObjects\NodeConnectionRequest;
+use Core\Providers\Stubs\StubNodeProvider;
 use Core\Providers\Stubs\StubServerProvider;
 use Core\Providers\Services\ProviderRegistry;
 use Core\Services\Enums\ServiceStatus;
@@ -27,6 +28,7 @@ class NodeCapacityTest extends TestCase
         $registry = app(ProviderRegistry::class);
         $registry->flush();
         $registry->registerServer(app(StubServerProvider::class));
+        $registry->registerNode(app(StubNodeProvider::class));
 
         $this->nodeService = app(NodeService::class);
     }

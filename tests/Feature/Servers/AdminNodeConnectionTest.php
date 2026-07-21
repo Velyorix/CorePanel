@@ -141,7 +141,7 @@ class AdminNodeConnectionTest extends TestCase
                 'module' => 'server-only',
             ])
             ->assertRedirect()
-            ->assertSessionHasErrors('connection');
+            ->assertSessionHasErrors('module');
     }
 
     public function test_support_cannot_test_connection(): void

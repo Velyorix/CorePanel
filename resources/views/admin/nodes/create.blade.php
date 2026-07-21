@@ -19,6 +19,8 @@
     </x-slot:breadcrumbs>
 
     <x-ui.card :title="__('Server details')">
+        @include('admin.nodes._connection_alert')
+
         @if ($errors->any())
             <div class="mb-4">
                 <x-ui.alert variant="danger" :title="__('Unable to create server')">
@@ -39,6 +41,13 @@
             <div class="flex flex-wrap items-center justify-end gap-2">
                 <x-ui.button :href="route('admin.nodes.index')" variant="secondary">
                     {{ __('Cancel') }}
+                </x-ui.button>
+                <x-ui.button
+                    type="submit"
+                    variant="secondary"
+                    formaction="{{ route('admin.nodes.test-connection') }}"
+                >
+                    {{ __('Test connection') }}
                 </x-ui.button>
                 <x-ui.button type="submit" variant="primary">
                     {{ __('Create server') }}

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\NodeConnectionController;
 use App\Http\Controllers\Admin\NodeController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -124,6 +125,8 @@ Route::middleware('admin')
         Route::get('nodes', [NodeController::class, 'index'])->name('nodes.index');
         Route::get('nodes/create', [NodeController::class, 'create'])->name('nodes.create');
         Route::post('nodes', [NodeController::class, 'store'])->name('nodes.store');
+        Route::post('nodes/test-connection', [NodeConnectionController::class, 'test'])->name('nodes.test-connection');
+        Route::post('nodes/{node}/test-connection', [NodeConnectionController::class, 'testNode'])->name('nodes.test-connection.node');
 
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

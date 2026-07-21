@@ -37,6 +37,7 @@ use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
+use Core\Nodes\Services\NodeConnectionTestService;
 use Core\Nodes\Services\NodeCredentialsService;
 use Core\Nodes\Services\NodeGroupService;
 use Core\Nodes\Services\NodeService;
@@ -135,6 +136,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ProductPricingCalculator::class);
         $this->app->singleton(NodeGroupService::class);
         $this->app->singleton(NodeCredentialsService::class);
+        $this->app->singleton(NodeConnectionTestService::class);
         $this->app->singleton(NodeService::class);
         $this->app->singleton(CartService::class);
         $this->app->singleton(TaxCalculationService::class);

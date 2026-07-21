@@ -32,7 +32,9 @@
         </div>
     @endif
 
-    @if ($errors->any())
+    @include('admin.nodes._connection_alert')
+
+    @if ($errors->any() && ! $errors->has('connection'))
         <div class="mb-6">
             <x-ui.alert variant="danger" :title="__('Unable to continue')">
                 <ul class="list-disc ps-4">
@@ -128,12 +130,13 @@
                 <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
                 <th class="px-4 py-3 font-medium">{{ __('Credentials') }}</th>
                 <th class="px-4 py-3 font-medium">{{ __('Load') }}</th>
+                <th class="px-4 py-3 font-medium"></th>
             </tr>
         </x-slot:head>
 
         <x-slot:empty>
             <tr>
-                <td colspan="7" class="p-4">
+                <td colspan="8" class="p-4">
                     <x-ui.empty
                         :title="__('No servers found')"
                         :description="filled($filters['q']) || $filters['type'] !== null || $filters['status'] !== null || filled($filters['module']) || $filters['node_group_id'] !== null
@@ -178,6 +181,18 @@
                     @if ($node->max_services !== null)
                         / {{ $node->max_services }}
                     @endif
+                </td>
+                <td class="px-4 py-3 text-end">
+                    @can('update', $node)
+                        @if (filled($node->module))
+                            <form method="POST" action="{{ route('admin.nodes.test-connection.node', $node) }}" class="inline">
+                                @csrf
+                                <x-ui.button type="submit" variant="ghost" size="sm">
+                                    {{ __('Test connection') }}
+                                </x-ui.button>
+                            </form>
+                        @endif
+                    @endcan
                 </td>
             </tr>
         @endforeach

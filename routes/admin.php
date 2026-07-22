@@ -31,7 +31,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServiceActionController;
 use App\Http\Controllers\Admin\ServiceController;
-use App\Http\Controllers\Admin\SyncActionController;
+use App\Http\Controllers\Admin\ThemeController;
 use App\Http\Controllers\Admin\SyncLogController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterActionController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterController;
@@ -68,6 +68,12 @@ Route::middleware('admin')
         Route::post('modules/{module}/disable', [ModuleController::class, 'disable'])->name('modules.disable');
         Route::put('modules/{module}/config', [ModuleController::class, 'updateConfig'])->name('modules.config');
         Route::delete('modules/{module}', [ModuleController::class, 'uninstall'])->name('modules.uninstall');
+
+        Route::get('themes', [ThemeController::class, 'index'])->name('themes.index');
+        Route::get('themes/{theme}', [ThemeController::class, 'show'])->name('themes.show');
+        Route::post('themes/preview/clear', [ThemeController::class, 'clearPreview'])->name('themes.preview.clear');
+        Route::post('themes/{theme}/activate', [ThemeController::class, 'activate'])->name('themes.activate');
+        Route::post('themes/{theme}/preview', [ThemeController::class, 'preview'])->name('themes.preview');
 
         Route::get('gateways', [PaymentGatewayController::class, 'index'])->name('gateways.index');
         Route::get('gateways/{gateway}', [PaymentGatewayController::class, 'show'])->name('gateways.show');

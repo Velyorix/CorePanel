@@ -133,6 +133,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'modules.view', 'module' => 'modules', 'description' => 'View installed and discovered modules'],
             ['name' => 'modules.manage', 'module' => 'modules', 'description' => 'Install, enable, disable, and configure modules'],
 
+            ['name' => 'themes.view', 'module' => 'themes', 'description' => 'View discovered themes'],
+            ['name' => 'themes.manage', 'module' => 'themes', 'description' => 'Activate and preview themes'],
+
             ['name' => 'tickets.view', 'module' => 'tickets', 'description' => 'View support tickets'],
             ['name' => 'tickets.reply', 'module' => 'tickets', 'description' => 'Reply to support tickets'],
             ['name' => 'tickets.assign', 'module' => 'tickets', 'description' => 'Assign support tickets'],
@@ -182,6 +185,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'services.*',
                     'nodes.*',
                     'modules.*',
+                    'themes.*',
                     'tickets.*',
                 ],
             ],

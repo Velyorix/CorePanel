@@ -5,6 +5,10 @@
      *     version: string,
      *     description: string|null,
      *     capabilities: list<string>,
+     *     capability_labels: list<string>,
+     *     profile: string,
+     *     profile_label: string,
+     *     hooks: array{events: list<string>, hooks: list<string>, filters: list<string>},
      *     path: string,
      *     installed: bool,
      *     enabled: bool,
@@ -145,11 +149,52 @@
                 @endif
 
                 <div class="flex items-start justify-between gap-4">
-                    <dt class="text-muted-foreground">{{ __('Capabilities') }}</dt>
-                    <dd class="text-end">
-                        {{ $module['capabilities'] === [] ? '—' : implode(', ', $module['capabilities']) }}
+                    <dt class="text-muted-foreground">{{ __('Profile') }}</dt>
+                    <dd>
+                        <x-ui.badge variant="neutral">{{ $module['profile_label'] }}</x-ui.badge>
                     </dd>
                 </div>
+
+                <div class="flex items-start justify-between gap-4">
+                    <dt class="text-muted-foreground">{{ __('Capabilities') }}</dt>
+                    <dd class="text-end">
+                        @if ($module['capabilities'] === [])
+                            —
+                        @else
+                            <div class="flex flex-wrap justify-end gap-1.5">
+                                @foreach ($module['capability_labels'] as $label)
+                                    <x-ui.badge variant="neutral">{{ $label }}</x-ui.badge>
+                                @endforeach
+                            </div>
+                        @endif
+                    </dd>
+                </div>
+
+                @if ($module['hooks']['events'] !== [] || $module['hooks']['hooks'] !== [] || $module['hooks']['filters'] !== [])
+                    <div>
+                        <dt class="mb-1 text-muted-foreground">{{ __('Declared hooks') }}</dt>
+                        <dd class="space-y-2 text-small">
+                            @if ($module['hooks']['events'] !== [])
+                                <div>
+                                    <span class="font-medium text-foreground">{{ __('Events') }}:</span>
+                                    <span class="font-mono text-muted-foreground">{{ implode(', ', $module['hooks']['events']) }}</span>
+                                </div>
+                            @endif
+                            @if ($module['hooks']['hooks'] !== [])
+                                <div>
+                                    <span class="font-medium text-foreground">{{ __('Hooks') }}:</span>
+                                    <span class="font-mono text-muted-foreground">{{ implode(', ', $module['hooks']['hooks']) }}</span>
+                                </div>
+                            @endif
+                            @if ($module['hooks']['filters'] !== [])
+                                <div>
+                                    <span class="font-medium text-foreground">{{ __('Filters') }}:</span>
+                                    <span class="font-mono text-muted-foreground">{{ implode(', ', $module['hooks']['filters']) }}</span>
+                                </div>
+                            @endif
+                        </dd>
+                    </div>
+                @endif
 
                 <div class="flex items-start justify-between gap-4">
                     <dt class="text-muted-foreground">{{ __('Authors') }}</dt>

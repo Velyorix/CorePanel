@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateModuleConfigRequest;
+use Core\Modules\Enums\ModuleCapability;
 use Core\Modules\Exceptions\ModuleBootstrapException;
 use Core\Modules\Exceptions\ModuleNotFoundException;
 use Core\Modules\Exceptions\ModuleSignatureException;
@@ -133,6 +134,10 @@ class ModuleController extends Controller
      *     version: string,
      *     description: string|null,
      *     capabilities: list<string>,
+     *     capability_labels: list<string>,
+     *     profile: string,
+     *     profile_label: string,
+     *     hooks: array{events: list<string>, hooks: list<string>, filters: list<string>},
      *     path: string,
      *     installed: bool,
      *     enabled: bool,
@@ -161,6 +166,13 @@ class ModuleController extends Controller
             'version' => $manifest->version,
             'description' => $manifest->description,
             'capabilities' => $manifest->capabilities,
+            'capability_labels' => array_map(
+                static fn (string $capability): string => ModuleCapability::labelFor($capability),
+                $manifest->capabilities,
+            ),
+            'profile' => $manifest->profile()->value,
+            'profile_label' => $manifest->profile()->label(),
+            'hooks' => $manifest->hookManifest->toArray(),
             'path' => $manifest->path,
             'installed' => $installation !== null,
             'enabled' => $this->modules->isEnabled($manifest->key),
@@ -190,7 +202,8 @@ class ModuleController extends Controller
         return match (true) {
             $exception instanceof ModuleSignatureException,
             $exception instanceof ModuleBootstrapException,
-            $exception instanceof ModuleNotFoundException => $exception->getMessage(),
+            $exception instanceof ModuleNotFoundException,
+            $exception instanceof \Core\Modules\Exceptions\InvalidModuleManifestException => $exception->getMessage(),
             default => __('Unable to complete this module action.'),
         };
     }

@@ -20,7 +20,6 @@ use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\Support\Billing\FakePaymentGateway;
-use Tests\Support\Billing\FakePluginGatewayRegistrar;
 use Tests\Support\Modules\StubGatewayModuleServiceProvider;
 use Tests\TestCase;
 
@@ -46,12 +45,13 @@ class ModuleGatewayInjectionTest extends TestCase
             'corepanel.modules.sandbox.enabled' => true,
             'corepanel.modules.signature.required' => false,
             'corepanel.modules.signature.verify_on_load' => false,
+            'corepanel.themes.auto_load_active' => false,
             'app.key' => 'base64:'.base64_encode(str_repeat('c', 32)),
         ]);
 
+        $this->withoutVite();
         $this->rebindModuleStack();
         app(GatewayManager::class)->flush();
-        app(PaymentGatewayInjector::class)->flushPlugins();
     }
 
     protected function tearDown(): void
@@ -112,19 +112,6 @@ class ModuleGatewayInjectionTest extends TestCase
         $this->assertSame(
             'Provider Fake Gateway',
             app(GatewayManager::class)->resolve('provider_fake', onlyEnabled: false)->label(),
-        );
-    }
-
-    public function test_plugin_hook_registers_gateway_on_boot_plugins(): void
-    {
-        $injector = app(PaymentGatewayInjector::class);
-        $injector->registerPlugin(new FakePluginGatewayRegistrar);
-
-        $this->assertSame(1, $injector->bootPlugins());
-        $this->assertTrue(app(GatewayManager::class)->has('plugin_fake'));
-        $this->assertSame(
-            'Plugin Fake Gateway',
-            app(GatewayManager::class)->resolve('plugin_fake', onlyEnabled: false)->label(),
         );
     }
 

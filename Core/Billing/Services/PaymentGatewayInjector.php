@@ -3,20 +3,16 @@
 namespace Core\Billing\Services;
 
 use Core\Billing\Contracts\PaymentGateway;
-use Core\Billing\Contracts\RegistersPaymentGateways;
 use Core\Modules\DataTransferObjects\ModuleManifest;
 use Core\Modules\Exceptions\ModuleBootstrapException;
 use Core\Modules\Services\ModuleSandbox;
 use Illuminate\Contracts\Foundation\Application;
 
 /**
- * Injects payment gateways from module manifests and plugin registration hooks.
+ * Injects payment gateways declared by loaded modules.
  */
 class PaymentGatewayInjector
 {
-    /** @var list<RegistersPaymentGateways> */
-    private array $pluginHooks = [];
-
     /** @var array<string, list<string>> */
     private array $moduleGateways = [];
 
@@ -63,25 +59,6 @@ class PaymentGatewayInjector
         return $registeredNow;
     }
 
-    public function registerPlugin(RegistersPaymentGateways $hook): void
-    {
-        $this->pluginHooks[] = $hook;
-    }
-
-    /**
-     * Run plugin gateway hooks (plugin packages will register hooks once available).
-     *
-     * @return int Number of plugin hooks invoked
-     */
-    public function bootPlugins(): int
-    {
-        foreach ($this->pluginHooks as $hook) {
-            $hook->registerPaymentGateways($this->gateways);
-        }
-
-        return count($this->pluginHooks);
-    }
-
     public function isModuleGatewayRegistered(string $moduleKey, string $gatewayClass): bool
     {
         return in_array($gatewayClass, $this->moduleGateways[$moduleKey] ?? [], true);
@@ -98,10 +75,5 @@ class PaymentGatewayInjector
     public function forgetModule(string $moduleKey): void
     {
         unset($this->moduleGateways[$moduleKey]);
-    }
-
-    public function flushPlugins(): void
-    {
-        $this->pluginHooks = [];
     }
 }

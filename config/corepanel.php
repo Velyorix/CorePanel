@@ -848,6 +848,43 @@ return [
             ),
             'secret' => env('COREPANEL_MODULES_SIGNATURE_SECRET'),
         ],
+        'hooks' => [
+            'laravel_events' => [
+                'invoice.paid' => \Core\Billing\Events\InvoicePaid::class,
+                'order.paid' => \Core\Orders\Events\OrderPaid::class,
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Themes
+    |--------------------------------------------------------------------------
+    |
+    | Extension themes control appearance (layouts, views, assets). Packages live
+    | under Themes/{name}/ with a theme.json manifest and resources/ subtree.
+    |
+    */
+
+    'themes' => [
+        'path' => env('COREPANEL_THEMES_PATH', base_path('Themes')),
+        'default' => env('COREPANEL_THEME_DEFAULT', 'default'),
+        'auto_load_active' => filter_var(
+            env('COREPANEL_THEMES_AUTO_LOAD', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'override_module_views' => filter_var(
+            env('COREPANEL_THEMES_OVERRIDE_MODULES', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'vite' => [
+            'core_entries' => [
+                'resources/css/app.css',
+                'resources/js/app.js',
+            ],
+            'binary' => env('COREPANEL_VITE_BINARY', 'npx'),
+            'package' => env('COREPANEL_VITE_PACKAGE', 'vite'),
+        ],
     ],
 
 ];

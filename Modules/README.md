@@ -73,8 +73,29 @@ Required fields: `name`, `version`, `capabilities`.
 }
 ```
 
-Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
+Known capability values: `extension`, `server_provider`, `node_provider`, `payment_gateway`,
 `notification_channel`, `dns_provider`, `other` (custom strings allowed).
+
+Extension modules (lightweight plugins) declare `extension` and may subscribe to Core hooks:
+
+```json
+{
+  "name": "discord_notify",
+  "version": "1.0.0",
+  "capabilities": ["extension", "notification_channel"],
+  "hooks": {
+    "events": ["invoice.paid", "order.paid"],
+    "hooks": ["admin.navigation.build"],
+    "filters": ["invoice.email.subject"]
+  }
+}
+```
+
+Rules:
+
+- `[notification_channel]` requires `[extension]`
+- A non-empty `[hooks]` object requires `[extension]`
+- Hook names use lowercase dotted identifiers (e.g. `invoice.paid`)
 
 ## Payment gateways
 
@@ -100,8 +121,7 @@ Modules can inject billing payment gateways in two ways:
 }
 ```
 
-Plugins use the same `GatewayManager` via `RegistersPaymentGateways` hooks registered on
-`PaymentGatewayInjector` (plugin package loading arrives with the plugins framework).
+See also `ExampleExtension/` for a lightweight extension module that listens to Core events.
 
 ## Rules
 
@@ -117,3 +137,35 @@ Plugins use the same `GatewayManager` via `RegistersPaymentGateways` hooks regis
 - Routes / views / migrations under the package are auto-loaded on module load
 - Implement `ModuleInterface` (extend `AbstractModule`) when declaring `module`
 - `module.json` is required (`name`, `version`, `capabilities`)
+
+## Artisan scaffolding
+
+```bash
+php artisan module:make "My Module" --profile=integration
+php artisan module:make "Discord Notify" --profile=extension
+php artisan module:make "Stripe Billing" --profile=payment_gateway
+
+php artisan module:make:migration create_items_table --module=my_module
+php artisan module:make:model Item --module=my_module --migration
+php artisan module:make:controller Status --module=my_module --admin
+php artisan module:make:service Status --module=my_module
+php artisan module:make:event StatusChecked --module=my_module
+php artisan module:make:factory Item --module=my_module
+php artisan module:make:seeder ItemSeeder --module=my_module
+php artisan module:make:listener OnStatusChecked --module=my_module --event=StatusChecked
+php artisan module:make:trait Cacheable --module=my_module
+php artisan module:make:provider BillingServiceProvider --module=my_module
+php artisan module:make:gateway Stripe --module=my_module
+php artisan module:make:command Sync --module=my_module
+php artisan module:make:request StoreItem --module=my_module
+php artisan module:make:policy Item --module=my_module
+
+php artisan module:list
+php artisan module:list --installed --enabled
+```
+
+Profiles:
+
+- `integration` — generic provider package (`other` capability by default)
+- `extension` — hook listener + notification channel stub
+- `payment_gateway` — gateway class + manifest `gateways` entry

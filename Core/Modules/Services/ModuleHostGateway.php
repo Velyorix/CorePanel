@@ -17,6 +17,7 @@ class ModuleHostGateway implements ModuleHostApi
         private readonly ModuleManifest $manifest,
         private readonly ModuleSandbox $sandbox,
         private readonly ModulePermissionRegistrar $permissions,
+        private readonly ?ModuleHookRegistry $hookRegistry = null,
         private readonly ?LoggerInterface $logger = null,
     ) {
     }
@@ -79,6 +80,30 @@ class ModuleHostGateway implements ModuleHostApi
 
             return count($manifest->permissions);
         });
+    }
+
+    public function registerHook(string $hook, callable $callback, int $priority = 10): string
+    {
+        return $this->hookRegistry()->registerHook($hook, $callback, $priority, $this->moduleKey);
+    }
+
+    public function registerFilter(string $filter, callable $callback, int $priority = 10): string
+    {
+        return $this->hookRegistry()->registerFilter($filter, $callback, $priority, $this->moduleKey);
+    }
+
+    public function listenEvent(string $event, callable $callback, int $priority = 10): string
+    {
+        return $this->hookRegistry()->listenEvent($event, $callback, $priority, $this->moduleKey);
+    }
+
+    private function hookRegistry(): ModuleHookRegistry
+    {
+        if ($this->hookRegistry === null) {
+            throw ModuleSandboxViolationException::hostUnavailable($this->moduleKey);
+        }
+
+        return $this->hookRegistry;
     }
 
     private function isAllowedConfigKey(string $key): bool

@@ -113,9 +113,45 @@ use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Modules\Services\ModuleDatabaseGuard;
+use Core\Modules\Services\ModuleCapabilityValidator;
+use Core\Modules\Services\ModuleHookRegistry;
+use Core\Modules\Console\ModuleListCommand;
+use Core\Modules\Console\ModuleMakeCommand;
+use Core\Modules\Console\ModuleMakeControllerCommand;
+use Core\Modules\Console\ModuleMakeEventCommand;
+use Core\Modules\Console\ModuleMakeFactoryCommand;
+use Core\Modules\Console\ModuleMakeGatewayCommand;
+use Core\Modules\Console\ModuleMakeListenerCommand;
+use Core\Modules\Console\ModuleMakeMigrationCommand;
+use Core\Modules\Console\ModuleMakeModelCommand;
+use Core\Modules\Console\ModuleMakeModuleCommandCommand;
+use Core\Modules\Console\ModuleMakePolicyCommand;
+use Core\Modules\Console\ModuleMakeProviderCommand;
+use Core\Modules\Console\ModuleMakeRequestCommand;
+use Core\Modules\Console\ModuleMakeSeederCommand;
+use Core\Modules\Console\ModuleMakeServiceCommand;
+use Core\Modules\Console\ModuleMakeTraitCommand;
+use Core\Modules\Services\ModuleEventBridge;
+use Core\Modules\Services\ModuleGenerator;
+use Core\Modules\Services\ModuleScaffolder;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
+use Core\Themes\Console\ThemeBuildCommand;
+use Core\Themes\Console\ThemeMakeAssetCommand;
+use Core\Themes\Console\ThemeMakeCommand;
+use Core\Themes\Console\ThemeMakeComponentCommand;
+use Core\Themes\Console\ThemeMakeLayoutCommand;
+use Core\Themes\Console\ThemeMakePartialCommand;
+use Core\Themes\Console\ThemeMakeViewCommand;
+use Core\Themes\Console\ThemeWatchCommand;
+use Core\Themes\Services\ThemeGenerator;
+use Core\Themes\Services\ThemeManager;
+use Core\Themes\Services\ThemeScaffolder;
+use Core\Themes\Services\ThemeViewRegistrar;
+use Core\Themes\Services\ThemeViteBuilder;
+use Core\Themes\Services\ThemeViteEntryResolver;
+use Core\Themes\Services\ThemeStateRepository;
 use Core\Modules\Services\ModulePackageHasher;
 use Core\Modules\Services\ModuleRequirementChecker;
 use Core\Modules\Services\ModuleResourceLoader;
@@ -169,6 +205,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
         $this->app->singleton(ModuleSandbox::class);
+        $this->app->singleton(ModuleHookRegistry::class);
+        $this->app->singleton(ModuleCapabilityValidator::class);
+        $this->app->singleton(ModuleEventBridge::class);
         $this->app->singleton(ModuleTableAccessPolicy::class);
         $this->app->singleton(ModuleDatabaseGuard::class);
         $this->app->singleton(ModulePackageHasher::class);
@@ -179,7 +218,43 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleFactory::class);
         $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);
+        $this->app->singleton(ModuleScaffolder::class);
+        $this->app->singleton(ModuleGenerator::class);
+        $this->app->singleton(ThemeStateRepository::class);
+        $this->app->singleton(ThemeViewRegistrar::class);
+        $this->app->singleton(ThemeViteEntryResolver::class);
+        $this->app->singleton(ThemeViteBuilder::class);
+        $this->app->singleton(ThemeScaffolder::class);
+        $this->app->singleton(ThemeGenerator::class);
+        $this->app->singleton(ThemeManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
+
+        $this->commands([
+            ThemeMakeCommand::class,
+            ThemeMakeViewCommand::class,
+            ThemeMakeLayoutCommand::class,
+            ThemeMakeComponentCommand::class,
+            ThemeMakePartialCommand::class,
+            ThemeMakeAssetCommand::class,
+            ThemeBuildCommand::class,
+            ThemeWatchCommand::class,
+            ModuleMakeCommand::class,
+            ModuleMakeMigrationCommand::class,
+            ModuleMakeModelCommand::class,
+            ModuleMakeControllerCommand::class,
+            ModuleMakeServiceCommand::class,
+            ModuleMakeEventCommand::class,
+            ModuleMakeFactoryCommand::class,
+            ModuleMakeSeederCommand::class,
+            ModuleMakeListenerCommand::class,
+            ModuleMakeTraitCommand::class,
+            ModuleMakeProviderCommand::class,
+            ModuleMakeGatewayCommand::class,
+            ModuleMakeModuleCommandCommand::class,
+            ModuleMakeRequestCommand::class,
+            ModuleMakePolicyCommand::class,
+            ModuleListCommand::class,
+        ]);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);
         $this->app->singleton(EntitlementService::class);
@@ -311,7 +386,12 @@ class CoreServiceProvider extends ServiceProvider
             $this->app->make(ModuleManager::class)->loadEnabled();
         }
 
-        $this->app->make(PaymentGatewayInjector::class)->bootPlugins();
+        $this->app->make(ModuleEventBridge::class)->register();
+
+        if ((bool) config('corepanel.themes.auto_load_active', true)) {
+            $this->app->make(ThemeManager::class)->applyEffective(null);
+        }
+
         $gateways->sync();
 
         $this->app->make(ModuleDatabaseGuard::class)->register();

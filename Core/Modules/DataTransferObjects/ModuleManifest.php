@@ -2,7 +2,10 @@
 
 namespace Core\Modules\DataTransferObjects;
 
+use Core\Modules\Enums\ModuleCapability;
+use Core\Modules\Enums\ModuleProfile;
 use Core\Modules\Exceptions\InvalidModuleManifestException;
+use Core\Modules\Services\ModuleCapabilityValidator;
 use Core\Providers\DataTransferObjects\ModulePermissionManifest;
 use JsonException;
 
@@ -11,7 +14,7 @@ use JsonException;
  *
  * Required: name, version, capabilities
  * Optional: label, description, module, providers, gateways, authors, homepage,
- *           license, requires, permissions
+ *           license, requires, permissions, hooks
  */
 final readonly class ModuleManifest
 {
@@ -38,6 +41,7 @@ final readonly class ModuleManifest
         public ?string $license = null,
         public ModuleRequirements $requires = new ModuleRequirements,
         public array $permissions = [],
+        public ModuleHookManifest $hookManifest = new ModuleHookManifest,
         public array $raw = [],
     ) {
     }
@@ -50,6 +54,65 @@ final readonly class ModuleManifest
     public function hasCapability(string $capability): bool
     {
         return in_array($capability, $this->capabilities, true);
+    }
+
+    public function isExtension(): bool
+    {
+        return $this->hasCapability(ModuleCapability::Extension->value);
+    }
+
+    public function isIntegration(): bool
+    {
+        foreach (ModuleCapability::integrationValues() as $capability) {
+            if ($this->hasCapability($capability)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function profile(): ModuleProfile
+    {
+        $extension = $this->isExtension()
+            || $this->hasCapability(ModuleCapability::NotificationChannel->value);
+        $integration = $this->isIntegration();
+
+        return match (true) {
+            $extension && $integration => ModuleProfile::Hybrid,
+            $extension => ModuleProfile::Extension,
+            default => ModuleProfile::Integration,
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function extensionCapabilities(): array
+    {
+        return array_values(array_filter(
+            $this->capabilities,
+            static fn (string $capability): bool => in_array(
+                $capability,
+                ModuleCapability::extensionValues(),
+                true,
+            ),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function integrationCapabilities(): array
+    {
+        return array_values(array_filter(
+            $this->capabilities,
+            static fn (string $capability): bool => in_array(
+                $capability,
+                ModuleCapability::integrationValues(),
+                true,
+            ),
+        ));
     }
 
     public function permissionManifest(): ModulePermissionManifest
@@ -82,6 +145,7 @@ final readonly class ModuleManifest
             'license' => $this->license,
             'requires' => $this->requires->isEmpty() ? null : $this->requires->toArray(),
             'permissions' => $this->permissions === [] ? null : $this->permissions,
+            'hooks' => $this->hookManifest->isEmpty() ? null : $this->hookManifest->toArray(),
         ], static fn (mixed $value): bool => $value !== null);
     }
 
@@ -152,6 +216,9 @@ final readonly class ModuleManifest
         $authors = self::normalizeAuthors($data['authors'] ?? []);
         $permissions = self::normalizePermissions($data['permissions'] ?? []);
         $requires = self::normalizeRequires($data['requires'] ?? null);
+        $hookManifest = ModuleHookManifest::fromArray($data['hooks'] ?? null);
+
+        (new ModuleCapabilityValidator)->assertValid($capabilities, $hookManifest);
 
         $label = trim((string) ($data['label'] ?? $key));
         $description = isset($data['description']) ? trim((string) $data['description']) : null;
@@ -173,6 +240,7 @@ final readonly class ModuleManifest
             license: $license !== '' ? $license : null,
             requires: $requires,
             permissions: $permissions,
+            hookManifest: $hookManifest,
             raw: $data,
         );
     }

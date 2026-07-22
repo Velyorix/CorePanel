@@ -40,4 +40,9 @@ class InvalidModuleManifestException extends RuntimeException
     {
         return new self("Module manifest [{$field}] {$reason}");
     }
+
+    public static function capabilityRule(string $message): self
+    {
+        return new self($message);
+    }
 }

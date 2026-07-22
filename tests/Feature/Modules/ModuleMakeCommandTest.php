@@ -87,6 +87,16 @@ class ModuleMakeCommandTest extends TestCase
         $this->assertSame(['invoice.paid'], $manifest['hooks']['events']);
         $this->assertFileExists($root.'/Notifications/DiscordNotifyNotificationChannel.php');
 
+        $moduleClass = File::get($root.'/DiscordNotifyModule.php');
+        $this->assertStringContainsString(
+            'use Modules\\DiscordNotify\\Notifications\\DiscordNotifyNotificationChannel;',
+            $moduleClass,
+        );
+        $this->assertStringContainsString(
+            'private function channel(): DiscordNotifyNotificationChannel',
+            $moduleClass,
+        );
+
         $descriptor = app(ModuleManager::class)->get('discord_notify');
 
         $this->assertNotNull($descriptor);

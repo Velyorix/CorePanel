@@ -38,6 +38,7 @@ class AdminThemeManagementTest extends TestCase
             'session.driver' => 'array',
         ]);
 
+        $this->withoutVite();
         $this->rebindThemeServices();
     }
 

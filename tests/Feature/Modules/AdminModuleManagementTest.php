@@ -43,9 +43,11 @@ class AdminModuleManagementTest extends TestCase
             'corepanel.modules.signature.required' => false,
             'corepanel.modules.signature.verify_on_load' => false,
             'corepanel.modules.signature.secret' => 'test-module-secret',
+            'corepanel.themes.auto_load_active' => false,
             'app.key' => 'base64:'.base64_encode(str_repeat('a', 32)),
         ]);
 
+        $this->withoutVite();
         $this->rebindModuleManager();
     }
 

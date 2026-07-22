@@ -264,13 +264,13 @@ MD;
     {
         if ($profile === ModuleScaffoldProfile::Extension) {
             return str_replace(
-                ['NAMESPACE', 'CLASS', 'KEY', 'LABEL', 'CHANNEL_CLASS'],
+                ['NAMESPACE', 'CHANNEL_CLASS', 'CLASS', 'KEY', 'LABEL'],
                 [
                     $parsed->namespace,
+                    $parsed->studly('NotificationChannel'),
                     $parsed->directory.'Module',
                     $parsed->key,
                     $parsed->label,
-                    $parsed->studly('NotificationChannel'),
                 ],
                 <<<'PHP'
 <?php

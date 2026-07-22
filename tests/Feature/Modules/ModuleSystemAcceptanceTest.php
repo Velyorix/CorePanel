@@ -60,9 +60,11 @@ class ModuleSystemAcceptanceTest extends TestCase
             'corepanel.modules.resources.routes' => true,
             'corepanel.modules.resources.views' => true,
             'corepanel.modules.resources.migrations' => true,
+            'corepanel.themes.auto_load_active' => false,
             'app.key' => 'base64:'.base64_encode(str_repeat('b', 32)),
         ]);
 
+        $this->withoutVite();
         $this->rebindModuleManager($this->modulesPath);
         app(ProviderRegistry::class)->flush();
     }

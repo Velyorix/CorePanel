@@ -116,16 +116,19 @@ use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
+use Core\Themes\Console\ThemeBuildCommand;
 use Core\Themes\Console\ThemeMakeAssetCommand;
 use Core\Themes\Console\ThemeMakeCommand;
 use Core\Themes\Console\ThemeMakeComponentCommand;
 use Core\Themes\Console\ThemeMakeLayoutCommand;
 use Core\Themes\Console\ThemeMakePartialCommand;
 use Core\Themes\Console\ThemeMakeViewCommand;
+use Core\Themes\Console\ThemeWatchCommand;
 use Core\Themes\Services\ThemeGenerator;
 use Core\Themes\Services\ThemeManager;
 use Core\Themes\Services\ThemeScaffolder;
 use Core\Themes\Services\ThemeViewRegistrar;
+use Core\Themes\Services\ThemeViteBuilder;
 use Core\Themes\Services\ThemeViteEntryResolver;
 use Core\Themes\Services\ThemeStateRepository;
 use Core\Modules\Services\ModulePackageHasher;
@@ -194,6 +197,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ThemeStateRepository::class);
         $this->app->singleton(ThemeViewRegistrar::class);
         $this->app->singleton(ThemeViteEntryResolver::class);
+        $this->app->singleton(ThemeViteBuilder::class);
         $this->app->singleton(ThemeScaffolder::class);
         $this->app->singleton(ThemeGenerator::class);
         $this->app->singleton(ThemeManager::class);
@@ -206,6 +210,8 @@ class CoreServiceProvider extends ServiceProvider
             ThemeMakeComponentCommand::class,
             ThemeMakePartialCommand::class,
             ThemeMakeAssetCommand::class,
+            ThemeBuildCommand::class,
+            ThemeWatchCommand::class,
         ]);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);

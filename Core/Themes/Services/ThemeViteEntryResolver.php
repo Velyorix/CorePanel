@@ -3,6 +3,7 @@
 namespace Core\Themes\Services;
 
 use Core\Themes\DataTransferObjects\ThemeDescriptor;
+use Core\Themes\Exceptions\ThemeNotFoundException;
 use Core\Themes\Support\ThemeAssetManifest;
 use Illuminate\Contracts\Session\Session;
 
@@ -36,6 +37,43 @@ class ThemeViteEntryResolver
             ...$entries,
             ...$this->entriesForChain($this->themes->resolveInheritanceChain($theme)),
         ]);
+    }
+
+    /**
+     * Vite inputs for a production/dev build (core bundle + optional theme chain).
+     *
+     * @return list<string>
+     */
+    public function buildEntries(?string $themeKey = null): array
+    {
+        if ($themeKey === null || trim($themeKey) === '') {
+            return $this->allBuildEntries();
+        }
+
+        $theme = $this->themes->find(trim($themeKey));
+
+        if ($theme === null) {
+            throw ThemeNotFoundException::forKey($themeKey);
+        }
+
+        return $this->uniqueEntries([
+            ...$this->coreEntries(),
+            ...$this->entriesForChain($this->themes->resolveInheritanceChain($theme)),
+        ]);
+    }
+
+    /**
+     * Asset entries declared by a theme package (excluding the core bundle).
+     *
+     * @return list<string>
+     */
+    public function themeOnlyEntries(string $themeKey): array
+    {
+        $theme = $this->themes->findOrFail($themeKey);
+
+        return $this->uniqueEntries(
+            $this->entriesForChain($this->themes->resolveInheritanceChain($theme)),
+        );
     }
 
     /**

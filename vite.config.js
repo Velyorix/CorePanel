@@ -2,12 +2,12 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
-import { allViteInputs } from './scripts/discover-theme-vite-entries.mjs';
+import { resolvedViteInputs } from './scripts/discover-theme-vite-entries.mjs';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: allViteInputs(),
+            input: resolvedViteInputs(),
             refresh: [
                 'resources/views/**',
                 'Themes/**',

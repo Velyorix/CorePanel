@@ -876,6 +876,8 @@ return [
                 'resources/css/app.css',
                 'resources/js/app.js',
             ],
+            'binary' => env('COREPANEL_VITE_BINARY', 'npx'),
+            'package' => env('COREPANEL_VITE_PACKAGE', 'vite'),
         ],
     ],
 

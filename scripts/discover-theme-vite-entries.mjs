@@ -113,3 +113,18 @@ export function coreViteEntries() {
 export function allViteInputs() {
     return [...new Set([...coreViteEntries(), ...discoverThemeViteEntries()])];
 }
+
+export function resolvedViteInputs() {
+    const fromEnv = process.env.COREPANEL_VITE_INPUTS;
+
+    if (typeof fromEnv === 'string' && fromEnv.trim() !== '') {
+        return [...new Set(
+            fromEnv
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean),
+        )];
+    }
+
+    return allViteInputs();
+}

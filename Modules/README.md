@@ -149,10 +149,22 @@ php artisan module:make "Discord Notify" --profile=extension
 php artisan module:make "Stripe Billing" --profile=payment_gateway
 
 php artisan module:make:migration create_items_table --module=my_module
-php artisan module:make:model Item --module=my_module
-php artisan module:make:controller Status --module=my_module
+php artisan module:make:model Item --module=my_module --migration
+php artisan module:make:controller Status --module=my_module --admin
 php artisan module:make:service Status --module=my_module
 php artisan module:make:event StatusChecked --module=my_module
+php artisan module:make:factory Item --module=my_module
+php artisan module:make:seeder ItemSeeder --module=my_module
+php artisan module:make:listener OnStatusChecked --module=my_module --event=StatusChecked
+php artisan module:make:trait Cacheable --module=my_module
+php artisan module:make:provider BillingServiceProvider --module=my_module
+php artisan module:make:gateway Stripe --module=my_module
+php artisan module:make:command Sync --module=my_module
+php artisan module:make:request StoreItem --module=my_module
+php artisan module:make:policy Item --module=my_module
+
+php artisan module:list
+php artisan module:list --installed --enabled
 ```
 
 Profiles:

@@ -14,7 +14,7 @@ class ModuleMakeEventCommand extends ModuleGeneratorCommand
 
     public function handle(): int
     {
-        return $this->handleGeneration(function (ModuleGenerator $generator): string {
+        return $this->handleGeneration(function (ModuleGenerator $generator): array {
             $module = $generator->resolveModule($this->moduleKeyOption());
 
             return $generator->makeEvent($module, (string) $this->argument('name'));

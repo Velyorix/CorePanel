@@ -115,12 +115,22 @@ use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleCapabilityValidator;
 use Core\Modules\Services\ModuleHookRegistry;
+use Core\Modules\Console\ModuleListCommand;
 use Core\Modules\Console\ModuleMakeCommand;
 use Core\Modules\Console\ModuleMakeControllerCommand;
 use Core\Modules\Console\ModuleMakeEventCommand;
+use Core\Modules\Console\ModuleMakeFactoryCommand;
+use Core\Modules\Console\ModuleMakeGatewayCommand;
+use Core\Modules\Console\ModuleMakeListenerCommand;
 use Core\Modules\Console\ModuleMakeMigrationCommand;
 use Core\Modules\Console\ModuleMakeModelCommand;
+use Core\Modules\Console\ModuleMakeModuleCommandCommand;
+use Core\Modules\Console\ModuleMakePolicyCommand;
+use Core\Modules\Console\ModuleMakeProviderCommand;
+use Core\Modules\Console\ModuleMakeRequestCommand;
+use Core\Modules\Console\ModuleMakeSeederCommand;
 use Core\Modules\Console\ModuleMakeServiceCommand;
+use Core\Modules\Console\ModuleMakeTraitCommand;
 use Core\Modules\Services\ModuleEventBridge;
 use Core\Modules\Services\ModuleGenerator;
 use Core\Modules\Services\ModuleScaffolder;
@@ -234,6 +244,16 @@ class CoreServiceProvider extends ServiceProvider
             ModuleMakeControllerCommand::class,
             ModuleMakeServiceCommand::class,
             ModuleMakeEventCommand::class,
+            ModuleMakeFactoryCommand::class,
+            ModuleMakeSeederCommand::class,
+            ModuleMakeListenerCommand::class,
+            ModuleMakeTraitCommand::class,
+            ModuleMakeProviderCommand::class,
+            ModuleMakeGatewayCommand::class,
+            ModuleMakeModuleCommandCommand::class,
+            ModuleMakeRequestCommand::class,
+            ModuleMakePolicyCommand::class,
+            ModuleListCommand::class,
         ]);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);

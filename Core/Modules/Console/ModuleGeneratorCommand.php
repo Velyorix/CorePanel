@@ -13,7 +13,7 @@ abstract class ModuleGeneratorCommand extends Command
     protected function handleGeneration(callable $callback): int
     {
         try {
-            $path = $callback(app(ModuleGenerator::class));
+            $result = $callback(app(ModuleGenerator::class));
         } catch (InvalidArgumentException|ModuleScaffoldException $exception) {
             $this->components->error($exception->getMessage());
 
@@ -25,8 +25,20 @@ abstract class ModuleGeneratorCommand extends Command
             return self::FAILURE;
         }
 
+        if (is_string($result)) {
+            $path = $result;
+            $extras = [];
+        } else {
+            $path = $result['path'];
+            $extras = $result['extras'] ?? [];
+        }
+
         $this->components->info('Module file created successfully.');
         $this->line("  <fg=gray>Path:</> {$path}");
+
+        foreach ($extras as $label => $value) {
+            $this->line("  <fg=gray>{$label}:</> {$value}");
+        }
 
         return self::SUCCESS;
     }

@@ -124,6 +124,8 @@ Modules can inject billing payment gateways in two ways:
 Plugins use the same `GatewayManager` via `RegistersPaymentGateways` hooks registered on
 `PaymentGatewayInjector` (plugin package loading arrives with the plugins framework).
 
+See also `ExampleExtension/` for a lightweight extension module that listens to Core events.
+
 ## Rules
 
 - No direct access to Core database tables (sandbox)

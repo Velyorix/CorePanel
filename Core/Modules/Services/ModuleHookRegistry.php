@@ -71,6 +71,16 @@ class ModuleHookRegistry
         return count($this->hooks[$hook] ?? []);
     }
 
+    public function hasEvent(string $event): bool
+    {
+        return ($this->events[$event] ?? []) !== [];
+    }
+
+    public function eventCount(string $event): int
+    {
+        return count($this->events[$event] ?? []);
+    }
+
     public function forgetModule(string $moduleKey): void
     {
         foreach (['hooks', 'filters', 'events'] as $bucket) {

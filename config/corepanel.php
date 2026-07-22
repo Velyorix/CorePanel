@@ -850,6 +850,7 @@ return [
         ],
         'hooks' => [
             'laravel_events' => [
+                'invoice.paid' => \Core\Billing\Events\InvoicePaid::class,
                 'order.paid' => \Core\Orders\Events\OrderPaid::class,
             ],
         ],

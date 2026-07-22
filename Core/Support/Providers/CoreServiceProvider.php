@@ -113,6 +113,7 @@ use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Modules\Services\ModuleDatabaseGuard;
+use Core\Modules\Services\ModuleCapabilityValidator;
 use Core\Modules\Services\ModuleHookRegistry;
 use Core\Modules\Services\ModuleEventBridge;
 use Core\Modules\Services\ModuleFactory;
@@ -187,6 +188,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleStateRepository::class);
         $this->app->singleton(ModuleSandbox::class);
         $this->app->singleton(ModuleHookRegistry::class);
+        $this->app->singleton(ModuleCapabilityValidator::class);
         $this->app->singleton(ModuleEventBridge::class);
         $this->app->singleton(ModuleTableAccessPolicy::class);
         $this->app->singleton(ModuleDatabaseGuard::class);

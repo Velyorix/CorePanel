@@ -73,8 +73,29 @@ Required fields: `name`, `version`, `capabilities`.
 }
 ```
 
-Known capability values: `server_provider`, `node_provider`, `payment_gateway`,
+Known capability values: `extension`, `server_provider`, `node_provider`, `payment_gateway`,
 `notification_channel`, `dns_provider`, `other` (custom strings allowed).
+
+Extension modules (lightweight plugins) declare `extension` and may subscribe to Core hooks:
+
+```json
+{
+  "name": "discord_notify",
+  "version": "1.0.0",
+  "capabilities": ["extension", "notification_channel"],
+  "hooks": {
+    "events": ["invoice.paid", "order.paid"],
+    "hooks": ["admin.navigation.build"],
+    "filters": ["invoice.email.subject"]
+  }
+}
+```
+
+Rules:
+
+- `[notification_channel]` requires `[extension]`
+- A non-empty `[hooks]` object requires `[extension]`
+- Hook names use lowercase dotted identifiers (e.g. `invoice.paid`)
 
 ## Payment gateways
 

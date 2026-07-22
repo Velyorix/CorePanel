@@ -116,7 +116,9 @@ use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
+use Core\Themes\Console\ThemeMakeCommand;
 use Core\Themes\Services\ThemeManager;
+use Core\Themes\Services\ThemeScaffolder;
 use Core\Themes\Services\ThemeViewRegistrar;
 use Core\Themes\Services\ThemeViteEntryResolver;
 use Core\Themes\Services\ThemeStateRepository;
@@ -186,8 +188,13 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ThemeStateRepository::class);
         $this->app->singleton(ThemeViewRegistrar::class);
         $this->app->singleton(ThemeViteEntryResolver::class);
+        $this->app->singleton(ThemeScaffolder::class);
         $this->app->singleton(ThemeManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
+
+        $this->commands([
+            ThemeMakeCommand::class,
+        ]);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);
         $this->app->singleton(EntitlementService::class);

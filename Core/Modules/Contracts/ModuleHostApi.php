@@ -27,4 +27,10 @@ interface ModuleHostApi
      * @param  list<string|array{name?: string, description?: string|null}>  $permissions
      */
     public function registerPermissions(array $permissions = []): int;
+
+    public function registerHook(string $hook, callable $callback, int $priority = 10): string;
+
+    public function registerFilter(string $filter, callable $callback, int $priority = 10): string;
+
+    public function listenEvent(string $event, callable $callback, int $priority = 10): string;
 }

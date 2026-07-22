@@ -113,6 +113,8 @@ use Core\Provisioning\Services\ProviderResourceMappingService;
 use Core\Provisioning\Services\ProvisioningDeadLetterService;
 use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Modules\Services\ModuleDatabaseGuard;
+use Core\Modules\Services\ModuleHookRegistry;
+use Core\Modules\Services\ModuleEventBridge;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
@@ -184,6 +186,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
         $this->app->singleton(ModuleSandbox::class);
+        $this->app->singleton(ModuleHookRegistry::class);
+        $this->app->singleton(ModuleEventBridge::class);
         $this->app->singleton(ModuleTableAccessPolicy::class);
         $this->app->singleton(ModuleDatabaseGuard::class);
         $this->app->singleton(ModulePackageHasher::class);
@@ -343,6 +347,8 @@ class CoreServiceProvider extends ServiceProvider
         if ((bool) config('corepanel.modules.auto_load_enabled', true)) {
             $this->app->make(ModuleManager::class)->loadEnabled();
         }
+
+        $this->app->make(ModuleEventBridge::class)->register();
 
         if ((bool) config('corepanel.themes.auto_load_active', true)) {
             $this->app->make(ThemeManager::class)->applyEffective(null);

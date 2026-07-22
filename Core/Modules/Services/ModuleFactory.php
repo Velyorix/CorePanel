@@ -16,6 +16,7 @@ class ModuleFactory
         private readonly Container $container,
         private readonly ModuleSandbox $sandbox,
         private readonly ModulePermissionRegistrar $permissions,
+        private readonly ?ModuleHookRegistry $hooks = null,
     ) {
     }
 
@@ -48,6 +49,7 @@ class ModuleFactory
             manifest: $manifest,
             sandbox: $this->sandbox,
             permissions: $this->permissions,
+            hookRegistry: $this->hooks,
         );
     }
 

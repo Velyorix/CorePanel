@@ -848,6 +848,11 @@ return [
             ),
             'secret' => env('COREPANEL_MODULES_SIGNATURE_SECRET'),
         ],
+        'hooks' => [
+            'laravel_events' => [
+                'order.paid' => \Core\Orders\Events\OrderPaid::class,
+            ],
+        ],
     ],
 
     /*

@@ -2,6 +2,7 @@
 
 namespace Core\Modules\Services;
 
+use Core\Modules\Contracts\RegistersModuleHooks;
 use Core\Modules\Contracts\ModuleInterface;
 use Core\Modules\DataTransferObjects\ModuleLoadedResources;
 use Core\Modules\DataTransferObjects\ModuleManifest;
@@ -34,6 +35,7 @@ class ModuleManager
         private readonly ModuleResourceLoader $resources,
         private readonly ?string $modulesPath = null,
         private readonly ?PaymentGatewayInjector $paymentGateways = null,
+        private readonly ?ModuleHookRegistry $hooks = null,
     ) {
     }
 
@@ -131,6 +133,12 @@ class ModuleManager
                     $instance->boot();
                 });
 
+                if ($instance instanceof RegistersModuleHooks && $this->hooks !== null) {
+                    $this->sandbox->run($manifest->key, function () use ($instance): void {
+                        $instance->registerModuleHooks($this->hooks);
+                    });
+                }
+
                 $this->instances[$manifest->key] = $instance;
             }
 
@@ -178,6 +186,7 @@ class ModuleManager
         unset($this->loaded[$manifest->key], $this->instances[$manifest->key]);
         $this->providers->forget($manifest->key);
         $this->paymentGateways?->forgetModule($manifest->key);
+        $this->hooks?->forgetModule($manifest->key);
         $this->resources->forget($manifest->key);
 
         return $manifest;

@@ -185,6 +185,7 @@ class ThemeManagerTest extends TestCase
     {
         $this->app->forgetInstance(ThemeManager::class);
         $this->app->forgetInstance(ThemeStateRepository::class);
+        $this->app->forgetInstance(\Core\Themes\Services\ThemeViewRegistrar::class);
 
         return app(ThemeManager::class);
     }

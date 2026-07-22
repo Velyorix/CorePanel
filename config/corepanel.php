@@ -867,6 +867,10 @@ return [
             env('COREPANEL_THEMES_AUTO_LOAD', true),
             FILTER_VALIDATE_BOOL,
         ),
+        'override_module_views' => filter_var(
+            env('COREPANEL_THEMES_OVERRIDE_MODULES', true),
+            FILTER_VALIDATE_BOOL,
+        ),
     ],
 
 ];

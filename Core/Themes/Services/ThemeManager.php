@@ -23,11 +23,14 @@ class ThemeManager
     /** @var array<string, ThemeDescriptor> */
     private array $loaded = [];
 
+    private ?string $appliedViewThemeKey = null;
+
     private bool $scanned = false;
 
     public function __construct(
         private readonly Application $app,
         private readonly ThemeStateRepository $state,
+        private readonly ThemeViewRegistrar $viewRegistrar,
         private readonly ?string $themesPath = null,
     ) {
     }
@@ -81,21 +84,20 @@ class ThemeManager
     }
 
     /**
-     * Register a theme's runtime resources (view namespace).
+     * Register a theme's runtime resources (view overrides + namespace).
      */
     public function load(string $key): ThemeDescriptor
     {
         $descriptor = $this->findOrFail($key);
 
-        if (isset($this->loaded[$descriptor->key])) {
+        if (isset($this->loaded[$descriptor->key]) && $this->appliedViewThemeKey === $descriptor->key) {
             return $descriptor;
         }
 
-        if ($descriptor->hasViews() && $this->app->bound('view')) {
-            $this->app->make('view')->addNamespace($descriptor->key, $descriptor->viewsPath());
-        }
-
+        $chain = $this->resolveInheritanceChain($descriptor);
+        $this->viewRegistrar->apply($chain);
         $this->loaded[$descriptor->key] = $descriptor;
+        $this->appliedViewThemeKey = $descriptor->key;
 
         return $descriptor;
     }
@@ -125,6 +127,7 @@ class ThemeManager
     public function clearPreview(Session $session): void
     {
         $session->forget(self::PREVIEW_SESSION_KEY);
+        $this->applyEffective($session);
     }
 
     public function previewKey(?Session $session = null): ?string
@@ -179,10 +182,25 @@ class ThemeManager
      */
     public function loadActive(): ?ThemeDescriptor
     {
-        $key = $this->activeKey();
+        return $this->applyEffective(null);
+    }
+
+    /**
+     * Apply whichever theme is effective for the current session (preview wins).
+     */
+    public function applyEffective(?Session $session = null): ?ThemeDescriptor
+    {
+        $key = $this->effectiveKey($session);
 
         if ($key === null) {
+            $this->viewRegistrar->clear();
+            $this->appliedViewThemeKey = null;
+
             return null;
+        }
+
+        if ($this->appliedViewThemeKey === $key && isset($this->loaded[$key])) {
+            return $this->loaded[$key];
         }
 
         return $this->load($key);
@@ -193,27 +211,16 @@ class ThemeManager
      */
     public function loadEffective(?Session $session = null): ?ThemeDescriptor
     {
-        $key = $this->effectiveKey($session);
-
-        if ($key === null) {
-            return null;
-        }
-
-        return $this->load($key);
+        return $this->applyEffective($session);
     }
 
     public function unload(string $key): void
     {
         unset($this->loaded[$key]);
 
-        if (! $this->app->bound('view')) {
-            return;
-        }
-
-        $finder = $this->app->make('view')->getFinder();
-
-        if (method_exists($finder, 'forgetNamespace')) {
-            $finder->forgetNamespace($key);
+        if ($this->appliedViewThemeKey === $key) {
+            $this->viewRegistrar->clear();
+            $this->appliedViewThemeKey = null;
         }
     }
 
@@ -227,6 +234,49 @@ class ThemeManager
     public function isLoaded(string $key): bool
     {
         return isset($this->loaded[$key]);
+    }
+
+    public function appliedViewThemeKey(): ?string
+    {
+        return $this->appliedViewThemeKey;
+    }
+
+    /**
+     * @return list<ThemeDescriptor>
+     *
+     * @throws InvalidThemeManifestException
+     */
+    public function resolveInheritanceChain(ThemeDescriptor $theme): array
+    {
+        $chain = [];
+        $visited = [];
+        $current = $theme;
+        $directoryName = basename($theme->path);
+
+        while ($current !== null) {
+            if (isset($visited[$current->key])) {
+                throw InvalidThemeManifestException::circularParent($directoryName);
+            }
+
+            $visited[$current->key] = true;
+            array_unshift($chain, $current);
+
+            $parentKey = $current->parent;
+
+            if ($parentKey === null) {
+                break;
+            }
+
+            $parent = $this->find($parentKey);
+
+            if ($parent === null) {
+                throw InvalidThemeManifestException::unknownParent($directoryName, $parentKey);
+            }
+
+            $current = $parent;
+        }
+
+        return $chain;
     }
 
     /**

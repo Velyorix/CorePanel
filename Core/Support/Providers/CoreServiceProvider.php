@@ -117,6 +117,7 @@ use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
 use Core\Themes\Services\ThemeManager;
+use Core\Themes\Services\ThemeViewRegistrar;
 use Core\Themes\Services\ThemeStateRepository;
 use Core\Modules\Services\ModulePackageHasher;
 use Core\Modules\Services\ModuleRequirementChecker;
@@ -182,6 +183,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);
         $this->app->singleton(ThemeStateRepository::class);
+        $this->app->singleton(ThemeViewRegistrar::class);
         $this->app->singleton(ThemeManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
         $this->app->singleton(LicenseSettings::class);
@@ -316,7 +318,7 @@ class CoreServiceProvider extends ServiceProvider
         }
 
         if ((bool) config('corepanel.themes.auto_load_active', true)) {
-            $this->app->make(ThemeManager::class)->loadActive();
+            $this->app->make(ThemeManager::class)->applyEffective(null);
         }
 
         $this->app->make(PaymentGatewayInjector::class)->bootPlugins();

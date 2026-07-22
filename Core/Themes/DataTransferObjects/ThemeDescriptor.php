@@ -6,7 +6,7 @@ use Core\Themes\Exceptions\InvalidThemeManifestException;
 use JsonException;
 
 /**
- * Parsed theme package metadata (minimal schema until full manifest in a later task).
+ * Parsed theme.json metadata and resolved package paths.
  */
 final readonly class ThemeDescriptor
 {
@@ -18,7 +18,10 @@ final readonly class ThemeDescriptor
         public string $label,
         public string $version,
         public string $path,
+        public string $viewsRelativePath = 'resources/views',
         public ?string $description = null,
+        public ?string $author = null,
+        public ?string $parent = null,
         public array $raw = [],
     ) {
     }
@@ -30,7 +33,11 @@ final readonly class ThemeDescriptor
 
     public function viewsPath(): string
     {
-        return $this->path.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'views';
+        return $this->path.DIRECTORY_SEPARATOR.str_replace(
+            ['/', '\\'],
+            DIRECTORY_SEPARATOR,
+            $this->viewsRelativePath,
+        );
     }
 
     public function assetsPath(): string
@@ -52,7 +59,10 @@ final readonly class ThemeDescriptor
             'name' => $this->key,
             'label' => $this->label !== $this->key ? $this->label : null,
             'version' => $this->version,
+            'author' => $this->author,
             'description' => $this->description,
+            'parent' => $this->parent,
+            'views' => $this->viewsRelativePath !== 'resources/views' ? $this->viewsRelativePath : null,
         ], static fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
@@ -96,9 +106,34 @@ final readonly class ThemeDescriptor
         $description = isset($data['description']) && is_string($data['description'])
             ? trim($data['description'])
             : null;
+        $author = isset($data['author']) && is_string($data['author'])
+            ? trim($data['author'])
+            : null;
+        $parent = isset($data['parent']) && is_string($data['parent'])
+            ? trim($data['parent'])
+            : null;
+        $viewsRelativePath = isset($data['views']) && is_string($data['views'])
+            ? trim(str_replace('\\', '/', $data['views']), '/')
+            : 'resources/views';
 
         if ($description === '') {
             $description = null;
+        }
+
+        if ($author === '') {
+            $author = null;
+        }
+
+        if ($parent === '') {
+            $parent = null;
+        }
+
+        if ($parent !== null && strcasecmp($parent, $key) === 0) {
+            throw InvalidThemeManifestException::selfParent($directoryName);
+        }
+
+        if ($viewsRelativePath === '') {
+            throw InvalidThemeManifestException::invalidViewsPath($directoryName);
         }
 
         return new self(
@@ -106,7 +141,10 @@ final readonly class ThemeDescriptor
             label: $label !== '' ? $label : $key,
             version: $version !== '' ? $version : '1.0.0',
             path: $directory,
+            viewsRelativePath: $viewsRelativePath,
             description: $description,
+            author: $author,
+            parent: $parent,
             raw: $data,
         );
     }

@@ -34,4 +34,24 @@ class InvalidThemeManifestException extends RuntimeException
     {
         return new self("Theme [{$directory}] theme.json must define a non-empty name.");
     }
+
+    public static function selfParent(string $directory): self
+    {
+        return new self("Theme [{$directory}] theme.json cannot use itself as parent.");
+    }
+
+    public static function unknownParent(string $directory, string $parentKey): self
+    {
+        return new self("Theme [{$directory}] theme.json references unknown parent [{$parentKey}].");
+    }
+
+    public static function circularParent(string $directory): self
+    {
+        return new self("Theme [{$directory}] theme.json parent chain contains a cycle.");
+    }
+
+    public static function invalidViewsPath(string $directory): self
+    {
+        return new self("Theme [{$directory}] theme.json views path must be a non-empty string.");
+    }
 }

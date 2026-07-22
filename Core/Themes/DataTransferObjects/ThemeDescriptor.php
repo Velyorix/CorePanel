@@ -3,6 +3,7 @@
 namespace Core\Themes\DataTransferObjects;
 
 use Core\Themes\Exceptions\InvalidThemeManifestException;
+use Core\Themes\Support\ThemeAssetManifest;
 use JsonException;
 
 /**
@@ -22,6 +23,8 @@ final readonly class ThemeDescriptor
         public ?string $description = null,
         public ?string $author = null,
         public ?string $parent = null,
+        /** @var list<string> Asset paths relative to the theme package root. */
+        public array $assetEntries = [],
         public array $raw = [],
     ) {
     }
@@ -45,6 +48,27 @@ final readonly class ThemeDescriptor
         return $this->path.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'assets';
     }
 
+    /**
+     * @return list<string> Paths relative to the theme package root.
+     */
+    public function assetEntryPaths(): array
+    {
+        return $this->assetEntries;
+    }
+
+    /**
+     * @return list<string> Paths relative to the application root (Vite inputs).
+     */
+    public function projectRelativeAssetEntries(): array
+    {
+        return ThemeAssetManifest::toProjectRelativeEntries($this->path, $this->assetEntries);
+    }
+
+    public function hasAssets(): bool
+    {
+        return $this->assetEntries !== [];
+    }
+
     public function hasViews(): bool
     {
         return is_dir($this->viewsPath());
@@ -63,6 +87,7 @@ final readonly class ThemeDescriptor
             'description' => $this->description,
             'parent' => $this->parent,
             'views' => $this->viewsRelativePath !== 'resources/views' ? $this->viewsRelativePath : null,
+            'assets' => $this->assetEntries !== [] ? ['entries' => $this->assetEntries] : null,
         ], static fn (mixed $value): bool => $value !== null && $value !== '');
     }
 
@@ -136,6 +161,8 @@ final readonly class ThemeDescriptor
             throw InvalidThemeManifestException::invalidViewsPath($directoryName);
         }
 
+        $assetEntries = ThemeAssetManifest::entriesFromManifest($data, $directory);
+
         return new self(
             key: $key,
             label: $label !== '' ? $label : $key,
@@ -145,6 +172,7 @@ final readonly class ThemeDescriptor
             description: $description,
             author: $author,
             parent: $parent,
+            assetEntries: $assetEntries,
             raw: $data,
         );
     }

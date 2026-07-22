@@ -16,7 +16,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $pageTitle }}</title>
         <x-ui.theme-script />
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <x-ui.vite-assets />
         {{ $head ?? '' }}
         @stack('head')
     </head>

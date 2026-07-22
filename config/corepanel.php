@@ -871,6 +871,12 @@ return [
             env('COREPANEL_THEMES_OVERRIDE_MODULES', true),
             FILTER_VALIDATE_BOOL,
         ),
+        'vite' => [
+            'core_entries' => [
+                'resources/css/app.css',
+                'resources/js/app.js',
+            ],
+        ],
     ],
 
 ];

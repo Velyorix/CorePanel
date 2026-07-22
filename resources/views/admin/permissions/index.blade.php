@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Permissions — {{ config('corepanel.name') }}</title>
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <x-ui.vite-assets />
     </head>
     <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100">
         <main class="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-12">

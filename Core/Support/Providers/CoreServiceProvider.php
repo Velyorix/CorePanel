@@ -115,7 +115,15 @@ use Core\Provisioning\Services\ProvisioningEngine;
 use Core\Modules\Services\ModuleDatabaseGuard;
 use Core\Modules\Services\ModuleCapabilityValidator;
 use Core\Modules\Services\ModuleHookRegistry;
+use Core\Modules\Console\ModuleMakeCommand;
+use Core\Modules\Console\ModuleMakeControllerCommand;
+use Core\Modules\Console\ModuleMakeEventCommand;
+use Core\Modules\Console\ModuleMakeMigrationCommand;
+use Core\Modules\Console\ModuleMakeModelCommand;
+use Core\Modules\Console\ModuleMakeServiceCommand;
 use Core\Modules\Services\ModuleEventBridge;
+use Core\Modules\Services\ModuleGenerator;
+use Core\Modules\Services\ModuleScaffolder;
 use Core\Modules\Services\ModuleFactory;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleManager;
@@ -200,6 +208,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleFactory::class);
         $this->app->singleton(ModuleRequirementChecker::class);
         $this->app->singleton(ModuleManager::class);
+        $this->app->singleton(ModuleScaffolder::class);
+        $this->app->singleton(ModuleGenerator::class);
         $this->app->singleton(ThemeStateRepository::class);
         $this->app->singleton(ThemeViewRegistrar::class);
         $this->app->singleton(ThemeViteEntryResolver::class);
@@ -218,6 +228,12 @@ class CoreServiceProvider extends ServiceProvider
             ThemeMakeAssetCommand::class,
             ThemeBuildCommand::class,
             ThemeWatchCommand::class,
+            ModuleMakeCommand::class,
+            ModuleMakeMigrationCommand::class,
+            ModuleMakeModelCommand::class,
+            ModuleMakeControllerCommand::class,
+            ModuleMakeServiceCommand::class,
+            ModuleMakeEventCommand::class,
         ]);
         $this->app->singleton(LicenseSettings::class);
         $this->app->singleton(LicenseValidationService::class);

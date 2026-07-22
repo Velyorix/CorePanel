@@ -325,7 +325,7 @@ class ModuleManager
     /**
      * @throws ModuleNotFoundException
      */
-    private function findOrFail(string $key): ModuleManifest
+    public function findOrFail(string $key): ModuleManifest
     {
         $this->discover();
 

@@ -140,3 +140,23 @@ See also `ExampleExtension/` for a lightweight extension module that listens to 
 - Routes / views / migrations under the package are auto-loaded on module load
 - Implement `ModuleInterface` (extend `AbstractModule`) when declaring `module`
 - `module.json` is required (`name`, `version`, `capabilities`)
+
+## Artisan scaffolding
+
+```bash
+php artisan module:make "My Module" --profile=integration
+php artisan module:make "Discord Notify" --profile=extension
+php artisan module:make "Stripe Billing" --profile=payment_gateway
+
+php artisan module:make:migration create_items_table --module=my_module
+php artisan module:make:model Item --module=my_module
+php artisan module:make:controller Status --module=my_module
+php artisan module:make:service Status --module=my_module
+php artisan module:make:event StatusChecked --module=my_module
+```
+
+Profiles:
+
+- `integration` — generic provider package (`other` capability by default)
+- `extension` — hook listener + notification channel stub
+- `payment_gateway` — gateway class + manifest `gateways` entry

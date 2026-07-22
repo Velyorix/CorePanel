@@ -35,7 +35,7 @@ use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\Support\Billing\FakePaymentGateway;
-use Tests\Support\Billing\FakePluginGatewayRegistrar;
+use Tests\Support\Modules\StubGatewayModuleServiceProvider;
 use Tests\TestCase;
 
 /**
@@ -52,6 +52,8 @@ class PaymentGatewayAcceptanceTest extends TestCase
     {
         parent::setUp();
 
+        StubGatewayModuleServiceProvider::$booted = false;
+
         $this->seed(RoleAndPermissionSeeder::class);
 
         $this->modulesPath = storage_path('framework/testing/modules-gateway-acceptance-'.uniqid('', true));
@@ -67,12 +69,14 @@ class PaymentGatewayAcceptanceTest extends TestCase
             'corepanel.modules.sandbox.enabled' => true,
             'corepanel.modules.signature.required' => false,
             'corepanel.modules.signature.verify_on_load' => false,
+            'corepanel.themes.auto_load_active' => false,
             'corepanel.billing.client_credit.auto_apply_on_pay' => true,
             'corepanel.billing.manual_transfer.enabled' => true,
             'session.driver' => 'array',
             'app.key' => 'base64:'.base64_encode(str_repeat('e', 32)),
         ]);
 
+        $this->withoutVite();
         $this->rebindModuleStack();
     }
 
@@ -120,7 +124,7 @@ class PaymentGatewayAcceptanceTest extends TestCase
         $this->assertSame(ManualTransferGateway::KEY, $payment->method);
     }
 
-    public function test_module_and_plugin_gateways_can_be_enabled_and_shown_on_checkout(): void
+    public function test_module_injected_gateways_can_be_enabled_and_shown_on_checkout(): void
     {
         $this->writeModule('acceptance_gateway', [
             'name' => 'acceptance_gateway',
@@ -129,19 +133,23 @@ class PaymentGatewayAcceptanceTest extends TestCase
             'gateways' => [FakePaymentGateway::class],
         ]);
 
-        app(ModuleManager::class)->enable('acceptance_gateway');
+        $this->writeModule('gateway_demo', [
+            'name' => 'gateway_demo',
+            'version' => '1.0.0',
+            'capabilities' => [ModuleCapability::PaymentGateway->value],
+            'providers' => [StubGatewayModuleServiceProvider::class],
+        ]);
 
-        $injector = app(PaymentGatewayInjector::class);
-        $injector->registerPlugin(new FakePluginGatewayRegistrar);
-        $injector->bootPlugins();
+        app(ModuleManager::class)->enable('acceptance_gateway');
+        app(ModuleManager::class)->enable('gateway_demo');
 
         $gateways = app(GatewayManager::class);
         $gateways->sync();
 
         $this->assertTrue($gateways->has('fake'));
-        $this->assertTrue($gateways->has('plugin_fake'));
+        $this->assertTrue($gateways->has('provider_fake'));
         $this->assertFalse($gateways->isEnabled('fake'));
-        $this->assertFalse($gateways->isEnabled('plugin_fake'));
+        $this->assertFalse($gateways->isEnabled('provider_fake'));
 
         $admin = User::factory()->withRole('admin')->create();
 
@@ -149,16 +157,16 @@ class PaymentGatewayAcceptanceTest extends TestCase
             ->get(route('admin.gateways.index'))
             ->assertOk()
             ->assertSee('fake')
-            ->assertSee('plugin_fake');
+            ->assertSee('provider_fake');
 
         $this->actingAs($admin)
             ->post(route('admin.gateways.enable', 'fake'))
             ->assertRedirect(route('admin.gateways.show', 'fake'));
 
-        $gateways->enable('plugin_fake');
+        $gateways->enable('provider_fake');
 
         $this->assertTrue($gateways->isEnabled('fake'));
-        $this->assertTrue($gateways->isEnabled('plugin_fake'));
+        $this->assertTrue($gateways->isEnabled('provider_fake'));
 
         [$user, $client] = $this->makeClientUser();
         $this->addCartLine($client, $this->makeProduct('injected-gateway-vps'));
@@ -167,7 +175,7 @@ class PaymentGatewayAcceptanceTest extends TestCase
             ->get(route('client.checkout.index'))
             ->assertOk()
             ->assertSee('value="fake"', false)
-            ->assertSee('value="plugin_fake"', false)
+            ->assertSee('value="provider_fake"', false)
             ->assertSee(__('Bank transfer / cheque'));
 
         $this->actingAs($admin)
@@ -177,15 +185,15 @@ class PaymentGatewayAcceptanceTest extends TestCase
         $methods = collect(app(CheckoutDraftService::class)->paymentMethods())->pluck('key')->all();
 
         $this->assertNotContains('fake', $methods);
-        $this->assertContains('plugin_fake', $methods);
+        $this->assertContains('provider_fake', $methods);
         $this->assertContains(ManualTransferGateway::KEY, $methods);
 
         $this->actingAs($user)
             ->get(route('client.checkout.index'))
             ->assertOk()
             ->assertDontSee('value="fake"', false)
-            ->assertSee('value="plugin_fake"', false)
-            ->assertSee('Plugin Fake Gateway');
+            ->assertSee('value="provider_fake"', false)
+            ->assertSee('Provider Fake Gateway');
     }
 
     public function test_webhook_is_routed_to_resolved_gateway_with_signature_check(): void

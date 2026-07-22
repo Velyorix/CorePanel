@@ -392,7 +392,6 @@ class CoreServiceProvider extends ServiceProvider
             $this->app->make(ThemeManager::class)->applyEffective(null);
         }
 
-        $this->app->make(PaymentGatewayInjector::class)->bootPlugins();
         $gateways->sync();
 
         $this->app->make(ModuleDatabaseGuard::class)->register();

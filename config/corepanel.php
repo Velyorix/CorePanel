@@ -1059,4 +1059,27 @@ return [
         ),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Settings
+    |--------------------------------------------------------------------------
+    |
+    | Runtime key/value store (DB) with optional cache and encrypted values.
+    | Technical defaults stay in config/corepanel.php; business overrides use
+    | SettingsService.
+    |
+    */
+
+    'settings' => [
+        'cache' => [
+            'enabled' => filter_var(
+                env('COREPANEL_SETTINGS_CACHE_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'store' => env('COREPANEL_SETTINGS_CACHE_STORE', env('CACHE_STORE', 'file')),
+            'prefix' => env('COREPANEL_SETTINGS_CACHE_PREFIX', 'corepanel.settings'),
+            'ttl_seconds' => (int) env('COREPANEL_SETTINGS_CACHE_TTL', 3600),
+        ],
+    ],
+
 ];

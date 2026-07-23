@@ -38,6 +38,7 @@ use Core\Billing\Services\RenewalInvoiceService;
 use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
+use Core\Settings\Services\SettingsService;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Marketplace\Services\MarketplaceCatalogCache;
@@ -295,6 +296,7 @@ class CoreServiceProvider extends ServiceProvider
             ModuleListCommand::class,
         ]);
         $this->app->singleton(LicenseSettings::class);
+        $this->app->singleton(SettingsService::class);
         $this->app->singleton(LicenseValidationService::class);
         $this->app->singleton(EntitlementService::class);
         $this->app->singleton(ClientService::class);

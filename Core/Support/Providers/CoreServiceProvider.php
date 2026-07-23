@@ -41,6 +41,7 @@ use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Marketplace\Services\MarketplaceCatalogCache;
 use Core\Marketplace\Services\MarketplaceClient;
+use Core\Marketplace\Services\MarketplaceEntitlementGuard;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
 use Core\Nodes\Services\NodeLoadBalancingService;
 use Core\Nodes\Services\NodeOverloadService;
@@ -232,6 +233,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(CorePanelOrgClient::class);
         $this->app->singleton(MarketplaceCatalogCache::class);
         $this->app->singleton(MarketplaceClient::class);
+        $this->app->singleton(MarketplaceEntitlementGuard::class);
 
         $this->commands([
             ThemeMakeCommand::class,

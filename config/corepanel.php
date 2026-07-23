@@ -84,6 +84,13 @@ return [
             'prefix' => env('COREPANEL_MARKETPLACE_CACHE_PREFIX', 'corepanel.marketplace'),
             'ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_CACHE_TTL', 3600),
         ],
+        'entitlements' => [
+            'enforce' => filter_var(env('COREPANEL_MARKETPLACE_ENTITLEMENTS_ENFORCE', true), FILTER_VALIDATE_BOOL),
+            'allow_free_without_entitlement' => filter_var(
+                env('COREPANEL_MARKETPLACE_ALLOW_FREE_WITHOUT_ENTITLEMENT', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
     ],
 
     /*

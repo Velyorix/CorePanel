@@ -11,6 +11,8 @@ use Core\Tickets\DataTransferObjects\TicketData;
 use Core\Tickets\Enums\TicketCategoryStatus;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
+use Core\Tickets\Events\TicketCreated;
+use Core\Tickets\Events\TicketReplied;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketCategory;
 use Core\Tickets\Models\TicketMessage;
@@ -29,6 +31,7 @@ class TicketService
     public function __construct(
         private readonly TicketNumberService $ticketNumbers,
         private readonly TicketAttachmentService $attachments,
+        private readonly TicketRateLimiter $rateLimiter,
     ) {
     }
 
@@ -236,6 +239,7 @@ class TicketService
 
     public function create(Client $client, User $author, TicketData $data): Ticket
     {
+        $this->assertCreateRateLimit($author);
         $this->assertSubject($data->subject);
         $this->assertMessage($data->message);
         $this->assertFiles($data->files);
@@ -247,7 +251,7 @@ class TicketService
             $data->invoiceId,
         );
 
-        return DB::transaction(function () use ($client, $author, $data): Ticket {
+        $ticket = DB::transaction(function () use ($client, $author, $data): Ticket {
             $ticket = Ticket::query()->create([
                 'client_id' => $client->id,
                 'category_id' => $data->categoryId,
@@ -288,6 +292,11 @@ class TicketService
                 'messages.author',
             ]) ?? $ticket;
         });
+
+        $this->rateLimiter->hitCreate($author);
+        event(new TicketCreated($ticket));
+
+        return $ticket;
     }
 
     /**
@@ -299,11 +308,17 @@ class TicketService
             throw new RuntimeException('Closed tickets cannot receive replies. Reopen the ticket first.');
         }
 
+        $isClientReply = $this->isClientParticipant($ticket, $author);
+
+        if ($isClientReply) {
+            $this->assertReplyRateLimit($author);
+        }
+
         $message = trim($message);
         $this->assertMessage($message);
         $this->assertFiles($files);
 
-        return DB::transaction(function () use ($ticket, $author, $message, $files): TicketMessage {
+        $entry = DB::transaction(function () use ($ticket, $author, $message, $files, $isClientReply): TicketMessage {
             $storedAttachments = null;
 
             try {
@@ -320,7 +335,7 @@ class TicketService
                 throw $exception;
             }
 
-            $nextStatus = $this->isClientParticipant($ticket, $author)
+            $nextStatus = $isClientReply
                 ? TicketStatus::Open
                 : TicketStatus::Answered;
 
@@ -330,6 +345,14 @@ class TicketService
 
             return $entry->load('author');
         });
+
+        if ($isClientReply) {
+            $this->rateLimiter->hitReply($author);
+        }
+
+        event(new TicketReplied($ticket->fresh() ?? $ticket, $entry, $author));
+
+        return $entry;
     }
 
     public function close(Ticket $ticket): Ticket
@@ -462,6 +485,32 @@ class TicketService
         if (! $exists) {
             throw new InvalidArgumentException("Ticket category [{$categoryId}] does not exist.");
         }
+    }
+
+    private function assertCreateRateLimit(User $author): void
+    {
+        if (! $this->rateLimiter->tooManyCreateAttempts($author)) {
+            return;
+        }
+
+        $seconds = $this->rateLimiter->availableInCreate($author);
+
+        throw new RuntimeException(
+            "Too many tickets created. Please try again in {$seconds} seconds.",
+        );
+    }
+
+    private function assertReplyRateLimit(User $author): void
+    {
+        if (! $this->rateLimiter->tooManyReplyAttempts($author)) {
+            return;
+        }
+
+        $seconds = $this->rateLimiter->availableInReply($author);
+
+        throw new RuntimeException(
+            "Too many ticket replies. Please try again in {$seconds} seconds.",
+        );
     }
 
     private function assertRelatedEntitiesBelongToClient(

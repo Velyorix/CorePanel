@@ -199,8 +199,14 @@ use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
 use Core\Services\Services\ServiceQueryService;
 use Core\Services\Services\ServiceUpgradeService;
+use Core\Tickets\Events\TicketCreated;
+use Core\Tickets\Events\TicketReplied;
+use Core\Tickets\Listeners\NotifyParticipantsOnTicketReplied;
+use Core\Tickets\Listeners\NotifyStaffOnTicketCreated;
 use Core\Tickets\Services\TicketAttachmentService;
+use Core\Tickets\Services\TicketNotificationService;
 use Core\Tickets\Services\TicketNumberService;
+use Core\Tickets\Services\TicketRateLimiter;
 use Core\Tickets\Services\TicketService;
 use Core\KnowledgeBase\Services\KbCategoryService;
 use Core\KnowledgeBase\Services\KnowledgeBaseService;
@@ -328,6 +334,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceCreationService::class);
         $this->app->singleton(TicketNumberService::class);
         $this->app->singleton(TicketAttachmentService::class);
+        $this->app->singleton(TicketRateLimiter::class);
+        $this->app->singleton(TicketNotificationService::class);
         $this->app->singleton(TicketService::class);
         $this->app->singleton(KbCategoryService::class);
         $this->app->singleton(KnowledgeBaseService::class);
@@ -436,5 +444,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->make(ModuleDatabaseGuard::class)->register();
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
+        Event::listen(TicketCreated::class, NotifyStaffOnTicketCreated::class);
+        Event::listen(TicketReplied::class, NotifyParticipantsOnTicketReplied::class);
     }
 }

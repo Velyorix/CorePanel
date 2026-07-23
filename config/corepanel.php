@@ -1008,6 +1008,30 @@ return [
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             ],
         ],
+
+        /*
+        | Anti-spam limits for client ticket create / reply actions.
+        */
+        'rate_limit' => [
+            'create' => [
+                'max_attempts' => (int) env('COREPANEL_TICKETS_CREATE_MAX_ATTEMPTS', 5),
+                'decay_seconds' => (int) env('COREPANEL_TICKETS_CREATE_DECAY_SECONDS', 3600),
+            ],
+            'reply' => [
+                'max_attempts' => (int) env('COREPANEL_TICKETS_REPLY_MAX_ATTEMPTS', 20),
+                'decay_seconds' => (int) env('COREPANEL_TICKETS_REPLY_DECAY_SECONDS', 3600),
+            ],
+        ],
+
+        /*
+        | Mail notifications when tickets are opened or receive replies.
+        */
+        'notifications' => [
+            'enabled' => filter_var(
+                env('COREPANEL_TICKETS_NOTIFICATIONS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
     ],
 
 ];

@@ -150,6 +150,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.invoices.pay', 'module' => 'core', 'description' => 'Pay own invoices'],
             ['name' => 'client.quotes.view', 'module' => 'core', 'description' => 'View own quotes'],
             ['name' => 'client.orders.view', 'module' => 'core', 'description' => 'View own orders'],
+            ['name' => 'client.marketplace.view', 'module' => 'marketplace', 'description' => 'Browse marketplace catalogue and purchases'],
             ['name' => 'client.tickets.view', 'module' => 'core', 'description' => 'View own tickets'],
             ['name' => 'client.tickets.create', 'module' => 'core', 'description' => 'Create support tickets'],
             ['name' => 'client.tickets.reply', 'module' => 'core', 'description' => 'Reply to own tickets'],

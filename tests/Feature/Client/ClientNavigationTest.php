@@ -23,7 +23,10 @@ class ClientNavigationTest extends TestCase
             'corepanel.rbac.cache.enabled' => true,
             'corepanel.rbac.cache.store' => 'array',
             'corepanel.rbac.cache.prefix' => 'test.rbac.client-nav',
+            'corepanel.themes.auto_load_active' => false,
         ]);
+
+        $this->withoutVite();
     }
 
     public function test_navigation_includes_tome7_structure(): void
@@ -64,6 +67,7 @@ class ClientNavigationTest extends TestCase
             __('Marketplace'),
             __('Modules'),
             __('Themes'),
+            __('Purchases'),
             __('Support'),
             __('Open ticket'),
             __('My tickets'),
@@ -84,8 +88,9 @@ class ClientNavigationTest extends TestCase
             ->flatMap(fn (array $section) => collect($section['items'])->pluck('label'))
             ->all();
 
-        $this->assertContains(__('Modules'), $labels);
-        $this->assertContains(__('Themes'), $labels);
+        $this->assertNotContains(__('Modules'), $labels);
+        $this->assertNotContains(__('Themes'), $labels);
+        $this->assertNotContains(__('Purchases'), $labels);
         $this->assertNotContains(__('Services'), $labels);
         $this->assertNotContains(__('Invoices'), $labels);
         $this->assertNotContains(__('Orders'), $labels);
@@ -192,5 +197,28 @@ class ClientNavigationTest extends TestCase
         $this->assertNotNull($servicesItem);
         $this->assertFalse($servicesItem['placeholder']);
         $this->assertSame(route('client.services.index'), $servicesItem['url']);
+    }
+
+    public function test_marketplace_items_link_to_client_marketplace_routes(): void
+    {
+        $client = User::factory()->withRole('client')->create();
+        $sections = app(ClientNavigation::class)->forUser($client);
+        $items = collect($sections)->flatMap(fn (array $section) => $section['items']);
+
+        $modulesItem = $items->firstWhere('label', __('Modules'));
+        $themesItem = $items->firstWhere('label', __('Themes'));
+        $purchasesItem = $items->firstWhere('label', __('Purchases'));
+
+        $this->assertNotNull($modulesItem);
+        $this->assertFalse($modulesItem['placeholder']);
+        $this->assertSame(route('client.marketplace.index', ['product_type' => 'module']), $modulesItem['url']);
+
+        $this->assertNotNull($themesItem);
+        $this->assertFalse($themesItem['placeholder']);
+        $this->assertSame(route('client.marketplace.index', ['product_type' => 'theme']), $themesItem['url']);
+
+        $this->assertNotNull($purchasesItem);
+        $this->assertFalse($purchasesItem['placeholder']);
+        $this->assertSame(route('client.marketplace.purchases'), $purchasesItem['url']);
     }
 }

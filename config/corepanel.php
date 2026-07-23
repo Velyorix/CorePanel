@@ -47,6 +47,7 @@ return [
     'org' => [
         'api_url' => env('COREPANEL_ORG_API_URL', 'https://corepanel.org/api/v1'),
         'health_url' => env('COREPANEL_ORG_HEALTH_URL', 'https://corepanel.org/up'),
+        'store_url' => env('COREPANEL_ORG_STORE_URL', 'https://corepanel.org'),
         'timeout_seconds' => (int) env('COREPANEL_ORG_TIMEOUT_SECONDS', 10),
         /*
         | Optional override for the built-in marketplace catalogue Bearer token.

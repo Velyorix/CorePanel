@@ -32,15 +32,16 @@ class InvoiceReminderNotification extends Notification
         $amountDue = $this->invoice->amountDue();
         $currency = $this->invoice->currency ?? 'EUR';
         $dueAt = $this->invoice->due_at?->toDateString() ?? '—';
+        $appName = (string) config('corepanel.name', config('app.name'));
 
-        $message = (new MailMessage)
-            ->subject($this->subjectForLevel($number));
-
-        foreach ($this->linesForLevel($number, $amountDue, $currency, $dueAt) as $line) {
-            $message->line($line);
-        }
-
-        return $message->line(__('If you have already paid, please disregard this message.'));
+        return (new MailMessage)
+            ->subject($this->subjectForLevel($number))
+            ->markdown('mail.billing.invoice-reminder', [
+                'heading' => $this->level->label(),
+                'lines' => $this->linesForLevel($number, $amountDue, $currency, $dueAt),
+                'footer' => __('If you have already paid, please disregard this message.'),
+                'appName' => $appName,
+            ]);
     }
 
     private function subjectForLevel(string $number): string

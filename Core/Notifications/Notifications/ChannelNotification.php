@@ -57,18 +57,17 @@ class ChannelNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
+        $appName = (string) config('corepanel.name', config('app.name'));
+
+        return (new MailMessage)
             ->subject($this->title)
-            ->line($this->message);
-
-        if ($this->actionUrl !== null && $this->actionUrl !== '') {
-            $mail->action(
-                $this->actionLabel ?: __('View details'),
-                $this->actionUrl,
-            );
-        }
-
-        return $mail;
+            ->markdown('mail.notifications.channel', [
+                'title' => $this->title,
+                'message' => $this->message,
+                'actionUrl' => $this->actionUrl,
+                'actionLabel' => $this->actionLabel,
+                'appName' => $appName,
+            ]);
     }
 
     /**

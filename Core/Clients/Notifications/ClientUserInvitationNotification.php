@@ -29,7 +29,8 @@ class ClientUserInvitationNotification extends Notification
     {
         $this->invitation->loadMissing('client');
 
-        $clientName = $this->invitation->client?->company_name ?: 'your client account';
+        $appName = (string) config('corepanel.name', config('app.name'));
+        $clientName = $this->invitation->client?->company_name ?: __('your client account');
 
         $url = url(route('client.invitations.accept', [
             'token' => $this->plainToken,
@@ -37,10 +38,11 @@ class ClientUserInvitationNotification extends Notification
 
         return (new MailMessage)
             ->subject(__('You are invited to join :client', ['client' => $clientName]))
-            ->line(__('Someone invited you to join their client account in CorePanel.'))
-            ->line(__('Role: :role', ['role' => ucfirst($this->invitation->role->value)]))
-            ->action(__('Accept invitation'), $url)
-            ->line(__('This invitation will expire soon if not accepted.'));
+            ->markdown('mail.clients.invitation', [
+                'url' => $url,
+                'clientName' => $clientName,
+                'role' => ucfirst($this->invitation->role->value),
+                'appName' => $appName,
+            ]);
     }
 }
-

@@ -24,10 +24,12 @@ class VerifyEmailNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $gate = app(EmailVerificationGate::class);
+        $expireMinutes = $gate->expireMinutes();
+        $appName = (string) config('corepanel.name', config('app.name'));
 
         $url = URL::temporarySignedRoute(
             'verification.verify',
-            Carbon::now()->addMinutes($gate->expireMinutes()),
+            Carbon::now()->addMinutes($expireMinutes),
             [
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
@@ -35,12 +37,11 @@ class VerifyEmailNotification extends Notification
         );
 
         return (new MailMessage)
-            ->subject(__('Verify your :app email address', ['app' => config('corepanel.name')]))
-            ->line(__('Please click the button below to verify your email address.'))
-            ->action(__('Verify email address'), $url)
-            ->line(__('This verification link will expire in :count minutes.', [
-                'count' => $gate->expireMinutes(),
-            ]))
-            ->line(__('If you did not create an account, no further action is required.'));
+            ->subject(__('Verify your :app email address', ['app' => $appName]))
+            ->markdown('mail.auth.verify-email', [
+                'url' => $url,
+                'expireMinutes' => $expireMinutes,
+                'appName' => $appName,
+            ]);
     }
 }

@@ -30,13 +30,16 @@ class TicketOpenedNotification extends Notification
 
         $number = $this->ticket->ticket_number ?: ('#'.$this->ticket->id);
         $clientName = $this->ticket->client?->company_name ?: __('Client #:id', ['id' => $this->ticket->client_id]);
+        $appName = (string) config('corepanel.name', config('app.name'));
 
         return (new MailMessage)
             ->subject(__('New support ticket :number', ['number' => $number]))
-            ->line(__('A new support ticket has been opened.'))
-            ->line(__('Ticket: :number', ['number' => $number]))
-            ->line(__('Subject: :subject', ['subject' => $this->ticket->subject]))
-            ->line(__('Client: :client', ['client' => $clientName]))
-            ->action(__('View ticket'), url(route('admin.tickets.show', $this->ticket)));
+            ->markdown('mail.tickets.opened', [
+                'number' => $number,
+                'subject' => $this->ticket->subject,
+                'clientName' => $clientName,
+                'url' => url(route('admin.tickets.show', $this->ticket)),
+                'appName' => $appName,
+            ]);
     }
 }

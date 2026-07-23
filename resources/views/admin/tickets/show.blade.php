@@ -93,6 +93,36 @@
                         <dt class="text-muted-foreground">{{ __('Category') }}</dt>
                         <dd>{{ $ticket->category?->name ?: '—' }}</dd>
                     </div>
+                    @if ($ticket->service)
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Service') }}</dt>
+                            <dd class="text-end">
+                                <a href="{{ route('admin.services.show', $ticket->service) }}" class="text-primary hover:underline">
+                                    {{ $ticket->service->hostname ?: __('Service #:id', ['id' => $ticket->service->id]) }}
+                                </a>
+                            </dd>
+                        </div>
+                    @endif
+                    @if ($ticket->order)
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Order') }}</dt>
+                            <dd class="text-end">
+                                <a href="{{ route('admin.orders.show', $ticket->order) }}" class="text-primary hover:underline">
+                                    {{ $ticket->order->order_number ?: __('Order #:id', ['id' => $ticket->order->id]) }}
+                                </a>
+                            </dd>
+                        </div>
+                    @endif
+                    @if ($ticket->invoice)
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">{{ __('Invoice') }}</dt>
+                            <dd class="text-end">
+                                <a href="{{ route('admin.invoices.show', $ticket->invoice) }}" class="text-primary hover:underline">
+                                    {{ $ticket->invoice->invoice_number ?: __('Invoice #:id', ['id' => $ticket->invoice->id]) }}
+                                </a>
+                            </dd>
+                        </div>
+                    @endif
                     <div class="flex justify-between gap-4">
                         <dt class="text-muted-foreground">{{ __('Client') }}</dt>
                         <dd class="text-end">

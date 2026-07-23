@@ -15,6 +15,9 @@ readonly class TicketData
         public string $message,
         public ?int $categoryId = null,
         public TicketPriority $priority = TicketPriority::Normal,
+        public ?int $serviceId = null,
+        public ?int $orderId = null,
+        public ?int $invoiceId = null,
         public ?array $files = null,
     ) {
     }
@@ -25,6 +28,9 @@ readonly class TicketData
      *     message?: string|null,
      *     category_id?: int|null,
      *     priority?: string|null,
+     *     service_id?: int|null,
+     *     order_id?: int|null,
+     *     invoice_id?: int|null,
      *     files?: list<UploadedFile>|null
      * }  $data
      */
@@ -38,6 +44,9 @@ readonly class TicketData
             message: trim((string) ($data['message'] ?? '')),
             categoryId: isset($data['category_id']) ? (int) $data['category_id'] : null,
             priority: $priority,
+            serviceId: isset($data['service_id']) ? (int) $data['service_id'] : null,
+            orderId: isset($data['order_id']) ? (int) $data['order_id'] : null,
+            invoiceId: isset($data['invoice_id']) ? (int) $data['invoice_id'] : null,
             files: $data['files'] ?? null,
         );
     }

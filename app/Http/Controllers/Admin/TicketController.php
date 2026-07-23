@@ -38,6 +38,9 @@ class TicketController extends Controller
         $ticket->load([
             'client.owner',
             'category',
+            'service.product',
+            'order',
+            'invoice',
             'assignee',
             'messages.author',
         ]);

@@ -3,8 +3,11 @@
 namespace Tests\Feature\Tickets;
 
 use App\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
@@ -118,6 +121,65 @@ class ClientTicketUiTest extends TestCase
         $this->assertNotNull($ticket->ticket_number);
         $this->assertCount(1, $ticket->messages);
         $this->assertNotEmpty($ticket->messages->first()->attachments);
+    }
+
+    public function test_client_can_create_ticket_with_contextual_links(): void
+    {
+        [$user, $client] = $this->makeClientUser();
+        $service = Service::factory()->create([
+            'client_id' => $client->id,
+            'hostname' => 'panel.example.test',
+        ]);
+        $order = Order::factory()->paid()->create(['client_id' => $client->id]);
+        $invoice = Invoice::factory()->unpaid()->create(['client_id' => $client->id]);
+
+        $this->actingAs($user)
+            ->get(route('client.tickets.create'))
+            ->assertOk()
+            ->assertSee('panel.example.test')
+            ->assertSee($order->order_number)
+            ->assertSee($invoice->invoice_number);
+
+        $response = $this->actingAs($user)
+            ->post(route('client.tickets.store'), [
+                'subject' => 'Issue with linked service',
+                'message' => 'Service is unreachable.',
+                'service_id' => $service->id,
+                'order_id' => $order->id,
+                'invoice_id' => $invoice->id,
+                'priority' => TicketPriority::Normal->value,
+            ]);
+
+        $ticket = Ticket::query()->where('client_id', $client->id)->first();
+        $this->assertNotNull($ticket);
+        $response->assertRedirect(route('client.tickets.show', $ticket));
+        $this->assertSame($service->id, $ticket->service_id);
+        $this->assertSame($order->id, $ticket->order_id);
+        $this->assertSame($invoice->id, $ticket->invoice_id);
+
+        $this->actingAs($user)
+            ->get(route('client.tickets.show', $ticket))
+            ->assertOk()
+            ->assertSee('panel.example.test')
+            ->assertSee($order->order_number)
+            ->assertSee($invoice->invoice_number)
+            ->assertSee(route('client.services.show', $service), false);
+    }
+
+    public function test_client_cannot_link_another_clients_service(): void
+    {
+        [$user] = $this->makeClientUser();
+        $foreignService = Service::factory()->create([
+            'hostname' => 'foreign.example.test',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('client.tickets.store'), [
+                'subject' => 'Bad link attempt',
+                'message' => 'Should be rejected.',
+                'service_id' => $foreignService->id,
+            ])
+            ->assertSessionHasErrors('service_id');
     }
 
     public function test_client_can_reply_to_own_open_ticket(): void

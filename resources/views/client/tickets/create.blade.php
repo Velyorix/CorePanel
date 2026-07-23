@@ -73,6 +73,38 @@
                     </x-ui.select>
                 </div>
 
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <x-ui.select name="service_id" :label="__('Related service')" :error="$errors->first('service_id')">
+                        <option value="">{{ __('None') }}</option>
+                        @foreach ($services as $service)
+                            <option value="{{ $service->id }}" @selected((string) old('service_id', request('service_id')) === (string) $service->id)>
+                                {{ $service->hostname ?: __('Service #:id', ['id' => $service->id]) }}
+                                @if ($service->product?->name)
+                                    — {{ $service->product->name }}
+                                @endif
+                            </option>
+                        @endforeach
+                    </x-ui.select>
+
+                    <x-ui.select name="order_id" :label="__('Related order')" :error="$errors->first('order_id')">
+                        <option value="">{{ __('None') }}</option>
+                        @foreach ($orders as $order)
+                            <option value="{{ $order->id }}" @selected((string) old('order_id', request('order_id')) === (string) $order->id)>
+                                {{ $order->order_number ?: __('Order #:id', ['id' => $order->id]) }}
+                            </option>
+                        @endforeach
+                    </x-ui.select>
+
+                    <x-ui.select name="invoice_id" :label="__('Related invoice')" :error="$errors->first('invoice_id')">
+                        <option value="">{{ __('None') }}</option>
+                        @foreach ($invoices as $invoice)
+                            <option value="{{ $invoice->id }}" @selected((string) old('invoice_id', request('invoice_id')) === (string) $invoice->id)>
+                                {{ $invoice->invoice_number ?: __('Invoice #:id', ['id' => $invoice->id]) }}
+                            </option>
+                        @endforeach
+                    </x-ui.select>
+                </div>
+
                 <div>
                     <label for="message" class="mb-1.5 block text-body-sm font-medium text-foreground">
                         {{ __('Message') }}

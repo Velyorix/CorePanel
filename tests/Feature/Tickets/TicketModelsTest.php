@@ -3,7 +3,10 @@
 namespace Tests\Feature\Tickets;
 
 use App\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\Enums\TicketCategoryStatus;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
@@ -53,6 +56,29 @@ class TicketModelsTest extends TestCase
         $this->assertSame(TicketStatus::InProgress, $ticket->status);
         $this->assertSame(TicketPriority::High, $ticket->priority);
         $this->assertSame(TicketCategoryStatus::Active, $category->status);
+    }
+
+    public function test_ticket_contextual_link_relations(): void
+    {
+        $client = Client::factory()->create();
+        $service = Service::factory()->create([
+            'client_id' => $client->id,
+            'hostname' => 'node-a.example.test',
+        ]);
+        $order = Order::factory()->paid()->create(['client_id' => $client->id]);
+        $invoice = Invoice::factory()->unpaid()->create(['client_id' => $client->id]);
+
+        $ticket = Ticket::factory()
+            ->forService($service)
+            ->create([
+                'order_id' => $order->id,
+                'invoice_id' => $invoice->id,
+                'subject' => 'Linked ticket',
+            ]);
+
+        $this->assertTrue($ticket->service->is($service));
+        $this->assertTrue($ticket->order->is($order));
+        $this->assertTrue($ticket->invoice->is($invoice));
     }
 
     public function test_ticket_and_category_support_soft_delete(): void

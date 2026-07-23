@@ -3,7 +3,10 @@
 namespace Core\Tickets\Services;
 
 use Core\Auth\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\DataTransferObjects\TicketData;
 use Core\Tickets\Enums\TicketCategoryStatus;
 use Core\Tickets\Enums\TicketPriority;
@@ -177,6 +180,46 @@ class TicketService
     }
 
     /**
+     * Services the client can attach as ticket context.
+     *
+     * @return EloquentCollection<int, Service>
+     */
+    public function linkableServices(Client $client): EloquentCollection
+    {
+        return Service::query()
+            ->where('client_id', $client->id)
+            ->with('product')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * Orders the client can attach as ticket context.
+     *
+     * @return EloquentCollection<int, Order>
+     */
+    public function linkableOrders(Client $client): EloquentCollection
+    {
+        return Order::query()
+            ->where('client_id', $client->id)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * Invoices the client can attach as ticket context.
+     *
+     * @return EloquentCollection<int, Invoice>
+     */
+    public function linkableInvoices(Client $client): EloquentCollection
+    {
+        return Invoice::query()
+            ->where('client_id', $client->id)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
      * Staff users that can be assigned to tickets.
      *
      * @return EloquentCollection<int, User>
@@ -197,11 +240,20 @@ class TicketService
         $this->assertMessage($data->message);
         $this->assertFiles($data->files);
         $this->assertCategoryExists($data->categoryId);
+        $this->assertRelatedEntitiesBelongToClient(
+            $client,
+            $data->serviceId,
+            $data->orderId,
+            $data->invoiceId,
+        );
 
         return DB::transaction(function () use ($client, $author, $data): Ticket {
             $ticket = Ticket::query()->create([
                 'client_id' => $client->id,
                 'category_id' => $data->categoryId,
+                'service_id' => $data->serviceId,
+                'order_id' => $data->orderId,
+                'invoice_id' => $data->invoiceId,
                 'subject' => $data->subject,
                 'status' => TicketStatus::Open,
                 'priority' => $data->priority,
@@ -226,7 +278,15 @@ class TicketService
 
             $ticket = $this->ticketNumbers->assignNumber($ticket);
 
-            return $ticket->fresh(['client', 'category', 'assignee', 'messages.author']) ?? $ticket;
+            return $ticket->fresh([
+                'client',
+                'category',
+                'service.product',
+                'order',
+                'invoice',
+                'assignee',
+                'messages.author',
+            ]) ?? $ticket;
         });
     }
 
@@ -401,6 +461,46 @@ class TicketService
 
         if (! $exists) {
             throw new InvalidArgumentException("Ticket category [{$categoryId}] does not exist.");
+        }
+    }
+
+    private function assertRelatedEntitiesBelongToClient(
+        Client $client,
+        ?int $serviceId,
+        ?int $orderId,
+        ?int $invoiceId,
+    ): void {
+        if ($serviceId !== null) {
+            $belongs = Service::query()
+                ->whereKey($serviceId)
+                ->where('client_id', $client->id)
+                ->exists();
+
+            if (! $belongs) {
+                throw new InvalidArgumentException("Service [{$serviceId}] does not belong to this client.");
+            }
+        }
+
+        if ($orderId !== null) {
+            $belongs = Order::query()
+                ->whereKey($orderId)
+                ->where('client_id', $client->id)
+                ->exists();
+
+            if (! $belongs) {
+                throw new InvalidArgumentException("Order [{$orderId}] does not belong to this client.");
+            }
+        }
+
+        if ($invoiceId !== null) {
+            $belongs = Invoice::query()
+                ->whereKey($invoiceId)
+                ->where('client_id', $client->id)
+                ->exists();
+
+            if (! $belongs) {
+                throw new InvalidArgumentException("Invoice [{$invoiceId}] does not belong to this client.");
+            }
         }
     }
 }

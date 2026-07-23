@@ -3,7 +3,10 @@
 namespace Tests\Feature\Tickets;
 
 use App\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
@@ -73,6 +76,35 @@ class AdminTicketUiTest extends TestCase
             ->assertSee('TK-2026-00042')
             ->assertSee('Looking into DNS records.')
             ->assertSee('Acme Hosting');
+    }
+
+    public function test_admin_ticket_show_displays_contextual_links(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $client = Client::factory()->create(['company_name' => 'Linked Client']);
+        $service = Service::factory()->create([
+            'client_id' => $client->id,
+            'hostname' => 'mail.example.test',
+        ]);
+        $order = Order::factory()->paid()->create(['client_id' => $client->id]);
+        $invoice = Invoice::factory()->unpaid()->create(['client_id' => $client->id]);
+        $ticket = Ticket::factory()->numbered('TK-2026-00077')->create([
+            'client_id' => $client->id,
+            'service_id' => $service->id,
+            'order_id' => $order->id,
+            'invoice_id' => $invoice->id,
+            'subject' => 'Context linked ticket',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.tickets.show', $ticket))
+            ->assertOk()
+            ->assertSee('mail.example.test')
+            ->assertSee($order->order_number)
+            ->assertSee($invoice->invoice_number)
+            ->assertSee(route('admin.services.show', $service), false)
+            ->assertSee(route('admin.orders.show', $order), false)
+            ->assertSee(route('admin.invoices.show', $invoice), false);
     }
 
     public function test_admin_can_filter_tickets_by_status(): void

@@ -3,9 +3,12 @@
 namespace Tests\Feature\Tickets;
 
 use App\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\DataTransferObjects\TicketData;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
@@ -113,6 +116,48 @@ class TicketServiceTest extends TestCase
             'subject' => 'Broken category',
             'message' => 'Hello',
             'category_id' => 999999,
+        ]));
+    }
+
+    public function test_create_persists_contextual_links_for_same_client(): void
+    {
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $service = Service::factory()->create([
+            'client_id' => $client->id,
+            'hostname' => 'web-01.example.test',
+        ]);
+        $order = Order::factory()->paid()->create(['client_id' => $client->id]);
+        $invoice = Invoice::factory()->unpaid()->create(['client_id' => $client->id]);
+
+        $ticket = $this->tickets->create($client, $owner, TicketData::fromArray([
+            'subject' => 'Linked context',
+            'message' => 'Please check this service and invoice.',
+            'service_id' => $service->id,
+            'order_id' => $order->id,
+            'invoice_id' => $invoice->id,
+        ]));
+
+        $this->assertTrue($ticket->service->is($service));
+        $this->assertTrue($ticket->order->is($order));
+        $this->assertTrue($ticket->invoice->is($invoice));
+    }
+
+    public function test_create_rejects_contextual_links_from_another_client(): void
+    {
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $foreignService = Service::factory()->create([
+            'hostname' => 'foreign.example.test',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Service [{$foreignService->id}] does not belong to this client.");
+
+        $this->tickets->create($client, $owner, TicketData::fromArray([
+            'subject' => 'Bad link',
+            'message' => 'Should fail',
+            'service_id' => $foreignService->id,
         ]));
     }
 

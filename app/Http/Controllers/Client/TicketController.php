@@ -60,6 +60,9 @@ class TicketController extends Controller
             return view('client.tickets.create', [
                 'clientMissing' => true,
                 'categories' => collect(),
+                'services' => collect(),
+                'orders' => collect(),
+                'invoices' => collect(),
                 'priorities' => TicketPriority::cases(),
             ]);
         }
@@ -67,6 +70,9 @@ class TicketController extends Controller
         return view('client.tickets.create', [
             'clientMissing' => false,
             'categories' => $this->tickets->activeCategories(),
+            'services' => $this->tickets->linkableServices($client),
+            'orders' => $this->tickets->linkableOrders($client),
+            'invoices' => $this->tickets->linkableInvoices($client),
             'priorities' => TicketPriority::cases(),
         ]);
     }
@@ -102,7 +108,7 @@ class TicketController extends Controller
     {
         $this->authorizeTicket($request, $ticket, 'client.tickets.view');
 
-        $ticket->load(['category', 'messages.author']);
+        $ticket->load(['category', 'service.product', 'order', 'invoice', 'messages.author']);
 
         return view('client.tickets.show', [
             'ticket' => $ticket,

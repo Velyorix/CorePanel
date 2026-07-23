@@ -3,7 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use Core\Billing\Models\Invoice;
 use Core\Clients\Models\Client;
+use Core\Orders\Models\Order;
+use Core\Services\Models\Service;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
@@ -26,6 +29,9 @@ class TicketFactory extends Factory
             'ticket_number' => null,
             'client_id' => Client::factory(),
             'category_id' => null,
+            'service_id' => null,
+            'order_id' => null,
+            'invoice_id' => null,
             'subject' => fake()->sentence(6),
             'status' => TicketStatus::Open,
             'priority' => TicketPriority::Normal,
@@ -44,6 +50,30 @@ class TicketFactory extends Factory
     {
         return $this->state(fn (): array => [
             'category_id' => $category->id,
+        ]);
+    }
+
+    public function forService(Service $service): static
+    {
+        return $this->state(fn (): array => [
+            'client_id' => $service->client_id,
+            'service_id' => $service->id,
+        ]);
+    }
+
+    public function forOrder(Order $order): static
+    {
+        return $this->state(fn (): array => [
+            'client_id' => $order->client_id,
+            'order_id' => $order->id,
+        ]);
+    }
+
+    public function forInvoice(Invoice $invoice): static
+    {
+        return $this->state(fn (): array => [
+            'client_id' => $invoice->client_id,
+            'invoice_id' => $invoice->id,
         ]);
     }
 

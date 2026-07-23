@@ -16,5 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::match(['GET', 'POST'], 'ping', PingController::class)->name('ping');
 
 Route::middleware('api.auth')->group(function (): void {
-    Route::get('me', MeController::class)->name('me');
+    Route::get('me', MeController::class)
+        ->middleware('api.scope:api.me')
+        ->name('me');
 });

@@ -1101,6 +1101,23 @@ return [
         'version_header' => env('COREPANEL_API_VERSION_HEADER', 'X-Api-Version'),
         'token_prefix' => env('COREPANEL_API_TOKEN_PREFIX', 'cpat_'),
         'token_entropy_length' => (int) env('COREPANEL_API_TOKEN_ENTROPY_LENGTH', 40),
+        'scopes' => [
+            '*',
+            'api.me',
+            'api.client.read',
+            'api.client.*',
+            'api.service.read',
+            'api.service.write',
+            'api.service.*',
+            'api.invoice.read',
+            'api.invoice.write',
+            'api.invoice.*',
+            'api.ticket.read',
+            'api.ticket.write',
+            'api.ticket.*',
+            'api.node.read',
+            'api.node.*',
+        ],
         'rate_limit' => [
             'enabled' => filter_var(
                 env('COREPANEL_API_RATE_LIMIT_ENABLED', false),

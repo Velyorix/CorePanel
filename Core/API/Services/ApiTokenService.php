@@ -9,6 +9,11 @@ use Illuminate\Support\Str;
 
 class ApiTokenService
 {
+    public function __construct(
+        private readonly ApiScopeRegistry $scopes,
+    ) {
+    }
+
     /**
      * @param  list<string>|null  $permissions
      * @return array{plain_text: string, token: ApiToken}
@@ -19,6 +24,10 @@ class ApiTokenService
         ?array $permissions = null,
         ?CarbonInterface $expiresAt = null,
     ): array {
+        if ($permissions !== null) {
+            $permissions = $this->scopes->assertKnown($permissions);
+        }
+
         $plainText = $this->generatePlainText();
 
         $token = ApiToken::query()->create([
@@ -93,5 +102,13 @@ class ApiTokenService
     public function prefixOf(string $plainText): string
     {
         return substr($plainText, 0, 12);
+    }
+
+    /**
+     * @param  list<string>  $requiredScopes
+     */
+    public function tokenHasAllScopes(ApiToken $token, array $requiredScopes): bool
+    {
+        return app(ApiTokenScopeChecker::class)->allows($token, $requiredScopes);
     }
 }

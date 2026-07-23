@@ -47,4 +47,21 @@ class ApiTokenFactory extends Factory
             'revoked_at' => now(),
         ]);
     }
+
+    /**
+     * @param  list<string>  $scopes
+     */
+    public function withScopes(array $scopes): static
+    {
+        return $this->state(fn (): array => [
+            'permissions' => $scopes,
+        ]);
+    }
+
+    public function unrestricted(): static
+    {
+        return $this->state(fn (): array => [
+            'permissions' => null,
+        ]);
+    }
 }

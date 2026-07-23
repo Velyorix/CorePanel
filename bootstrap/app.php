@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnforceMaintenanceMode;
 use App\Http\Middleware\Api\AssignRequestId;
 use App\Http\Middleware\Api\AuthenticateApiToken;
+use App\Http\Middleware\Api\EnsureApiScope;
 use App\Http\Middleware\Api\ForceJsonResponse;
 use App\Http\Middleware\Api\SetApiVersion;
 use App\Http\Middleware\SetLocale;
@@ -68,6 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.requestId' => AssignRequestId::class,
             'api.version' => SetApiVersion::class,
             'api.auth' => AuthenticateApiToken::class,
+            'api.scope' => EnsureApiScope::class,
         ]);
 
         $middleware->group('admin', [

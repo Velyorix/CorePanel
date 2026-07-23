@@ -6,6 +6,7 @@ use App\Models\User;
 use Core\Admin\Navigation\AdminNavigation;
 use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Admin\Services\AdminNotificationService;
+use Core\Notifications\Services\NotificationService;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
@@ -229,6 +230,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNavigation::class);
         $this->app->singleton(ClientNavigation::class);
         $this->app->singleton(AdminNotificationService::class);
+        $this->app->singleton(NotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
         $this->app->singleton(ModuleSandbox::class);

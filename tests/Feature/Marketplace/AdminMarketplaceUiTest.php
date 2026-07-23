@@ -189,6 +189,76 @@ class AdminMarketplaceUiTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_marketplace_routes_return_not_found_when_disabled(): void
+    {
+        config(['corepanel.marketplace.enabled' => false]);
+
+        $admin = User::factory()->withRole('admin')->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.marketplace.index'))
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->get(route('admin.marketplace.show', 'demo'))
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->post(route('admin.marketplace.install', 'demo'))
+            ->assertNotFound();
+    }
+
+    public function test_paid_product_install_is_blocked_without_entitlement_in_ui(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products/stripe-billing-pro' => Http::response([
+                'data' => [
+                    'id' => '2',
+                    'sku' => 'MOD_STRIPE_BILLING_PRO',
+                    'slug' => 'stripe-billing-pro',
+                    'name' => 'Stripe Billing Pro',
+                    'product_type' => 'module',
+                    'pricing' => ['is_free' => false, 'amount' => 2990, 'currency' => 'EUR'],
+                    'current_version' => '1.2.0',
+                ],
+            ], 200),
+            'https://corepanel.org/api/v1/marketplace/products/stripe-billing-pro/versions' => Http::response([
+                'product' => ['slug' => 'stripe-billing-pro', 'name' => 'Stripe Billing Pro'],
+                'data' => [[
+                    'id' => 'v1',
+                    'version' => '1.2.0',
+                    'is_latest' => true,
+                    'has_archive' => true,
+                    'compatibility' => ['min_version' => '1.0.0', 'max_version' => null],
+                ]],
+            ], 200),
+            'https://corepanel.org/api/v1/marketplace/products/stripe-billing-pro/versions/*/download' => Http::response([
+                'error' => ['message' => 'should not download'],
+            ], 500),
+        ]);
+
+        $admin = User::factory()->withRole('admin')->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.marketplace.show', 'stripe-billing-pro'))
+            ->assertOk()
+            ->assertSee(__('Installation unavailable'))
+            ->assertDontSee('name="enable"', false);
+
+        $this->actingAs($admin)
+            ->post(route('admin.marketplace.install', 'stripe-billing-pro'))
+            ->assertRedirect(route('admin.marketplace.show', 'stripe-billing-pro'))
+            ->assertSessionHasErrors('marketplace');
+
+        $this->assertDatabaseMissing('installed_modules', [
+            'name' => 'stripe_billing_pro',
+        ]);
+
+        Http::assertNotSent(function ($request): bool {
+            return str_contains($request->url(), '/download');
+        });
+    }
+
     public function test_admin_can_view_updates_and_run_check(): void
     {
         $prefix = (string) config('corepanel.marketplace.cache.prefix');

@@ -153,4 +153,73 @@ class ClientMarketplaceUiTest extends TestCase
             ->get(route('client.marketplace.index'))
             ->assertForbidden();
     }
+
+    public function test_client_catalogue_forwards_product_type_filter_to_api(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products*' => Http::response([
+                'data' => [[
+                    'id' => '3',
+                    'sku' => 'THM_OCEAN',
+                    'slug' => 'ocean-blue',
+                    'name' => 'Ocean Blue',
+                    'product_type' => 'theme',
+                    'pricing' => ['is_free' => true, 'amount' => 0, 'currency' => 'EUR'],
+                    'current_version' => '2.0.0',
+                ]],
+                'meta' => ['current_page' => 1, 'per_page' => 20, 'total' => 1, 'last_page' => 1],
+            ], 200),
+        ]);
+
+        $client = User::factory()->withRole('client')->create();
+
+        $this->actingAs($client)
+            ->get(route('client.marketplace.index', ['product_type' => 'theme']))
+            ->assertOk()
+            ->assertSee(__('Marketplace themes'))
+            ->assertSee('Ocean Blue');
+
+        Http::assertSent(function ($request): bool {
+            return str_contains($request->url(), '/marketplace/products')
+                && $request['product_type'] === 'theme';
+        });
+    }
+
+    public function test_client_can_browse_free_theme_catalogue(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products*' => Http::response([
+                'data' => [[
+                    'id' => '4',
+                    'sku' => 'THM_AURORA',
+                    'slug' => 'aurora',
+                    'name' => 'Aurora Theme',
+                    'product_type' => 'theme',
+                    'pricing' => ['is_free' => true, 'amount' => 0, 'currency' => 'EUR'],
+                    'current_version' => '1.1.0',
+                ]],
+                'meta' => ['current_page' => 1, 'per_page' => 20, 'total' => 1, 'last_page' => 1],
+            ], 200),
+        ]);
+
+        $client = User::factory()->withRole('client')->create();
+
+        $this->actingAs($client)
+            ->get(route('client.marketplace.index', ['product_type' => 'theme']))
+            ->assertOk()
+            ->assertSee('Aurora Theme')
+            ->assertSee('Theme')
+            ->assertSee(__('Free'));
+    }
+
+    public function test_client_marketplace_returns_not_found_when_disabled(): void
+    {
+        config(['corepanel.marketplace.enabled' => false]);
+
+        $client = User::factory()->withRole('client')->create();
+
+        $this->actingAs($client)
+            ->get(route('client.marketplace.index'))
+            ->assertNotFound();
+    }
 }

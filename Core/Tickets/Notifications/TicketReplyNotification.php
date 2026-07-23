@@ -2,7 +2,7 @@
 
 namespace Core\Tickets\Notifications;
 
-use Core\Auth\Models\User;
+use App\Models\User;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketMessage;
 use Illuminate\Bus\Queueable;

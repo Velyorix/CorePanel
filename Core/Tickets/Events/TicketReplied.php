@@ -5,14 +5,13 @@ namespace Core\Tickets\Events;
 use Core\Auth\Models\User;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketMessage;
-use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Fired when a reply is posted on a support ticket.
  */
-class TicketReplied implements ShouldDispatchAfterCommit
+class TicketReplied
 {
     use Dispatchable;
     use SerializesModels;

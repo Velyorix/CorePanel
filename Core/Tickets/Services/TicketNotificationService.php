@@ -2,7 +2,8 @@
 
 namespace Core\Tickets\Services;
 
-use Core\Auth\Models\User;
+use App\Models\User;
+use Core\Auth\Models\User as AuthUser;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketMessage;
 use Core\Tickets\Notifications\TicketOpenedNotification;
@@ -35,15 +36,19 @@ class TicketNotificationService
         Notification::send($recipients, new TicketOpenedNotification($ticket));
     }
 
-    public function notifyReplied(Ticket $ticket, TicketMessage $message, User $author): void
+    public function notifyReplied(Ticket $ticket, TicketMessage $message, AuthUser $author): void
     {
         if (! $this->enabled()) {
             return;
         }
 
-        $ticket->loadMissing(['client.owner', 'assignee']);
+        $authorModel = User::query()->find($author->id);
 
-        if ($this->isClientParticipant($ticket, $author)) {
+        if (! $authorModel instanceof User) {
+            return;
+        }
+
+        if ($this->isClientParticipant($ticket, $authorModel)) {
             $recipients = $this->staffRecipients($ticket);
 
             if ($recipients->isEmpty()) {
@@ -52,14 +57,14 @@ class TicketNotificationService
 
             Notification::send(
                 $recipients,
-                new TicketReplyNotification($ticket, $message, $author, forStaff: true),
+                new TicketReplyNotification($ticket, $message, $authorModel, forStaff: true),
             );
 
             return;
         }
 
         $recipients = $this->clientRecipients($ticket)
-            ->reject(fn (User $user): bool => $user->id === $author->id)
+            ->reject(fn (User $user): bool => $user->id === $authorModel->id)
             ->values();
 
         if ($recipients->isEmpty()) {
@@ -68,7 +73,7 @@ class TicketNotificationService
 
         Notification::send(
             $recipients,
-            new TicketReplyNotification($ticket, $message, $author, forStaff: false),
+            new TicketReplyNotification($ticket, $message, $authorModel, forStaff: false),
         );
     }
 
@@ -77,10 +82,12 @@ class TicketNotificationService
      */
     private function staffRecipients(Ticket $ticket): Collection
     {
-        $ticket->loadMissing('assignee');
+        if ($ticket->assigned_to !== null) {
+            $assignee = User::query()->find($ticket->assigned_to);
 
-        if ($ticket->assignee instanceof User) {
-            return collect([$ticket->assignee]);
+            if ($assignee instanceof User) {
+                return collect([$assignee]);
+            }
         }
 
         return User::query()
@@ -97,7 +104,7 @@ class TicketNotificationService
      */
     private function clientRecipients(Ticket $ticket): Collection
     {
-        $ticket->loadMissing(['client.owner', 'client.users']);
+        $ticket->loadMissing(['client.users']);
 
         $client = $ticket->client;
 
@@ -105,19 +112,25 @@ class TicketNotificationService
             return collect();
         }
 
-        $recipients = collect();
+        $ids = collect();
 
-        if ($client->owner instanceof User) {
-            $recipients->push($client->owner);
+        if ($client->user_id !== null) {
+            $ids->push($client->user_id);
         }
 
         foreach ($client->users as $member) {
-            $recipients->push($member);
+            $ids->push($member->id);
         }
 
-        return $recipients
-            ->filter(fn (mixed $user): bool => $user instanceof User)
-            ->unique('id')
+        $ids = $ids->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereIn('id', $ids->all())
+            ->get()
             ->values();
     }
 

@@ -6,12 +6,18 @@ use App\Models\User;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
 use Core\Tickets\DataTransferObjects\TicketData;
+use Core\Tickets\Events\TicketCreated;
+use Core\Tickets\Events\TicketReplied;
+use Core\Tickets\Listeners\NotifyParticipantsOnTicketReplied;
+use Core\Tickets\Listeners\NotifyStaffOnTicketCreated;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Notifications\TicketOpenedNotification;
 use Core\Tickets\Notifications\TicketReplyNotification;
+use Core\Tickets\Services\TicketNotificationService;
 use Core\Tickets\Services\TicketService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -41,7 +47,25 @@ class TicketNotificationTest extends TestCase
         ]);
     }
 
-    public function test_ticket_create_notifies_support_staff(): void
+    public function test_ticket_create_dispatches_ticket_created_event(): void
+    {
+        Event::fake([TicketCreated::class]);
+
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+
+        $ticket = $this->tickets->create($client, $owner, TicketData::fromArray([
+            'subject' => 'Need help',
+            'message' => 'Something broke.',
+        ]));
+
+        Event::assertDispatched(
+            TicketCreated::class,
+            fn (TicketCreated $event): bool => $event->ticket->is($ticket),
+        );
+    }
+
+    public function test_ticket_create_notifies_support_staff_end_to_end(): void
     {
         Notification::fake();
 
@@ -50,7 +74,7 @@ class TicketNotificationTest extends TestCase
         $support = User::factory()->withRole('support')->create();
 
         $ticket = $this->tickets->create($client, $owner, TicketData::fromArray([
-            'subject' => 'Need help',
+            'subject' => 'Need help end to end',
             'message' => 'Something broke.',
         ]));
 
@@ -58,6 +82,45 @@ class TicketNotificationTest extends TestCase
             $support,
             TicketOpenedNotification::class,
             fn (TicketOpenedNotification $notification): bool => $notification->ticket->is($ticket),
+        );
+    }
+
+    public function test_ticket_create_notifies_support_staff(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $support = User::factory()->withRole('support')->create();
+        $ticket = Ticket::factory()->create([
+            'client_id' => $client->id,
+            'subject' => 'Need help',
+        ]);
+
+        app(NotifyStaffOnTicketCreated::class)->handle(new TicketCreated($ticket));
+
+        Notification::assertSentTo(
+            $support,
+            TicketOpenedNotification::class,
+            fn (TicketOpenedNotification $notification): bool => $notification->ticket->is($ticket),
+        );
+    }
+
+    public function test_client_reply_dispatches_ticket_replied_event(): void
+    {
+        Event::fake([TicketReplied::class]);
+
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $ticket = Ticket::factory()->create(['client_id' => $client->id]);
+
+        $message = $this->tickets->reply($ticket, $owner, 'Any update?');
+
+        Event::assertDispatched(
+            TicketReplied::class,
+            fn (TicketReplied $event): bool => $event->ticket->is($ticket)
+                && $event->message->is($message)
+                && $event->author->is($owner),
         );
     }
 
@@ -74,8 +137,15 @@ class TicketNotificationTest extends TestCase
             'client_id' => $client->id,
             'subject' => 'Assigned ticket',
         ]);
+        $message = $ticket->messages()->create([
+            'user_id' => $owner->id,
+            'message' => 'Any update?',
+            'created_at' => now(),
+        ]);
 
-        $message = $this->tickets->reply($ticket, $owner, 'Any update?');
+        app(NotifyParticipantsOnTicketReplied::class)->handle(
+            new TicketReplied($ticket, $message, $owner),
+        );
 
         Notification::assertSentTo(
             $assignee,
@@ -105,8 +175,15 @@ class TicketNotificationTest extends TestCase
             'client_id' => $client->id,
             'subject' => 'Client notify ticket',
         ]);
+        $message = $ticket->messages()->create([
+            'user_id' => $staff->id,
+            'message' => 'We are investigating.',
+            'created_at' => now(),
+        ]);
 
-        $message = $this->tickets->reply($ticket, $staff, 'We are investigating.');
+        app(NotifyParticipantsOnTicketReplied::class)->handle(
+            new TicketReplied($ticket, $message, $staff),
+        );
 
         Notification::assertSentTo(
             $owner,
@@ -130,11 +207,9 @@ class TicketNotificationTest extends TestCase
         $owner = User::factory()->create();
         $client = Client::factory()->create(['user_id' => $owner->id]);
         User::factory()->withRole('support')->create();
+        $ticket = Ticket::factory()->create(['client_id' => $client->id]);
 
-        $this->tickets->create($client, $owner, TicketData::fromArray([
-            'subject' => 'Silent ticket',
-            'message' => 'No mail please.',
-        ]));
+        app(TicketNotificationService::class)->notifyOpened($ticket);
 
         Notification::assertNothingSent();
     }

@@ -3,11 +3,13 @@
 namespace Tests\Feature\Billing;
 
 use Carbon\Carbon;
+use App\Models\User;
 use Core\Billing\Enums\InvoiceReminderLevel;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Notifications\InvoiceReminderNotification;
 use Core\Billing\Services\InvoiceReminderService;
+use Core\Notifications\Services\NotificationPreferenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -161,6 +163,36 @@ class InvoiceReminderServiceTest extends TestCase
 
         $this->assertSame(0, $result->sent);
         $this->assertSame(2, $result->skipped);
+        Notification::assertNothingSent();
+    }
+
+    public function test_skips_reminder_when_user_disabled_billing_mail(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['email' => 'optout@example.test']);
+        app(NotificationPreferenceService::class)->update($user, [
+            'channels' => ['mail' => true, 'database' => true],
+            'categories' => [
+                'billing' => ['mail' => false, 'database' => true],
+                'tickets' => ['mail' => true, 'database' => true],
+                'services' => ['mail' => true, 'database' => true],
+            ],
+        ]);
+
+        $invoice = Invoice::factory()->unpaid()->create([
+            'total_amount' => '100.00',
+            'subtotal' => '100.00',
+            'due_at' => Carbon::parse('2026-01-20'),
+            'contact_email' => 'optout@example.test',
+            'reminder_level' => 0,
+        ]);
+
+        $result = $this->reminders->process(Carbon::parse('2026-01-13'));
+
+        $this->assertSame(0, $result->sent);
+        $this->assertSame(1, $result->skipped);
+        $this->assertSame(0, $invoice->fresh()->reminder_level);
         Notification::assertNothingSent();
     }
 

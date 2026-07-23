@@ -35,6 +35,7 @@ use Illuminate\Notifications\Notifiable;
     'last_login_at',
     'failed_login_attempts',
     'locked_at',
+    'notification_preferences',
 ])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret'])]
 class User extends Authenticatable implements CanResetPasswordContract, MustVerifyEmailContract
@@ -53,6 +54,7 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
             'locked_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'password' => 'hashed',
+            'notification_preferences' => 'array',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace Core\Notifications\Notifications;
 
+use Core\Notifications\Services\NotificationPreferenceService;
 use Core\Notifications\Services\NotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -25,6 +26,7 @@ class ChannelNotification extends Notification
         private readonly ?array $channels = null,
         public readonly ?string $actionUrl = null,
         public readonly ?string $actionLabel = null,
+        public readonly ?string $category = null,
     ) {
     }
 
@@ -39,8 +41,9 @@ class ChannelNotification extends Notification
         ?array $channels = null,
         ?string $actionUrl = null,
         ?string $actionLabel = null,
+        ?string $category = null,
     ): self {
-        return new self($title, $message, $meta, $channels, $actionUrl, $actionLabel);
+        return new self($title, $message, $meta, $channels, $actionUrl, $actionLabel, $category);
     }
 
     /**
@@ -48,11 +51,12 @@ class ChannelNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        if ($this->channels !== null && $this->channels !== []) {
-            return array_values($this->channels);
-        }
+        $channels = $this->channels !== null && $this->channels !== []
+            ? array_values($this->channels)
+            : app(NotificationService::class)->defaultChannels();
 
-        return app(NotificationService::class)->defaultChannels();
+        return app(NotificationPreferenceService::class)
+            ->filterChannels($notifiable, $channels, $this->category);
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -81,6 +85,7 @@ class ChannelNotification extends Notification
             'meta' => $this->meta,
             'action_url' => $this->actionUrl,
             'action_label' => $this->actionLabel,
+            'category' => $this->category,
         ];
     }
 }

@@ -2,12 +2,14 @@
 
 namespace Core\Billing\Services;
 
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Core\Billing\DataTransferObjects\ReminderProcessingResult;
 use Core\Billing\Enums\InvoiceReminderLevel;
 use Core\Billing\Enums\InvoiceStatus;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Notifications\InvoiceReminderNotification;
+use Core\Notifications\Services\NotificationPreferenceService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
@@ -18,6 +20,11 @@ use Throwable;
  */
 class InvoiceReminderService
 {
+    public function __construct(
+        private readonly NotificationPreferenceService $preferences,
+    ) {
+    }
+
     public function process(?CarbonInterface $asOf = null): ReminderProcessingResult
     {
         if (! (bool) config('corepanel.billing.reminders.enabled', true)) {
@@ -70,6 +77,12 @@ class InvoiceReminderService
                     }
 
                     if ($daysFromDue < (int) $level['days_offset']) {
+                        break;
+                    }
+
+                    if (! $this->maySendBillingMail($invoice, $email)) {
+                        $result = $result->withSkipped();
+                        $sentThisRun = true;
                         break;
                     }
 
@@ -151,5 +164,25 @@ class InvoiceReminderService
         );
 
         return array_values($levels);
+    }
+
+    private function maySendBillingMail(Invoice $invoice, string $email): bool
+    {
+        $user = User::query()->where('email', $email)->first();
+
+        if (! $user instanceof User) {
+            $invoice->loadMissing('client');
+            $ownerId = $invoice->client?->user_id;
+
+            if ($ownerId !== null) {
+                $user = User::query()->find($ownerId);
+            }
+        }
+
+        if (! $user instanceof User) {
+            return true;
+        }
+
+        return $this->preferences->allows($user, NotificationPreferenceService::CHANNEL_MAIL, 'billing');
     }
 }

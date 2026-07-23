@@ -186,7 +186,8 @@ class ClientNavigation
                 'items' => [
                     [
                         'label' => __('Notifications'),
-                        'route' => null,
+                        'route' => 'client.settings.notifications',
+                        'routeIs' => ['client.settings.notifications*'],
                         'permission' => 'client.account.manage',
                     ],
                     [

@@ -1057,6 +1057,8 @@ return [
             env('COREPANEL_NOTIFICATIONS_QUEUE', false),
             FILTER_VALIDATE_BOOL,
         ),
+        'preference_channels' => ['mail', 'database'],
+        'preference_categories' => ['billing', 'tickets', 'services'],
     ],
 
     /*

@@ -3,6 +3,7 @@
 namespace Core\Tickets\Notifications;
 
 use App\Models\User;
+use Core\Notifications\Services\NotificationPreferenceService;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketMessage;
 use Illuminate\Bus\Queueable;
@@ -26,7 +27,12 @@ class TicketReplyNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        if ($this->forStaff) {
+            return ['mail'];
+        }
+
+        return app(NotificationPreferenceService::class)
+            ->filterChannels($notifiable, ['mail'], 'tickets');
     }
 
     public function toMail(object $notifiable): MailMessage

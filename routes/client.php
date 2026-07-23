@@ -16,6 +16,7 @@ use App\Http\Controllers\Client\ServiceController;
 use App\Http\Controllers\Client\TicketActionController;
 use App\Http\Controllers\Client\TicketController;
 use App\Http\Controllers\Client\KnowledgeBaseController;
+use App\Http\Controllers\Client\NotificationPreferencesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -95,4 +96,9 @@ Route::middleware('client')
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+        Route::get('settings/notifications', [NotificationPreferencesController::class, 'edit'])
+            ->name('settings.notifications');
+        Route::put('settings/notifications', [NotificationPreferencesController::class, 'update'])
+            ->name('settings.notifications.update');
     });

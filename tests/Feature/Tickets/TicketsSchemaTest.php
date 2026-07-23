@@ -44,6 +44,7 @@ class TicketsSchemaTest extends TestCase
     {
         foreach ([
             'id',
+            'ticket_number',
             'client_id',
             'category_id',
             'subject',

@@ -193,6 +193,7 @@ use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
 use Core\Services\Services\ServiceQueryService;
 use Core\Services\Services\ServiceUpgradeService;
+use Core\Tickets\Services\TicketNumberService;
 use Core\Tickets\Services\TicketService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -316,6 +317,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(OrderService::class);
         $this->app->singleton(ServiceLifecycleService::class);
         $this->app->singleton(ServiceCreationService::class);
+        $this->app->singleton(TicketNumberService::class);
         $this->app->singleton(TicketService::class);
         $this->app->singleton(ProviderRegistry::class);
         $this->app->singleton(ModulePermissionRegistrar::class);

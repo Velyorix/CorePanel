@@ -23,6 +23,7 @@ class TicketFactory extends Factory
     public function definition(): array
     {
         return [
+            'ticket_number' => null,
             'client_id' => Client::factory(),
             'category_id' => null,
             'subject' => fake()->sentence(6),
@@ -30,6 +31,13 @@ class TicketFactory extends Factory
             'priority' => TicketPriority::Normal,
             'assigned_to' => null,
         ];
+    }
+
+    public function numbered(string $ticketNumber = 'TK-2026-00001'): static
+    {
+        return $this->state(fn (): array => [
+            'ticket_number' => $ticketNumber,
+        ]);
     }
 
     public function forCategory(TicketCategory $category): static

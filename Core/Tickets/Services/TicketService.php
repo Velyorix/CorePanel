@@ -19,6 +19,11 @@ use RuntimeException;
  */
 class TicketService
 {
+    public function __construct(
+        private readonly TicketNumberService $ticketNumbers,
+    ) {
+    }
+
     public function create(Client $client, User $author, TicketData $data): Ticket
     {
         $this->assertSubject($data->subject);
@@ -37,6 +42,8 @@ class TicketService
             ]);
 
             $this->storeMessage($ticket, $author, $data->message, $data->attachments);
+
+            $ticket = $this->ticketNumbers->assignNumber($ticket);
 
             return $ticket->fresh(['client', 'category', 'assignee', 'messages.author']) ?? $ticket;
         });

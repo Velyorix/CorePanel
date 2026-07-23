@@ -14,6 +14,7 @@ use Core\Tickets\Models\TicketCategory;
 use Core\Tickets\Models\TicketMessage;
 use Core\Tickets\Services\TicketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use InvalidArgumentException;
 use RuntimeException;
 use Tests\TestCase;
@@ -29,6 +30,14 @@ class TicketServiceTest extends TestCase
         parent::setUp();
 
         $this->tickets = app(TicketService::class);
+
+        config([
+            'corepanel.tickets.numbering.prefix' => 'TK',
+            'corepanel.tickets.numbering.padding' => 5,
+            'corepanel.tickets.numbering.include_year' => true,
+            'corepanel.tickets.numbering.reset_yearly' => true,
+            'corepanel.tickets.numbering.separator' => '-',
+        ]);
     }
 
     public function test_ticket_service_is_registered_as_singleton(): void
@@ -41,6 +50,8 @@ class TicketServiceTest extends TestCase
 
     public function test_create_persists_ticket_with_initial_message(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-07-23 10:00:00'));
+
         $owner = User::factory()->create();
         $client = Client::factory()->create(['user_id' => $owner->id]);
         $category = TicketCategory::factory()->create(['slug' => 'general']);
@@ -54,6 +65,7 @@ class TicketServiceTest extends TestCase
 
         $this->assertSame(TicketStatus::Open, $ticket->status);
         $this->assertSame(TicketPriority::High, $ticket->priority);
+        $this->assertSame('TK-2026-00001', $ticket->ticket_number);
         $this->assertTrue($ticket->category->is($category));
         $this->assertNull($ticket->assigned_to);
         $this->assertCount(1, $ticket->messages);
@@ -234,5 +246,12 @@ class TicketServiceTest extends TestCase
             message: 'Hello',
             attachments: ['name' => 'oops.png'],
         ));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 }

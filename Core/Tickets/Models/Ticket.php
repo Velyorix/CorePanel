@@ -23,6 +23,7 @@ class Ticket extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'ticket_number',
         'client_id',
         'category_id',
         'subject',

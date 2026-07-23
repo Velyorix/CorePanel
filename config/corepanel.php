@@ -948,4 +948,30 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Support tickets
+    |--------------------------------------------------------------------------
+    |
+    | Ticket public references use billing_sequences (name=ticket) under lock.
+    | Default format: TK-YYYY-NNNNN
+    |
+    */
+
+    'tickets' => [
+        'numbering' => [
+            'prefix' => env('COREPANEL_TICKETS_NUMBER_PREFIX', 'TK'),
+            'padding' => (int) env('COREPANEL_TICKETS_NUMBER_PADDING', 5),
+            'include_year' => filter_var(
+                env('COREPANEL_TICKETS_NUMBER_INCLUDE_YEAR', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'reset_yearly' => filter_var(
+                env('COREPANEL_TICKETS_NUMBER_RESET_YEARLY', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'separator' => env('COREPANEL_TICKETS_NUMBER_SEPARATOR', '-'),
+        ],
+    ],
+
 ];

@@ -153,8 +153,15 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Tickets'),
-                        'route' => null,
+                        'route' => 'admin.tickets.index',
+                        'routeIs' => ['admin.tickets.*'],
                         'permission' => 'tickets.view',
+                    ],
+                    [
+                        'label' => __('Knowledge base'),
+                        'route' => 'admin.kb-articles.index',
+                        'routeIs' => ['admin.kb-articles.*', 'admin.kb-categories.*'],
+                        'permission' => 'kb.view',
                     ],
                     [
                         'label' => __('Departments'),

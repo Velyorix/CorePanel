@@ -1,0 +1,169 @@
+<x-layout.client
+    :title="__('Tickets')"
+    :page-heading="__('Your tickets')"
+>
+    <x-slot:subtitle>
+        {{ __('Track support requests and continue existing conversations.') }}
+    </x-slot:subtitle>
+
+    <x-slot:topbar>
+        <div class="ml-auto flex items-center gap-3">
+            <x-ui.theme-toggle />
+            @auth
+                <span class="hidden text-body-sm text-muted-foreground sm:inline">
+                    {{ auth()->user()->email }}
+                </span>
+            @endauth
+        </div>
+    </x-slot:topbar>
+
+    <x-slot:breadcrumbs>
+        <x-ui.breadcrumb :items="[
+            ['label' => __('Client'), 'url' => route('client.dashboard')],
+            ['label' => __('Tickets')],
+        ]" />
+    </x-slot:breadcrumbs>
+
+    @if (session('status'))
+        <div class="mb-6">
+            <x-ui.alert variant="success">{{ session('status') }}</x-ui.alert>
+        </div>
+    @endif
+
+    <div class="mb-6 flex flex-wrap items-center justify-end gap-2">
+        @can('client.tickets.create')
+            <x-ui.button :href="route('client.tickets.create')" variant="primary" size="sm">
+                {{ __('Open ticket') }}
+            </x-ui.button>
+        @endcan
+    </div>
+
+    @if ($clientMissing)
+        <x-ui.empty
+            :title="__('No client account yet')"
+            :description="__('Tickets will appear here once your account is linked to a client.')"
+        />
+    @else
+        <x-ui.table :paginator="$tickets">
+            <x-slot:filters>
+                <form method="GET" action="{{ route('client.tickets.index') }}" class="flex w-full flex-wrap items-end gap-3">
+                    <div class="min-w-56 flex-1">
+                        <x-ui.input
+                            name="q"
+                            :label="__('Search')"
+                            :value="$filters['q']"
+                            :placeholder="__('Ticket # or subject…')"
+                        />
+                    </div>
+
+                    <div class="min-w-40">
+                        <x-ui.select name="status" :label="__('Status')">
+                            <option value="">{{ __('All statuses') }}</option>
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status->value }}" @selected(($filters['status']?->value ?? null) === $status->value)>
+                                    {{ $status->label() }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    <div class="min-w-40">
+                        <x-ui.select name="priority" :label="__('Priority')">
+                            <option value="">{{ __('All priorities') }}</option>
+                            @foreach ($priorities as $priority)
+                                <option value="{{ $priority->value }}" @selected(($filters['priority']?->value ?? null) === $priority->value)>
+                                    {{ $priority->label() }}
+                                </option>
+                            @endforeach
+                        </x-ui.select>
+                    </div>
+
+                    @if (filled(request('sort')))
+                        <input type="hidden" name="sort" value="{{ request('sort') }}">
+                    @endif
+                    @if (filled(request('dir')))
+                        <input type="hidden" name="dir" value="{{ request('dir') }}">
+                    @endif
+
+                    <x-ui.button type="submit" variant="secondary" size="sm">
+                        {{ __('Apply') }}
+                    </x-ui.button>
+
+                    @if (filled($filters['q']) || $filters['status'] !== null || $filters['priority'] !== null)
+                        <x-ui.button :href="route('client.tickets.index', request()->only(['sort', 'dir']))" variant="ghost" size="sm">
+                            {{ __('Clear') }}
+                        </x-ui.button>
+                    @endif
+                </form>
+            </x-slot:filters>
+
+            <x-slot:head>
+                <tr>
+                    <x-ui.table-heading sort="ticket_number">{{ __('Ticket') }}</x-ui.table-heading>
+                    <x-ui.table-heading sort="subject">{{ __('Subject') }}</x-ui.table-heading>
+                    <x-ui.table-heading sort="status">{{ __('Status') }}</x-ui.table-heading>
+                    <x-ui.table-heading sort="priority">{{ __('Priority') }}</x-ui.table-heading>
+                    <x-ui.table-heading sort="created_at">{{ __('Created') }}</x-ui.table-heading>
+                    <th class="px-4 py-3 font-medium"></th>
+                </tr>
+            </x-slot:head>
+
+            <x-slot:empty>
+                <tr>
+                    <td colspan="6" class="p-4">
+                        <x-ui.empty
+                            :title="__('No tickets yet')"
+                            :description="filled($filters['q']) || $filters['status'] !== null || $filters['priority'] !== null
+                                ? __('Try adjusting your search or filters.')
+                                : __('Open a ticket when you need help from support.')"
+                        />
+                    </td>
+                </tr>
+            </x-slot:empty>
+
+            @foreach ($tickets as $ticket)
+                @php
+                    $statusVariant = match ($ticket->status) {
+                        \Core\Tickets\Enums\TicketStatus::Open => 'primary',
+                        \Core\Tickets\Enums\TicketStatus::InProgress => 'warning',
+                        \Core\Tickets\Enums\TicketStatus::Answered => 'success',
+                        \Core\Tickets\Enums\TicketStatus::Pending => 'neutral',
+                        \Core\Tickets\Enums\TicketStatus::Closed => 'neutral',
+                    };
+
+                    $priorityVariant = match ($ticket->priority) {
+                        \Core\Tickets\Enums\TicketPriority::Low => 'neutral',
+                        \Core\Tickets\Enums\TicketPriority::Normal => 'primary',
+                        \Core\Tickets\Enums\TicketPriority::High => 'warning',
+                        \Core\Tickets\Enums\TicketPriority::Urgent => 'danger',
+                    };
+                @endphp
+                <tr class="hover:bg-muted/40">
+                    <td class="px-4 py-3">
+                        <div class="font-medium">{{ $ticket->ticket_number ?: '#'.$ticket->id }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="font-medium">{{ $ticket->subject }}</div>
+                        @if ($ticket->category)
+                            <div class="text-small text-muted-foreground">{{ $ticket->category->name }}</div>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        <x-ui.badge :variant="$statusVariant">{{ $ticket->status->label() }}</x-ui.badge>
+                    </td>
+                    <td class="px-4 py-3">
+                        <x-ui.badge :variant="$priorityVariant">{{ $ticket->priority->label() }}</x-ui.badge>
+                    </td>
+                    <td class="px-4 py-3 text-muted-foreground">
+                        {{ $ticket->created_at?->timezone(config('app.timezone'))->format('Y-m-d H:i') }}
+                    </td>
+                    <td class="px-4 py-3 text-end">
+                        <x-ui.button :href="route('client.tickets.show', $ticket)" variant="ghost" size="sm">
+                            {{ __('View') }}
+                        </x-ui.button>
+                    </td>
+                </tr>
+            @endforeach
+        </x-ui.table>
+    @endif
+</x-layout.client>

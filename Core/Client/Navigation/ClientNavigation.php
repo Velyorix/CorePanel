@@ -100,7 +100,8 @@ class ClientNavigation
                     ],
                     [
                         'label' => __('Tickets'),
-                        'route' => null,
+                        'route' => 'client.tickets.index',
+                        'routeIs' => ['client.tickets.*'],
                         'permission' => 'client.tickets.view',
                     ],
                 ],
@@ -162,13 +163,21 @@ class ClientNavigation
                 'items' => [
                     [
                         'label' => __('Open ticket'),
-                        'route' => null,
+                        'route' => 'client.tickets.create',
+                        'routeIs' => ['client.tickets.create', 'client.tickets.store'],
                         'permission' => 'client.tickets.create',
                     ],
                     [
                         'label' => __('My tickets'),
-                        'route' => null,
+                        'route' => 'client.tickets.index',
+                        'routeIs' => ['client.tickets.index', 'client.tickets.show'],
                         'permission' => 'client.tickets.view',
+                    ],
+                    [
+                        'label' => __('Knowledge base'),
+                        'route' => 'client.kb.index',
+                        'routeIs' => ['client.kb.*'],
+                        'permission' => 'client.kb.view',
                     ],
                 ],
             ],

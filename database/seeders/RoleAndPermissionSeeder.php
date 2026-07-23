@@ -144,6 +144,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'tickets.assign', 'module' => 'tickets', 'description' => 'Assign support tickets'],
             ['name' => 'tickets.close', 'module' => 'tickets', 'description' => 'Close support tickets'],
 
+            ['name' => 'kb.view', 'module' => 'kb', 'description' => 'View knowledge base articles and categories'],
+            ['name' => 'kb.manage', 'module' => 'kb', 'description' => 'Manage knowledge base articles and categories'],
+
             ['name' => 'client.services.view', 'module' => 'core', 'description' => 'View own services'],
             ['name' => 'client.services.manage', 'module' => 'core', 'description' => 'Manage own services'],
             ['name' => 'client.invoices.view', 'module' => 'core', 'description' => 'View own invoices'],
@@ -154,6 +157,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.tickets.view', 'module' => 'core', 'description' => 'View own tickets'],
             ['name' => 'client.tickets.create', 'module' => 'core', 'description' => 'Create support tickets'],
             ['name' => 'client.tickets.reply', 'module' => 'core', 'description' => 'Reply to own tickets'],
+            ['name' => 'client.kb.view', 'module' => 'kb', 'description' => 'Browse the public knowledge base'],
             ['name' => 'client.account.view', 'module' => 'core', 'description' => 'View own account'],
             ['name' => 'client.account.manage', 'module' => 'core', 'description' => 'Manage own account'],
         ];
@@ -192,6 +196,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'themes.*',
                     'marketplace.*',
                     'tickets.*',
+                    'kb.*',
                 ],
             ],
             [
@@ -208,6 +213,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'billing.quotes.view',
                     'billing.payments.view',
                     'tickets.*',
+                    'kb.*',
                 ],
             ],
             [

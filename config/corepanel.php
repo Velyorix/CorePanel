@@ -948,4 +948,90 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Support tickets
+    |--------------------------------------------------------------------------
+    |
+    | Ticket public references use billing_sequences (name=ticket) under lock.
+    | Default format: TK-YYYY-NNNNN
+    |
+    */
+
+    'tickets' => [
+        'numbering' => [
+            'prefix' => env('COREPANEL_TICKETS_NUMBER_PREFIX', 'TK'),
+            'padding' => (int) env('COREPANEL_TICKETS_NUMBER_PADDING', 5),
+            'include_year' => filter_var(
+                env('COREPANEL_TICKETS_NUMBER_INCLUDE_YEAR', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'reset_yearly' => filter_var(
+                env('COREPANEL_TICKETS_NUMBER_RESET_YEARLY', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'separator' => env('COREPANEL_TICKETS_NUMBER_SEPARATOR', '-'),
+        ],
+
+        /*
+        | Secure attachment uploads (private disk, allowlisted types).
+        */
+        'attachments' => [
+            'disk' => env('COREPANEL_TICKETS_ATTACHMENTS_DISK', 'local'),
+            'path_prefix' => env('COREPANEL_TICKETS_ATTACHMENTS_PATH', 'tickets'),
+            'max_files' => (int) env('COREPANEL_TICKETS_ATTACHMENTS_MAX_FILES', 5),
+            'max_kilobytes' => (int) env('COREPANEL_TICKETS_ATTACHMENTS_MAX_KB', 5120),
+            'allowed_extensions' => [
+                'pdf',
+                'png',
+                'jpg',
+                'jpeg',
+                'gif',
+                'webp',
+                'txt',
+                'csv',
+                'zip',
+                'doc',
+                'docx',
+            ],
+            'allowed_mimes' => [
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/gif',
+                'image/webp',
+                'text/plain',
+                'text/csv',
+                'application/zip',
+                'application/x-zip-compressed',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+        ],
+
+        /*
+        | Anti-spam limits for client ticket create / reply actions.
+        */
+        'rate_limit' => [
+            'create' => [
+                'max_attempts' => (int) env('COREPANEL_TICKETS_CREATE_MAX_ATTEMPTS', 5),
+                'decay_seconds' => (int) env('COREPANEL_TICKETS_CREATE_DECAY_SECONDS', 3600),
+            ],
+            'reply' => [
+                'max_attempts' => (int) env('COREPANEL_TICKETS_REPLY_MAX_ATTEMPTS', 20),
+                'decay_seconds' => (int) env('COREPANEL_TICKETS_REPLY_DECAY_SECONDS', 3600),
+            ],
+        ],
+
+        /*
+        | Mail notifications when tickets are opened or receive replies.
+        */
+        'notifications' => [
+            'enabled' => filter_var(
+                env('COREPANEL_TICKETS_NOTIFICATIONS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+    ],
+
 ];

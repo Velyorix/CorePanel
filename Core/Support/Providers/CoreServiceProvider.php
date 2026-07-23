@@ -90,6 +90,11 @@ use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
 use Core\Permissions\Policies\InvoicePolicy;
+use Core\Permissions\Policies\KbArticlePolicy;
+use Core\Permissions\Policies\KbCategoryPolicy;
+use Core\Permissions\Policies\TicketPolicy;
+use Core\KnowledgeBase\Models\KbArticle;
+use Core\KnowledgeBase\Models\KbCategory;
 use Core\Nodes\Models\NodeCluster;
 use Core\Nodes\Models\NodeGroup;
 use Core\Permissions\Policies\NodeClusterPolicy;
@@ -107,6 +112,7 @@ use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
 use Core\Billing\Models\Quote;
 use Core\Services\Models\Service;
+use Core\Tickets\Models\Ticket;
 use Core\Permissions\Services\GateRegistrar;
 use Core\Permissions\Services\PermissionRegistry;
 use Core\Permissions\Services\PermissionService;
@@ -193,6 +199,17 @@ use Core\Services\Services\ServiceCreationService;
 use Core\Services\Services\ServiceLifecycleService;
 use Core\Services\Services\ServiceQueryService;
 use Core\Services\Services\ServiceUpgradeService;
+use Core\Tickets\Events\TicketCreated;
+use Core\Tickets\Events\TicketReplied;
+use Core\Tickets\Listeners\NotifyParticipantsOnTicketReplied;
+use Core\Tickets\Listeners\NotifyStaffOnTicketCreated;
+use Core\Tickets\Services\TicketAttachmentService;
+use Core\Tickets\Services\TicketNotificationService;
+use Core\Tickets\Services\TicketNumberService;
+use Core\Tickets\Services\TicketRateLimiter;
+use Core\Tickets\Services\TicketService;
+use Core\KnowledgeBase\Services\KbCategoryService;
+use Core\KnowledgeBase\Services\KnowledgeBaseService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -315,6 +332,13 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(OrderService::class);
         $this->app->singleton(ServiceLifecycleService::class);
         $this->app->singleton(ServiceCreationService::class);
+        $this->app->singleton(TicketNumberService::class);
+        $this->app->singleton(TicketAttachmentService::class);
+        $this->app->singleton(TicketRateLimiter::class);
+        $this->app->singleton(TicketNotificationService::class);
+        $this->app->singleton(TicketService::class);
+        $this->app->singleton(KbCategoryService::class);
+        $this->app->singleton(KnowledgeBaseService::class);
         $this->app->singleton(ProviderRegistry::class);
         $this->app->singleton(ModulePermissionRegistrar::class);
         $this->app->singleton(ProviderResourceMappingService::class);
@@ -382,6 +406,9 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(Service::class, ServicePolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(KbArticle::class, KbArticlePolicy::class);
+        Gate::policy(KbCategory::class, KbCategoryPolicy::class);
         Gate::policy(Quote::class, QuotePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
 
@@ -417,5 +444,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->make(ModuleDatabaseGuard::class)->register();
 
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
+        Event::listen(TicketCreated::class, NotifyStaffOnTicketCreated::class);
+        Event::listen(TicketReplied::class, NotifyParticipantsOnTicketReplied::class);
     }
 }

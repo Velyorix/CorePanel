@@ -71,6 +71,7 @@ class ClientNavigationTest extends TestCase
             __('Support'),
             __('Open ticket'),
             __('My tickets'),
+            __('Knowledge base'),
             __('Settings'),
             __('Notifications'),
             __('Preferences'),

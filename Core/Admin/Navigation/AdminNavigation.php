@@ -153,7 +153,8 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('Tickets'),
-                        'route' => null,
+                        'route' => 'admin.tickets.index',
+                        'routeIs' => ['admin.tickets.*'],
                         'permission' => 'tickets.view',
                     ],
                     [

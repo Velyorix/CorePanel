@@ -10,6 +10,8 @@ use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketCategory;
 use Core\Tickets\Models\TicketMessage;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -24,6 +26,92 @@ class TicketService
         private readonly TicketNumberService $ticketNumbers,
         private readonly TicketAttachmentService $attachments,
     ) {
+    }
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: TicketStatus|null,
+     *     priority?: TicketPriority|null,
+     *     assigned_to?: int|null|'unassigned',
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     * @return LengthAwarePaginator<int, Ticket>
+     */
+    public function paginateForAdmin(array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $priority = $filters['priority'] ?? null;
+        $assignedTo = $filters['assigned_to'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'ticket_number',
+            'subject',
+            'status',
+            'priority',
+            'created_at',
+            'updated_at',
+        ], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Ticket::query()->with(['client', 'category', 'assignee']);
+
+        if ($status instanceof TicketStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if ($priority instanceof TicketPriority) {
+            $query->where('priority', $priority->value);
+        }
+
+        if ($assignedTo === 'unassigned') {
+            $query->whereNull('assigned_to');
+        } elseif (is_int($assignedTo)) {
+            $query->where('assigned_to', $assignedTo);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($search, $term): void {
+                $builder
+                    ->where('ticket_number', 'like', $term)
+                    ->orWhere('subject', 'like', $term)
+                    ->orWhereHas('client', function ($clientQuery) use ($term): void {
+                        $clientQuery->where('company_name', 'like', $term);
+                    });
+
+                if (ctype_digit($search)) {
+                    $builder->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Staff users that can be assigned to tickets.
+     *
+     * @return EloquentCollection<int, User>
+     */
+    public function assignableStaff(): EloquentCollection
+    {
+        return User::query()
+            ->whereHas('roles', function ($query): void {
+                $query->whereIn('name', ['super-admin', 'admin', 'support']);
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     public function create(Client $client, User $author, TicketData $data): Ticket

@@ -33,6 +33,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServiceActionController;
 use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ThemeController;
+use App\Http\Controllers\Admin\TicketActionController;
+use App\Http\Controllers\Admin\TicketController;
 use App\Http\Controllers\Admin\SyncLogController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterActionController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterController;
@@ -196,6 +198,16 @@ Route::middleware('admin')
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
         Route::post('invoices/{invoice}/issue', [InvoiceActionController::class, 'issue'])->name('invoices.issue');
         Route::get('invoices/{invoice}/pdf', [InvoiceActionController::class, 'pdf'])->name('invoices.pdf');
+
+        Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/reply', [TicketActionController::class, 'reply'])->name('tickets.reply');
+        Route::post('tickets/{ticket}/assign', [TicketActionController::class, 'assign'])->name('tickets.assign');
+        Route::post('tickets/{ticket}/close', [TicketActionController::class, 'close'])->name('tickets.close');
+        Route::post('tickets/{ticket}/reopen', [TicketActionController::class, 'reopen'])->name('tickets.reopen');
+        Route::post('tickets/{ticket}/priority', [TicketActionController::class, 'priority'])->name('tickets.priority');
+        Route::get('tickets/{ticket}/attachments/{attachmentId}', [TicketActionController::class, 'downloadAttachment'])
+            ->name('tickets.attachments.download');
 
         Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
         Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');

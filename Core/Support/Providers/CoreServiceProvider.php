@@ -90,6 +90,7 @@ use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
 use Core\Permissions\Policies\InvoicePolicy;
+use Core\Permissions\Policies\TicketPolicy;
 use Core\Nodes\Models\NodeCluster;
 use Core\Nodes\Models\NodeGroup;
 use Core\Permissions\Policies\NodeClusterPolicy;
@@ -107,6 +108,7 @@ use Core\Billing\Models\Invoice;
 use Core\Billing\Models\Payment;
 use Core\Billing\Models\Quote;
 use Core\Services\Models\Service;
+use Core\Tickets\Models\Ticket;
 use Core\Permissions\Services\GateRegistrar;
 use Core\Permissions\Services\PermissionRegistry;
 use Core\Permissions\Services\PermissionService;
@@ -388,6 +390,7 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Order::class, OrderPolicy::class);
         Gate::policy(Service::class, ServicePolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Ticket::class, TicketPolicy::class);
         Gate::policy(Quote::class, QuotePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
 

@@ -3,6 +3,7 @@
 namespace Core\Tickets\Notifications;
 
 use App\Models\User;
+use Core\Notifications\Services\NotificationPreferenceService;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketMessage;
 use Illuminate\Bus\Queueable;
@@ -26,7 +27,12 @@ class TicketReplyNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        if ($this->forStaff) {
+            return ['mail'];
+        }
+
+        return app(NotificationPreferenceService::class)
+            ->filterChannels($notifiable, ['mail'], 'tickets');
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -35,6 +41,7 @@ class TicketReplyNotification extends Notification
         $url = $this->forStaff
             ? url(route('admin.tickets.show', $this->ticket))
             : url(route('client.tickets.show', $this->ticket));
+        $appName = (string) config('corepanel.name', config('app.name'));
 
         $excerpt = mb_strlen($this->message->message) > 200
             ? mb_substr($this->message->message, 0, 200).'…'
@@ -42,10 +49,13 @@ class TicketReplyNotification extends Notification
 
         return (new MailMessage)
             ->subject(__('New reply on ticket :number', ['number' => $number]))
-            ->line(__('There is a new reply on support ticket :number.', ['number' => $number]))
-            ->line(__('Subject: :subject', ['subject' => $this->ticket->subject]))
-            ->line(__('From: :name', ['name' => $this->author->name]))
-            ->line($excerpt)
-            ->action(__('View ticket'), $url);
+            ->markdown('mail.tickets.reply', [
+                'number' => $number,
+                'subject' => $this->ticket->subject,
+                'authorName' => $this->author->name,
+                'excerpt' => $excerpt,
+                'url' => $url,
+                'appName' => $appName,
+            ]);
     }
 }

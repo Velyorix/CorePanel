@@ -238,7 +238,14 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('General'),
-                        'route' => null,
+                        'route' => 'admin.settings.general',
+                        'routeIs' => ['admin.settings.general*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('Billing'),
+                        'route' => 'admin.settings.billing',
+                        'routeIs' => ['admin.settings.billing*'],
                         'permission' => 'settings.view',
                     ],
                     [
@@ -248,7 +255,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Security'),
-                        'route' => null,
+                        'route' => 'admin.settings.security',
+                        'routeIs' => ['admin.settings.security*'],
                         'permission' => 'settings.view',
                     ],
                     [
@@ -259,7 +267,8 @@ class AdminNavigation
                     ],
                     [
                         'label' => __('Mail'),
-                        'route' => null,
+                        'route' => 'admin.settings.mail',
+                        'routeIs' => ['admin.settings.mail*'],
                         'permission' => 'settings.view',
                     ],
                     [

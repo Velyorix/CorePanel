@@ -10,6 +10,10 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\Settings\BillingSettingsController;
+use App\Http\Controllers\Admin\Settings\GeneralSettingsController;
+use App\Http\Controllers\Admin\Settings\MailSettingsController;
+use App\Http\Controllers\Admin\Settings\SecuritySettingsController;
 use App\Http\Controllers\Admin\MarketplaceController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
@@ -66,6 +70,15 @@ Route::middleware('admin')
         Route::get('license', [LicenseController::class, 'show'])->name('license.show');
         Route::put('license', [LicenseController::class, 'update'])->name('license.update');
         Route::post('license/revalidate', [LicenseController::class, 'revalidate'])->name('license.revalidate');
+
+        Route::get('settings/general', [GeneralSettingsController::class, 'edit'])->name('settings.general');
+        Route::put('settings/general', [GeneralSettingsController::class, 'update'])->name('settings.general.update');
+        Route::get('settings/billing', [BillingSettingsController::class, 'edit'])->name('settings.billing');
+        Route::put('settings/billing', [BillingSettingsController::class, 'update'])->name('settings.billing.update');
+        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('settings.mail');
+        Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('settings.mail.update');
+        Route::get('settings/security', [SecuritySettingsController::class, 'edit'])->name('settings.security');
+        Route::put('settings/security', [SecuritySettingsController::class, 'update'])->name('settings.security.update');
 
         Route::get('modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::get('modules/{module}', [ModuleController::class, 'show'])->name('modules.show');

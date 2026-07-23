@@ -6,6 +6,8 @@ use App\Models\User;
 use Core\Admin\Navigation\AdminNavigation;
 use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Admin\Services\AdminNotificationService;
+use Core\Notifications\Services\NotificationPreferenceService;
+use Core\Notifications\Services\NotificationService;
 use Core\Client\Navigation\ClientNavigation;
 use Core\Clients\Models\Client;
 use Core\Clients\Services\ClientService;
@@ -37,6 +39,7 @@ use Core\Billing\Services\RenewalInvoiceService;
 use Core\Billing\Services\TaxCalculationService;
 use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
+use Core\Settings\Services\SettingsService;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
 use Core\Marketplace\Services\MarketplaceCatalogCache;
@@ -229,6 +232,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AdminNavigation::class);
         $this->app->singleton(ClientNavigation::class);
         $this->app->singleton(AdminNotificationService::class);
+        $this->app->singleton(NotificationPreferenceService::class);
+        $this->app->singleton(NotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
         $this->app->singleton(ModuleStateRepository::class);
         $this->app->singleton(ModuleSandbox::class);
@@ -293,6 +298,7 @@ class CoreServiceProvider extends ServiceProvider
             ModuleListCommand::class,
         ]);
         $this->app->singleton(LicenseSettings::class);
+        $this->app->singleton(SettingsService::class);
         $this->app->singleton(LicenseValidationService::class);
         $this->app->singleton(EntitlementService::class);
         $this->app->singleton(ClientService::class);

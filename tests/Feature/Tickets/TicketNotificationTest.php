@@ -5,6 +5,7 @@ namespace Tests\Feature\Tickets;
 use App\Models\User;
 use Core\Clients\Enums\ClientMembershipRole;
 use Core\Clients\Models\Client;
+use Core\Notifications\Services\NotificationPreferenceService;
 use Core\Tickets\DataTransferObjects\TicketData;
 use Core\Tickets\Events\TicketCreated;
 use Core\Tickets\Events\TicketReplied;
@@ -197,6 +198,42 @@ class TicketNotificationTest extends TestCase
         );
 
         Notification::assertNotSentTo($staff, TicketReplyNotification::class);
+    }
+
+    public function test_staff_reply_skips_client_when_ticket_mail_disabled(): void
+    {
+        Notification::fake();
+
+        $owner = User::factory()->create();
+        app(NotificationPreferenceService::class)->update($owner, [
+            'channels' => ['mail' => true, 'database' => true],
+            'categories' => [
+                'billing' => ['mail' => true, 'database' => true],
+                'tickets' => ['mail' => false, 'database' => true],
+                'services' => ['mail' => true, 'database' => true],
+            ],
+        ]);
+
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $client->users()->attach($owner->id, [
+            'role' => ClientMembershipRole::Owner->value,
+        ]);
+        $staff = User::factory()->withRole('support')->create();
+        $ticket = Ticket::factory()->create([
+            'client_id' => $client->id,
+            'subject' => 'Opt-out ticket',
+        ]);
+        $message = $ticket->messages()->create([
+            'user_id' => $staff->id,
+            'message' => 'We are investigating.',
+            'created_at' => now(),
+        ]);
+
+        app(NotifyParticipantsOnTicketReplied::class)->handle(
+            new TicketReplied($ticket, $message, $staff),
+        );
+
+        Notification::assertNotSentTo($owner, TicketReplyNotification::class);
     }
 
     public function test_notifications_can_be_disabled(): void

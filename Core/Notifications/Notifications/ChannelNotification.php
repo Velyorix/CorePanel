@@ -1,0 +1,91 @@
+<?php
+
+namespace Core\Notifications\Notifications;
+
+use Core\Notifications\Services\NotificationPreferenceService;
+use Core\Notifications\Services\NotificationService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+/**
+ * Simple multi-channel notification (mail + database by default).
+ */
+class ChannelNotification extends Notification
+{
+    use Queueable;
+
+    /**
+     * @param  list<string>|null  $channels
+     * @param  array<string, mixed>  $meta
+     */
+    public function __construct(
+        public readonly string $title,
+        public readonly string $message,
+        public readonly array $meta = [],
+        private readonly ?array $channels = null,
+        public readonly ?string $actionUrl = null,
+        public readonly ?string $actionLabel = null,
+        public readonly ?string $category = null,
+    ) {
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @param  list<string>|null  $channels
+     */
+    public static function make(
+        string $title,
+        string $message,
+        array $meta = [],
+        ?array $channels = null,
+        ?string $actionUrl = null,
+        ?string $actionLabel = null,
+        ?string $category = null,
+    ): self {
+        return new self($title, $message, $meta, $channels, $actionUrl, $actionLabel, $category);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function via(object $notifiable): array
+    {
+        $channels = $this->channels !== null && $this->channels !== []
+            ? array_values($this->channels)
+            : app(NotificationService::class)->defaultChannels();
+
+        return app(NotificationPreferenceService::class)
+            ->filterChannels($notifiable, $channels, $this->category);
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $appName = (string) config('corepanel.name', config('app.name'));
+
+        return (new MailMessage)
+            ->subject($this->title)
+            ->markdown('mail.notifications.channel', [
+                'title' => $this->title,
+                'message' => $this->message,
+                'actionUrl' => $this->actionUrl,
+                'actionLabel' => $this->actionLabel,
+                'appName' => $appName,
+            ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => $this->title,
+            'message' => $this->message,
+            'meta' => $this->meta,
+            'action_url' => $this->actionUrl,
+            'action_label' => $this->actionLabel,
+            'category' => $this->category,
+        ];
+    }
+}

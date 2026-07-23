@@ -17,10 +17,15 @@ use Throwable;
 /**
  * HTTP client for the corepanel.org marketplace catalogue and versions API.
  *
- * Requires a Bearer API token with the marketplace:read scope.
+ * Responses are cached locally (Redis by default) with a configurable TTL.
  */
 class MarketplaceClient
 {
+    public function __construct(
+        private readonly MarketplaceCatalogCache $cache,
+    ) {
+    }
+
     /**
      * List marketplace products (paginated catalogue).
      *
@@ -37,9 +42,14 @@ class MarketplaceClient
     public function listProducts(array $filters = []): MarketplaceCatalogPage
     {
         $query = $this->catalogQuery($filters);
-        $response = $this->get('marketplace/products', $query);
 
-        return MarketplaceCatalogPage::fromResponse($this->json($response));
+        /** @var array<string, mixed> $payload */
+        $payload = $this->cache->remember(
+            $this->cache->productsKey($query),
+            fn (): array => $this->fetchJson('marketplace/products', $query),
+        );
+
+        return MarketplaceCatalogPage::fromResponse($payload);
     }
 
     /**
@@ -47,12 +57,21 @@ class MarketplaceClient
      */
     public function getProduct(string $productSlug): MarketplaceProduct
     {
-        $slug = $this->normalizeSlug($productSlug);
-        $response = $this->get('marketplace/products/'.$slug);
-        $payload = $this->json($response);
-        $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+        $slug = $this->assertSlug($productSlug);
 
-        return MarketplaceProduct::fromArray($data);
+        /** @var array<string, mixed> $payload */
+        $payload = $this->cache->remember(
+            $this->cache->productKey($slug),
+            function () use ($slug): array {
+                $responsePayload = $this->fetchJson('marketplace/products/'.$this->encodePathSegment($slug));
+
+                return is_array($responsePayload['data'] ?? null)
+                    ? $responsePayload['data']
+                    : $responsePayload;
+            },
+        );
+
+        return MarketplaceProduct::fromArray($payload);
     }
 
     /**
@@ -60,10 +79,17 @@ class MarketplaceClient
      */
     public function listVersions(string $productSlug): MarketplaceVersionList
     {
-        $slug = $this->normalizeSlug($productSlug);
-        $response = $this->get('marketplace/products/'.$slug.'/versions');
+        $slug = $this->assertSlug($productSlug);
 
-        return MarketplaceVersionList::fromResponse($this->json($response));
+        /** @var array<string, mixed> $payload */
+        $payload = $this->cache->remember(
+            $this->cache->versionsKey($slug),
+            fn (): array => $this->fetchJson(
+                'marketplace/products/'.$this->encodePathSegment($slug).'/versions',
+            ),
+        );
+
+        return MarketplaceVersionList::fromResponse($payload);
     }
 
     /**
@@ -71,18 +97,59 @@ class MarketplaceClient
      */
     public function getVersion(string $productSlug, string $version): MarketplaceProductVersion
     {
-        $slug = $this->normalizeSlug($productSlug);
+        $slug = $this->assertSlug($productSlug);
         $version = trim($version);
 
         if ($version === '') {
             throw new \InvalidArgumentException('Marketplace version cannot be empty.');
         }
 
-        $response = $this->get('marketplace/products/'.$slug.'/versions/'.rawurlencode($version));
-        $payload = $this->json($response);
-        $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+        /** @var array<string, mixed> $payload */
+        $payload = $this->cache->remember(
+            $this->cache->versionKey($slug, $version),
+            function () use ($slug, $version): array {
+                $responsePayload = $this->fetchJson(
+                    'marketplace/products/'
+                    .$this->encodePathSegment($slug)
+                    .'/versions/'
+                    .$this->encodePathSegment($version),
+                );
 
-        return MarketplaceProductVersion::fromArray($data);
+                return is_array($responsePayload['data'] ?? null)
+                    ? $responsePayload['data']
+                    : $responsePayload;
+            },
+        );
+
+        return MarketplaceProductVersion::fromArray($payload);
+    }
+
+    /**
+     * Drop the local catalogue cache (all entries).
+     */
+    public function flushCache(): void
+    {
+        $this->cache->flush();
+    }
+
+    /**
+     * Drop cached payloads for one product (detail + versions).
+     */
+    public function forgetProductCache(string $productSlug): void
+    {
+        $slug = $this->assertSlug($productSlug);
+
+        $this->cache->forget($this->cache->productKey($slug));
+        $this->cache->forget($this->cache->versionsKey($slug));
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function fetchJson(string $path, array $query = []): array
+    {
+        return $this->json($this->get($path, $query));
     }
 
     /**
@@ -165,7 +232,7 @@ class MarketplaceClient
         return $query;
     }
 
-    private function normalizeSlug(string $productSlug): string
+    private function assertSlug(string $productSlug): string
     {
         $slug = trim($productSlug);
 
@@ -173,7 +240,12 @@ class MarketplaceClient
             throw new \InvalidArgumentException('Marketplace product slug cannot be empty.');
         }
 
-        return rawurlencode($slug);
+        return $slug;
+    }
+
+    private function encodePathSegment(string $value): string
+    {
+        return rawurlencode($value);
     }
 
     private function endpoint(string $path): string

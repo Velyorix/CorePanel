@@ -78,6 +78,12 @@ return [
 
     'marketplace' => [
         'enabled' => filter_var(env('COREPANEL_MARKETPLACE_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'cache' => [
+            'enabled' => filter_var(env('COREPANEL_MARKETPLACE_CACHE_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'store' => env('COREPANEL_MARKETPLACE_CACHE_STORE', 'redis'),
+            'prefix' => env('COREPANEL_MARKETPLACE_CACHE_PREFIX', 'corepanel.marketplace'),
+            'ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_CACHE_TTL', 3600),
+        ],
     ],
 
     /*

@@ -23,6 +23,7 @@ class MarketplaceClientTest extends TestCase
             'corepanel.org.api_token' => 'cpat_test_token_12345678901234567890',
             'corepanel.org.timeout_seconds' => 10,
             'corepanel.marketplace.enabled' => true,
+            'corepanel.marketplace.cache.enabled' => false,
         ]);
     }
 

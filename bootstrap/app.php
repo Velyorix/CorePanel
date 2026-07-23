@@ -9,6 +9,9 @@ use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnforceMaintenanceMode;
+use App\Http\Middleware\Api\AssignRequestId;
+use App\Http\Middleware\Api\ForceJsonResponse;
+use App\Http\Middleware\Api\SetApiVersion;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAuthenticatedSession;
 use Core\Themes\Http\Middleware\ApplyEffectiveTheme;
@@ -60,6 +63,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'client' => EnsureClient::class,
             'license.valid' => EnsureValidLicense::class,
+            'api.forceJson' => ForceJsonResponse::class,
+            'api.requestId' => AssignRequestId::class,
+            'api.version' => SetApiVersion::class,
         ]);
 
         $middleware->group('admin', [
@@ -72,6 +78,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'web',
             EnsureClient::class,
             EnsureValidLicense::class,
+        ]);
+
+        $middleware->group('api.v1', [
+            ForceJsonResponse::class,
+            AssignRequestId::class,
+            SetApiVersion::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

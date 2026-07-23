@@ -1084,4 +1084,29 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public REST API
+    |--------------------------------------------------------------------------
+    |
+    | Versioned routes live under /api/{prefix}. Auth, scopes, rate-limit
+    | headers, and response envelopes are layered in later increments.
+    |
+    */
+
+    'api' => [
+        'version' => env('COREPANEL_API_VERSION', 'v1'),
+        'prefix' => env('COREPANEL_API_PREFIX', 'v1'),
+        'request_id_header' => env('COREPANEL_API_REQUEST_ID_HEADER', 'X-Request-Id'),
+        'version_header' => env('COREPANEL_API_VERSION_HEADER', 'X-Api-Version'),
+        'rate_limit' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_RATE_LIMIT_ENABLED', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'max_attempts' => (int) env('COREPANEL_API_RATE_LIMIT_MAX', 60),
+            'decay_seconds' => (int) env('COREPANEL_API_RATE_LIMIT_DECAY', 60),
+        ],
+    ],
+
 ];

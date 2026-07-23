@@ -247,6 +247,45 @@ class ClientTicketUiTest extends TestCase
         );
     }
 
+    public function test_client_cannot_download_another_clients_attachment(): void
+    {
+        [$user] = $this->makeClientUser();
+        $otherClient = Client::factory()->create();
+        $ticket = Ticket::factory()->create(['client_id' => $otherClient->id]);
+
+        $stored = app(TicketAttachmentService::class)->storeMany($ticket, [
+            UploadedFile::fake()->create('secret.txt', 4, 'text/plain'),
+        ]);
+
+        TicketMessage::factory()->create([
+            'ticket_id' => $ticket->id,
+            'message' => 'Private attachment',
+            'attachments' => $stored,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('client.tickets.attachments.download', [$ticket, $stored[0]['id']]))
+            ->assertNotFound();
+    }
+
+    public function test_guest_cannot_download_ticket_attachment(): void
+    {
+        $ticket = Ticket::factory()->create();
+
+        $stored = app(TicketAttachmentService::class)->storeMany($ticket, [
+            UploadedFile::fake()->create('guest.txt', 3, 'text/plain'),
+        ]);
+
+        TicketMessage::factory()->create([
+            'ticket_id' => $ticket->id,
+            'message' => 'Needs auth',
+            'attachments' => $stored,
+        ]);
+
+        $this->get(route('client.tickets.attachments.download', [$ticket, $stored[0]['id']]))
+            ->assertRedirect(route('login'));
+    }
+
     public function test_admin_without_client_access_cannot_view_client_tickets(): void
     {
         $admin = User::factory()->withRole('admin')->create();

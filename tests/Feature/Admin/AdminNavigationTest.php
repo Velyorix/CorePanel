@@ -64,6 +64,7 @@ class AdminNavigationTest extends TestCase
             __('Invoices'),
             __('Support'),
             __('Tickets'),
+            __('Knowledge base'),
             __('Infrastructure'),
             __('Nodes'),
             __('Orders'),
@@ -143,6 +144,7 @@ class AdminNavigationTest extends TestCase
 
         $this->assertContains(__('Clients'), $labels);
         $this->assertContains(__('Tickets'), $labels);
+        $this->assertContains(__('Knowledge base'), $labels);
         $this->assertContains(__('Products'), $labels);
         $this->assertContains(__('Catalog'), $labels);
         $this->assertContains(__('Orders'), $labels);

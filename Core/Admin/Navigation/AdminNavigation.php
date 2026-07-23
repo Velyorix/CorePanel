@@ -158,6 +158,12 @@ class AdminNavigation
                         'permission' => 'tickets.view',
                     ],
                     [
+                        'label' => __('Knowledge base'),
+                        'route' => 'admin.kb-articles.index',
+                        'routeIs' => ['admin.kb-articles.*', 'admin.kb-categories.*'],
+                        'permission' => 'kb.view',
+                    ],
+                    [
                         'label' => __('Departments'),
                         'route' => null,
                         'permission' => 'tickets.view',

@@ -35,6 +35,9 @@ use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\ThemeController;
 use App\Http\Controllers\Admin\TicketActionController;
 use App\Http\Controllers\Admin\TicketController;
+use App\Http\Controllers\Admin\KbArticleController;
+use App\Http\Controllers\Admin\KbArticleStatusController;
+use App\Http\Controllers\Admin\KbCategoryController;
 use App\Http\Controllers\Admin\SyncLogController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterActionController;
 use App\Http\Controllers\Admin\ProvisioningDeadLetterController;
@@ -208,6 +211,24 @@ Route::middleware('admin')
         Route::post('tickets/{ticket}/priority', [TicketActionController::class, 'priority'])->name('tickets.priority');
         Route::get('tickets/{ticket}/attachments/{attachmentId}', [TicketActionController::class, 'downloadAttachment'])
             ->name('tickets.attachments.download');
+
+        Route::get('kb/articles', [KbArticleController::class, 'index'])->name('kb-articles.index');
+        Route::get('kb/articles/create', [KbArticleController::class, 'create'])->name('kb-articles.create');
+        Route::post('kb/articles', [KbArticleController::class, 'store'])->name('kb-articles.store');
+        Route::get('kb/articles/{kbArticle}', [KbArticleController::class, 'show'])->name('kb-articles.show');
+        Route::get('kb/articles/{kbArticle}/edit', [KbArticleController::class, 'edit'])->name('kb-articles.edit');
+        Route::put('kb/articles/{kbArticle}', [KbArticleController::class, 'update'])->name('kb-articles.update');
+        Route::delete('kb/articles/{kbArticle}', [KbArticleController::class, 'destroy'])->name('kb-articles.destroy');
+        Route::post('kb/articles/{kbArticle}/publish', [KbArticleStatusController::class, 'publish'])->name('kb-articles.publish');
+        Route::post('kb/articles/{kbArticle}/unpublish', [KbArticleStatusController::class, 'unpublish'])->name('kb-articles.unpublish');
+        Route::post('kb/articles/{kbArticle}/archive', [KbArticleStatusController::class, 'archive'])->name('kb-articles.archive');
+
+        Route::get('kb/categories', [KbCategoryController::class, 'index'])->name('kb-categories.index');
+        Route::get('kb/categories/create', [KbCategoryController::class, 'create'])->name('kb-categories.create');
+        Route::post('kb/categories', [KbCategoryController::class, 'store'])->name('kb-categories.store');
+        Route::get('kb/categories/{kbCategory}/edit', [KbCategoryController::class, 'edit'])->name('kb-categories.edit');
+        Route::put('kb/categories/{kbCategory}', [KbCategoryController::class, 'update'])->name('kb-categories.update');
+        Route::delete('kb/categories/{kbCategory}', [KbCategoryController::class, 'destroy'])->name('kb-categories.destroy');
 
         Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
         Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');

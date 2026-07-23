@@ -90,7 +90,11 @@ use Core\Products\Services\ProductService;
 use Core\Permissions\Models\Role;
 use Core\Permissions\Policies\ClientPolicy;
 use Core\Permissions\Policies\InvoicePolicy;
+use Core\Permissions\Policies\KbArticlePolicy;
+use Core\Permissions\Policies\KbCategoryPolicy;
 use Core\Permissions\Policies\TicketPolicy;
+use Core\KnowledgeBase\Models\KbArticle;
+use Core\KnowledgeBase\Models\KbCategory;
 use Core\Nodes\Models\NodeCluster;
 use Core\Nodes\Models\NodeGroup;
 use Core\Permissions\Policies\NodeClusterPolicy;
@@ -395,6 +399,8 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(Service::class, ServicePolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(KbArticle::class, KbArticlePolicy::class);
+        Gate::policy(KbCategory::class, KbCategoryPolicy::class);
         Gate::policy(Quote::class, QuotePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\Client\ServiceActionController;
 use App\Http\Controllers\Client\ServiceController;
 use App\Http\Controllers\Client\TicketActionController;
 use App\Http\Controllers\Client\TicketController;
+use App\Http\Controllers\Client\KnowledgeBaseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -78,6 +79,9 @@ Route::middleware('client')
         Route::post('tickets/{ticket}/reply', [TicketActionController::class, 'reply'])->name('tickets.reply');
         Route::get('tickets/{ticket}/attachments/{attachmentId}', [TicketActionController::class, 'downloadAttachment'])
             ->name('tickets.attachments.download');
+
+        Route::get('kb', [KnowledgeBaseController::class, 'index'])->name('kb.index');
+        Route::get('kb/{slug}', [KnowledgeBaseController::class, 'show'])->name('kb.show');
 
         Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
         Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');

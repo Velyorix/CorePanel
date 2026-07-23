@@ -173,6 +173,12 @@ class ClientNavigation
                         'routeIs' => ['client.tickets.index', 'client.tickets.show'],
                         'permission' => 'client.tickets.view',
                     ],
+                    [
+                        'label' => __('Knowledge base'),
+                        'route' => 'client.kb.index',
+                        'routeIs' => ['client.kb.*'],
+                        'permission' => 'client.kb.view',
+                    ],
                 ],
             ],
             [

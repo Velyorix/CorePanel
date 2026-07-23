@@ -1099,6 +1099,8 @@ return [
         'prefix' => env('COREPANEL_API_PREFIX', 'v1'),
         'request_id_header' => env('COREPANEL_API_REQUEST_ID_HEADER', 'X-Request-Id'),
         'version_header' => env('COREPANEL_API_VERSION_HEADER', 'X-Api-Version'),
+        'token_prefix' => env('COREPANEL_API_TOKEN_PREFIX', 'cpat_'),
+        'token_entropy_length' => (int) env('COREPANEL_API_TOKEN_ENTROPY_LENGTH', 40),
         'rate_limit' => [
             'enabled' => filter_var(
                 env('COREPANEL_API_RATE_LIMIT_ENABLED', false),

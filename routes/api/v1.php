@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PingController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,3 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::match(['GET', 'POST'], 'ping', PingController::class)->name('ping');
+
+Route::middleware('api.auth')->group(function (): void {
+    Route::get('me', MeController::class)->name('me');
+});

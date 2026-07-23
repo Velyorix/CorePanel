@@ -13,6 +13,8 @@ use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\QuoteController;
 use App\Http\Controllers\Client\ServiceActionController;
 use App\Http\Controllers\Client\ServiceController;
+use App\Http\Controllers\Client\TicketActionController;
+use App\Http\Controllers\Client\TicketController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -68,6 +70,14 @@ Route::middleware('client')
         Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
         Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
         Route::post('invoices/{invoice}/pay', [InvoicePaymentController::class, 'pay'])->name('invoices.pay');
+
+        Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
+        Route::get('tickets/create', [TicketController::class, 'create'])->name('tickets.create');
+        Route::post('tickets', [TicketController::class, 'store'])->name('tickets.store');
+        Route::get('tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+        Route::post('tickets/{ticket}/reply', [TicketActionController::class, 'reply'])->name('tickets.reply');
+        Route::get('tickets/{ticket}/attachments/{attachmentId}', [TicketActionController::class, 'downloadAttachment'])
+            ->name('tickets.attachments.download');
 
         Route::get('quotes', [QuoteController::class, 'index'])->name('quotes.index');
         Route::get('quotes/{quote}', [QuoteController::class, 'show'])->name('quotes.show');

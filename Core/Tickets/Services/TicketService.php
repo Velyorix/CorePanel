@@ -5,6 +5,7 @@ namespace Core\Tickets\Services;
 use Core\Auth\Models\User;
 use Core\Clients\Models\Client;
 use Core\Tickets\DataTransferObjects\TicketData;
+use Core\Tickets\Enums\TicketCategoryStatus;
 use Core\Tickets\Enums\TicketPriority;
 use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
@@ -97,6 +98,82 @@ class TicketService
             ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * @param  array{
+     *     q?: string|null,
+     *     status?: TicketStatus|null,
+     *     priority?: TicketPriority|null,
+     *     sort?: string,
+     *     dir?: string
+     * }  $filters
+     * @return LengthAwarePaginator<int, Ticket>
+     */
+    public function paginateForClient(Client $client, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $search = $filters['q'] ?? null;
+        $status = $filters['status'] ?? null;
+        $priority = $filters['priority'] ?? null;
+        $sort = $filters['sort'] ?? 'created_at';
+        $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sort, [
+            'ticket_number',
+            'subject',
+            'status',
+            'priority',
+            'created_at',
+            'updated_at',
+        ], true)) {
+            $sort = 'created_at';
+        }
+
+        $query = Ticket::query()
+            ->where('client_id', $client->id)
+            ->with(['category']);
+
+        if ($status instanceof TicketStatus) {
+            $query->where('status', $status->value);
+        }
+
+        if ($priority instanceof TicketPriority) {
+            $query->where('priority', $priority->value);
+        }
+
+        if (filled($search)) {
+            $term = '%'.$search.'%';
+
+            $query->where(function ($builder) use ($search, $term): void {
+                $builder
+                    ->where('ticket_number', 'like', $term)
+                    ->orWhere('subject', 'like', $term);
+
+                if (ctype_digit($search)) {
+                    $builder->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        return $query
+            ->orderBy($sort, $dir)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Active categories available when opening a ticket.
+     *
+     * @return EloquentCollection<int, TicketCategory>
+     */
+    public function activeCategories(): EloquentCollection
+    {
+        return TicketCategory::query()
+            ->where('status', TicketCategoryStatus::Active->value)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     /**

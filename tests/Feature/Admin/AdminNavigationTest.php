@@ -23,7 +23,10 @@ class AdminNavigationTest extends TestCase
             'corepanel.rbac.cache.enabled' => true,
             'corepanel.rbac.cache.store' => 'array',
             'corepanel.rbac.cache.prefix' => 'test.rbac.admin-nav',
+            'corepanel.themes.auto_load_active' => false,
         ]);
+
+        $this->withoutVite();
     }
 
     public function test_navigation_includes_tome6_structure_and_wired_rbac_routes(): void
@@ -81,6 +84,7 @@ class AdminNavigationTest extends TestCase
         $catalogItem = $flatItems->firstWhere('label', __('Catalog'));
         $categoriesItem = $flatItems->firstWhere('label', __('Categories'));
         $ordersItem = $flatItems->firstWhere('label', __('Orders'));
+        $marketplaceItem = $flatItems->firstWhere('label', __('Marketplace'));
 
         $this->assertNotNull($dashboardItem);
         $this->assertFalse($dashboardItem['placeholder']);
@@ -105,6 +109,10 @@ class AdminNavigationTest extends TestCase
         $this->assertNotNull($ordersItem);
         $this->assertFalse($ordersItem['placeholder']);
         $this->assertSame(route('admin.orders.index'), $ordersItem['url']);
+
+        $this->assertNotNull($marketplaceItem);
+        $this->assertFalse($marketplaceItem['placeholder']);
+        $this->assertSame(route('admin.marketplace.index'), $marketplaceItem['url']);
 
         $servicesItem = $flatItems->firstWhere('label', __('Services'));
         $this->assertNotNull($servicesItem);

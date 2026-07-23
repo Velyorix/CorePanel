@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoiceActionController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LicenseController;
+use App\Http\Controllers\Admin\MarketplaceController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\NodeClusterController;
@@ -68,6 +69,12 @@ Route::middleware('admin')
         Route::post('modules/{module}/disable', [ModuleController::class, 'disable'])->name('modules.disable');
         Route::put('modules/{module}/config', [ModuleController::class, 'updateConfig'])->name('modules.config');
         Route::delete('modules/{module}', [ModuleController::class, 'uninstall'])->name('modules.uninstall');
+
+        Route::get('marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
+        Route::get('marketplace/updates', [MarketplaceController::class, 'updates'])->name('marketplace.updates');
+        Route::post('marketplace/updates/check', [MarketplaceController::class, 'checkUpdates'])->name('marketplace.updates.check');
+        Route::get('marketplace/{product}', [MarketplaceController::class, 'show'])->name('marketplace.show');
+        Route::post('marketplace/{product}/install', [MarketplaceController::class, 'install'])->name('marketplace.install');
 
         Route::get('themes', [ThemeController::class, 'index'])->name('themes.index');
         Route::get('themes/{theme}', [ThemeController::class, 'show'])->name('themes.show');

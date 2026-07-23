@@ -42,6 +42,9 @@ use Core\License\Services\LicenseValidationService;
 use Core\Marketplace\Services\MarketplaceCatalogCache;
 use Core\Marketplace\Services\MarketplaceClient;
 use Core\Marketplace\Services\MarketplaceEntitlementGuard;
+use Core\Marketplace\Services\MarketplaceInstaller;
+use Core\Marketplace\Services\MarketplacePackageDownloader;
+use Core\Marketplace\Services\MarketplacePackageExtractor;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
 use Core\Nodes\Services\NodeLoadBalancingService;
 use Core\Nodes\Services\NodeOverloadService;
@@ -234,6 +237,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(MarketplaceCatalogCache::class);
         $this->app->singleton(MarketplaceClient::class);
         $this->app->singleton(MarketplaceEntitlementGuard::class);
+        $this->app->singleton(MarketplacePackageDownloader::class);
+        $this->app->singleton(MarketplacePackageExtractor::class);
+        $this->app->singleton(MarketplaceInstaller::class);
 
         $this->commands([
             ThemeMakeCommand::class,

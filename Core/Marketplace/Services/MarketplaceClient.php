@@ -2,7 +2,9 @@
 
 namespace Core\Marketplace\Services;
 
+use Core\License\Services\LicenseSettings;
 use Core\Marketplace\DataTransferObjects\MarketplaceCatalogPage;
+use Core\Marketplace\DataTransferObjects\MarketplaceDownloadDescriptor;
 use Core\Marketplace\DataTransferObjects\MarketplaceProduct;
 use Core\Marketplace\DataTransferObjects\MarketplaceProductVersion;
 use Core\Marketplace\DataTransferObjects\MarketplaceVersionList;
@@ -23,6 +25,7 @@ class MarketplaceClient
 {
     public function __construct(
         private readonly MarketplaceCatalogCache $cache,
+        private readonly ?LicenseSettings $licenseSettings = null,
     ) {
     }
 
@@ -125,6 +128,50 @@ class MarketplaceClient
     }
 
     /**
+     * Request a temporary download descriptor for a product version archive.
+     *
+     * Not cached — download URLs are short-lived signed links.
+     */
+    public function requestDownload(string $productSlug, string $version): MarketplaceDownloadDescriptor
+    {
+        $slug = $this->assertSlug($productSlug);
+        $version = trim($version);
+
+        if ($version === '') {
+            throw new \InvalidArgumentException('Marketplace version cannot be empty.');
+        }
+
+        $path = 'marketplace/products/'
+            .$this->encodePathSegment($slug)
+            .'/versions/'
+            .$this->encodePathSegment($version)
+            .'/download';
+
+        $response = $this->get($path, allowRedirects: false);
+
+        if ($response->redirect()) {
+            $location = $response->header('Location');
+
+            if (! is_string($location) || trim($location) === '') {
+                throw MarketplaceApiException::fromResponse(
+                    ['error' => ['code' => 'bad_request', 'message' => 'Download redirect is missing a Location header.']],
+                    $response->status(),
+                );
+            }
+
+            return MarketplaceDownloadDescriptor::fromArray([
+                'download_url' => $location,
+                'filename' => basename(parse_url($location, PHP_URL_PATH) ?: 'package.zip'),
+            ]);
+        }
+
+        $payload = $this->json($response);
+        $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+
+        return MarketplaceDownloadDescriptor::fromArray($data);
+    }
+
+    /**
      * Drop the local catalogue cache (all entries).
      */
     public function flushCache(): void
@@ -155,10 +202,15 @@ class MarketplaceClient
     /**
      * @param  array<string, mixed>  $query
      */
-    private function get(string $path, array $query = []): Response
+    private function get(string $path, array $query = [], bool $allowRedirects = true): Response
     {
         try {
             $request = $this->httpClient();
+
+            if (! $allowRedirects) {
+                $request = $request->withOptions(['allow_redirects' => false]);
+            }
+
             $url = $this->endpoint($path);
 
             $response = $query === []
@@ -174,7 +226,7 @@ class MarketplaceClient
             throw $exception;
         }
 
-        if ($response->successful()) {
+        if ($response->successful() || $response->redirect()) {
             return $response;
         }
 
@@ -258,6 +310,7 @@ class MarketplaceClient
         $client = Http::acceptJson()
             ->asJson()
             ->withToken($this->apiToken())
+            ->withHeaders($this->instanceHeaders())
             ->timeout((int) config('corepanel.org.timeout_seconds', 10));
 
         $caBundle = $this->normalizedCaBundlePath();
@@ -271,6 +324,27 @@ class MarketplaceClient
         }
 
         return $client;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function instanceHeaders(): array
+    {
+        $headers = [];
+
+        $licenseKey = $this->licenseSettings?->licenseKey();
+        $instanceId = $this->licenseSettings?->instanceId();
+
+        if (is_string($licenseKey) && $licenseKey !== '') {
+            $headers['X-CorePanel-License-Key'] = $licenseKey;
+        }
+
+        if (is_string($instanceId) && $instanceId !== '') {
+            $headers['X-CorePanel-Instance-Id'] = $instanceId;
+        }
+
+        return $headers;
     }
 
     private function apiToken(): string

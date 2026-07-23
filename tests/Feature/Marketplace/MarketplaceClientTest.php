@@ -319,4 +319,26 @@ class MarketplaceClientTest extends TestCase
             return str_starts_with($request->url(), 'https://staging.corepanel.test/api/v1/marketplace/products');
         });
     }
+
+    public function test_request_download_returns_temporary_archive_descriptor(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products/demo/versions/1.0.0/download' => Http::response([
+                'data' => [
+                    'download_url' => 'https://cdn.corepanel.test/demo-1.0.0.zip?token=abc',
+                    'filename' => 'demo-1.0.0.zip',
+                    'checksum_sha256' => str_repeat('b', 64),
+                    'size_bytes' => 2048,
+                    'expires_at' => '2026-07-23T12:00:00+00:00',
+                ],
+            ], 200),
+        ]);
+
+        $descriptor = app(MarketplaceClient::class)->requestDownload('demo', '1.0.0');
+
+        $this->assertSame('https://cdn.corepanel.test/demo-1.0.0.zip?token=abc', $descriptor->downloadUrl);
+        $this->assertSame('demo-1.0.0.zip', $descriptor->filename);
+        $this->assertSame(str_repeat('b', 64), $descriptor->checksumSha256);
+        $this->assertSame(2048, $descriptor->sizeBytes);
+    }
 }

@@ -91,6 +91,10 @@ return [
                 FILTER_VALIDATE_BOOL,
             ),
         ],
+        'install' => [
+            'temp_path' => env('COREPANEL_MARKETPLACE_TEMP_PATH', storage_path('app/marketplace/tmp')),
+            'download_timeout_seconds' => (int) env('COREPANEL_MARKETPLACE_DOWNLOAD_TIMEOUT', 120),
+        ],
     ],
 
     /*

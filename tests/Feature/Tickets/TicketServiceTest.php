@@ -14,7 +14,9 @@ use Core\Tickets\Models\TicketCategory;
 use Core\Tickets\Models\TicketMessage;
 use Core\Tickets\Services\TicketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use RuntimeException;
 use Tests\TestCase;
@@ -31,12 +33,24 @@ class TicketServiceTest extends TestCase
 
         $this->tickets = app(TicketService::class);
 
+        Storage::fake('local');
+
         config([
             'corepanel.tickets.numbering.prefix' => 'TK',
             'corepanel.tickets.numbering.padding' => 5,
             'corepanel.tickets.numbering.include_year' => true,
             'corepanel.tickets.numbering.reset_yearly' => true,
             'corepanel.tickets.numbering.separator' => '-',
+            'corepanel.tickets.attachments.disk' => 'local',
+            'corepanel.tickets.attachments.path_prefix' => 'tickets',
+            'corepanel.tickets.attachments.max_files' => 5,
+            'corepanel.tickets.attachments.max_kilobytes' => 5120,
+            'corepanel.tickets.attachments.allowed_extensions' => ['png', 'txt', 'pdf'],
+            'corepanel.tickets.attachments.allowed_mimes' => [
+                'image/png',
+                'text/plain',
+                'application/pdf',
+            ],
         ]);
     }
 
@@ -214,38 +228,64 @@ class TicketServiceTest extends TestCase
         $this->assertSame(TicketPriority::Urgent, $updated->priority);
     }
 
-    public function test_create_stores_attachment_metadata_list(): void
+    public function test_create_stores_uploaded_attachments(): void
     {
         $owner = User::factory()->create();
         $client = Client::factory()->create(['user_id' => $owner->id]);
+        $file = UploadedFile::fake()->image('screenshot.png', 40, 40);
 
         $ticket = $this->tickets->create($client, $owner, TicketData::fromArray([
-            'subject' => 'With attachment meta',
+            'subject' => 'With attachment',
             'message' => 'See file',
-            'attachments' => [
-                ['name' => 'screenshot.png', 'size' => 1200],
-            ],
+            'files' => [$file],
         ]));
 
-        $this->assertSame(
-            [['name' => 'screenshot.png', 'size' => 1200]],
-            $ticket->messages->first()->attachments,
-        );
+        $attachments = $ticket->messages->first()->attachments;
+
+        $this->assertIsArray($attachments);
+        $this->assertCount(1, $attachments);
+        $this->assertSame('screenshot.png', $attachments[0]['original_name']);
+        $this->assertSame('local', $attachments[0]['disk']);
+        Storage::disk('local')->assertExists($attachments[0]['path']);
     }
 
-    public function test_create_rejects_non_list_attachments(): void
+    public function test_create_rejects_non_list_files(): void
     {
         $owner = User::factory()->create();
         $client = Client::factory()->create(['user_id' => $owner->id]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Ticket attachments must be a list.');
+        $this->expectExceptionMessage('Ticket attachment files must be a list.');
 
         $this->tickets->create($client, $owner, new TicketData(
-            subject: 'Bad attachments',
+            subject: 'Bad files',
             message: 'Hello',
-            attachments: ['name' => 'oops.png'],
+            files: ['not-a-file' => UploadedFile::fake()->create('x.txt', 1, 'text/plain')],
         ));
+    }
+
+    public function test_reply_can_attach_files(): void
+    {
+        $owner = User::factory()->create();
+        $client = Client::factory()->create(['user_id' => $owner->id]);
+        $staff = User::factory()->create();
+
+        $ticket = $this->tickets->create($client, $owner, TicketData::fromArray([
+            'subject' => 'Need logs',
+            'message' => 'Initial',
+        ]));
+
+        $reply = $this->tickets->reply(
+            $ticket,
+            $staff,
+            'Here are the logs.',
+            [UploadedFile::fake()->create('server.txt', 8, 'text/plain')],
+        );
+
+        $this->assertCount(1, $reply->attachments);
+        $this->assertSame('server.txt', $reply->attachments[0]['original_name']);
+        Storage::disk('local')->assertExists($reply->attachments[0]['path']);
+        $this->assertSame(TicketStatus::Answered, $ticket->fresh()->status);
     }
 
     protected function tearDown(): void

@@ -972,6 +972,42 @@ return [
             ),
             'separator' => env('COREPANEL_TICKETS_NUMBER_SEPARATOR', '-'),
         ],
+
+        /*
+        | Secure attachment uploads (private disk, allowlisted types).
+        */
+        'attachments' => [
+            'disk' => env('COREPANEL_TICKETS_ATTACHMENTS_DISK', 'local'),
+            'path_prefix' => env('COREPANEL_TICKETS_ATTACHMENTS_PATH', 'tickets'),
+            'max_files' => (int) env('COREPANEL_TICKETS_ATTACHMENTS_MAX_FILES', 5),
+            'max_kilobytes' => (int) env('COREPANEL_TICKETS_ATTACHMENTS_MAX_KB', 5120),
+            'allowed_extensions' => [
+                'pdf',
+                'png',
+                'jpg',
+                'jpeg',
+                'gif',
+                'webp',
+                'txt',
+                'csv',
+                'zip',
+                'doc',
+                'docx',
+            ],
+            'allowed_mimes' => [
+                'application/pdf',
+                'image/png',
+                'image/jpeg',
+                'image/gif',
+                'image/webp',
+                'text/plain',
+                'text/csv',
+                'application/zip',
+                'application/x-zip-compressed',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+        ],
     ],
 
 ];

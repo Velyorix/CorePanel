@@ -10,6 +10,7 @@ use Core\Tickets\Enums\TicketStatus;
 use Core\Tickets\Models\Ticket;
 use Core\Tickets\Models\TicketCategory;
 use Core\Tickets\Models\TicketMessage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
@@ -21,6 +22,7 @@ class TicketService
 {
     public function __construct(
         private readonly TicketNumberService $ticketNumbers,
+        private readonly TicketAttachmentService $attachments,
     ) {
     }
 
@@ -28,7 +30,7 @@ class TicketService
     {
         $this->assertSubject($data->subject);
         $this->assertMessage($data->message);
-        $this->assertAttachments($data->attachments);
+        $this->assertFiles($data->files);
         $this->assertCategoryExists($data->categoryId);
 
         return DB::transaction(function () use ($client, $author, $data): Ticket {
@@ -41,7 +43,21 @@ class TicketService
                 'assigned_to' => null,
             ]);
 
-            $this->storeMessage($ticket, $author, $data->message, $data->attachments);
+            $storedAttachments = null;
+
+            try {
+                if ($data->files !== null && $data->files !== []) {
+                    $storedAttachments = $this->attachments->storeMany($ticket, $data->files);
+                }
+
+                $this->storeMessage($ticket, $author, $data->message, $storedAttachments);
+            } catch (\Throwable $exception) {
+                if ($storedAttachments !== null) {
+                    $this->attachments->deleteStored($storedAttachments);
+                }
+
+                throw $exception;
+            }
 
             $ticket = $this->ticketNumbers->assignNumber($ticket);
 
@@ -50,9 +66,9 @@ class TicketService
     }
 
     /**
-     * @param  list<array<string, mixed>>|null  $attachments
+     * @param  list<UploadedFile>|null  $files
      */
-    public function reply(Ticket $ticket, User $author, string $message, ?array $attachments = null): TicketMessage
+    public function reply(Ticket $ticket, User $author, string $message, ?array $files = null): TicketMessage
     {
         if ($ticket->status->isClosed()) {
             throw new RuntimeException('Closed tickets cannot receive replies. Reopen the ticket first.');
@@ -60,10 +76,24 @@ class TicketService
 
         $message = trim($message);
         $this->assertMessage($message);
-        $this->assertAttachments($attachments);
+        $this->assertFiles($files);
 
-        return DB::transaction(function () use ($ticket, $author, $message, $attachments): TicketMessage {
-            $entry = $this->storeMessage($ticket, $author, $message, $attachments);
+        return DB::transaction(function () use ($ticket, $author, $message, $files): TicketMessage {
+            $storedAttachments = null;
+
+            try {
+                if ($files !== null && $files !== []) {
+                    $storedAttachments = $this->attachments->storeMany($ticket, $files);
+                }
+
+                $entry = $this->storeMessage($ticket, $author, $message, $storedAttachments);
+            } catch (\Throwable $exception) {
+                if ($storedAttachments !== null) {
+                    $this->attachments->deleteStored($storedAttachments);
+                }
+
+                throw $exception;
+            }
 
             $nextStatus = $this->isClientParticipant($ticket, $author)
                 ? TicketStatus::Open
@@ -146,7 +176,7 @@ class TicketService
             'ticket_id' => $ticket->id,
             'user_id' => $author->id,
             'message' => $message,
-            'attachments' => $attachments,
+            'attachments' => $attachments === [] ? null : $attachments,
             'created_at' => now(),
         ]);
     }
@@ -183,16 +213,16 @@ class TicketService
     }
 
     /**
-     * @param  list<array<string, mixed>>|null  $attachments
+     * @param  list<UploadedFile>|null  $files
      */
-    private function assertAttachments(?array $attachments): void
+    private function assertFiles(?array $files): void
     {
-        if ($attachments === null) {
+        if ($files === null) {
             return;
         }
 
-        if (! array_is_list($attachments)) {
-            throw new InvalidArgumentException('Ticket attachments must be a list.');
+        if (! array_is_list($files)) {
+            throw new InvalidArgumentException('Ticket attachment files must be a list.');
         }
     }
 

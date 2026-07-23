@@ -19,6 +19,7 @@ class MarketplaceInstaller
     public function __construct(
         private readonly MarketplaceClient $marketplace,
         private readonly MarketplaceEntitlementGuard $entitlements,
+        private readonly MarketplaceCompatibilityGuard $compatibility,
         private readonly MarketplacePackageDownloader $downloader,
         private readonly MarketplacePackageExtractor $extractor,
         private readonly ModuleManager $modules,
@@ -33,6 +34,7 @@ class MarketplaceInstaller
     {
         $product = $this->entitlements->assertCanInstallSlug($productSlug);
         $resolvedVersion = $this->resolveVersion($product, $version);
+        $this->compatibility->assertCompatible($resolvedVersion, $product);
 
         if (! $resolvedVersion->hasArchive) {
             throw MarketplaceInstallException::archiveMissing($product->slug, $resolvedVersion->version);

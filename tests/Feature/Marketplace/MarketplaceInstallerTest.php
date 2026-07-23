@@ -5,10 +5,12 @@ namespace Tests\Feature\Marketplace;
 use Core\Billing\Services\PaymentGatewayInjector;
 use Core\License\Models\LicenseActivation;
 use Core\License\Services\LicenseSettings;
+use Core\Marketplace\Exceptions\MarketplaceCompatibilityException;
 use Core\Marketplace\Exceptions\MarketplaceEntitlementException;
 use Core\Marketplace\Exceptions\MarketplaceInstallException;
 use Core\Marketplace\Services\MarketplaceCatalogCache;
 use Core\Marketplace\Services\MarketplaceClient;
+use Core\Marketplace\Services\MarketplaceCompatibilityGuard;
 use Core\Marketplace\Services\MarketplaceEntitlementGuard;
 use Core\Marketplace\Services\MarketplaceInstaller;
 use Core\Modules\Models\InstalledModule;
@@ -74,7 +76,9 @@ class MarketplaceInstallerTest extends TestCase
             'corepanel.marketplace.cache.enabled' => false,
             'corepanel.marketplace.entitlements.enforce' => true,
             'corepanel.marketplace.entitlements.allow_free_without_entitlement' => true,
+            'corepanel.marketplace.compatibility.enforce' => true,
             'corepanel.marketplace.install.temp_path' => $this->tempPath,
+            'corepanel.version' => '1.2.0',
         ]);
 
         $this->rebindServices();
@@ -255,6 +259,48 @@ class MarketplaceInstallerTest extends TestCase
         app(MarketplaceInstaller::class)->install('existing-module');
     }
 
+    public function test_blocks_install_when_cms_version_is_incompatible(): void
+    {
+        config(['corepanel.version' => '0.9.0']);
+
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products/needs-v2' => Http::response([
+                'data' => [
+                    'id' => '1',
+                    'sku' => 'MOD_NEEDS_V2',
+                    'slug' => 'needs-v2',
+                    'name' => 'Needs V2',
+                    'product_type' => 'module',
+                    'pricing' => ['is_free' => true, 'amount' => 0, 'currency' => 'EUR'],
+                    'current_version' => '1.0.0',
+                    'compatibility' => ['min_version' => '2.0.0'],
+                ],
+            ], 200),
+            'https://corepanel.org/api/v1/marketplace/products/needs-v2/versions' => Http::response([
+                'product' => ['slug' => 'needs-v2', 'name' => 'Needs V2'],
+                'data' => [[
+                    'id' => 'v1',
+                    'version' => '1.0.0',
+                    'is_latest' => true,
+                    'has_archive' => true,
+                    'compatibility' => ['min_version' => '2.0.0'],
+                ]],
+            ], 200),
+        ]);
+
+        try {
+            app(MarketplaceInstaller::class)->install('needs-v2');
+            $this->fail('Expected MarketplaceCompatibilityException was not thrown.');
+        } catch (MarketplaceCompatibilityException $exception) {
+            $this->assertFalse($exception->decision->compatible);
+            $this->assertStringContainsString('2.0.0', $exception->getMessage());
+        }
+
+        Http::assertNotSent(function ($request): bool {
+            return str_contains($request->url(), '/download');
+        });
+    }
+
     /**
      * @param  array<string, mixed>  $manifest
      */
@@ -334,7 +380,7 @@ class MarketplaceInstallerTest extends TestCase
                     'is_latest' => true,
                     'has_archive' => true,
                     'archive_size_bytes' => strlen($zipContents),
-                    'compatibility' => ['min_version' => '1.0.0'],
+                    'compatibility' => ['min_version' => '1.0.0', 'max_version' => null],
                 ]],
             ], 200),
             'https://corepanel.org/api/v1/marketplace/products/'.$slug.'/versions/'.$version.'/download' => Http::response([
@@ -386,6 +432,7 @@ class MarketplaceInstallerTest extends TestCase
         $this->app->forgetInstance(MarketplaceCatalogCache::class);
         $this->app->forgetInstance(MarketplaceClient::class);
         $this->app->forgetInstance(MarketplaceEntitlementGuard::class);
+        $this->app->forgetInstance(MarketplaceCompatibilityGuard::class);
         $this->app->forgetInstance(MarketplaceInstaller::class);
 
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(

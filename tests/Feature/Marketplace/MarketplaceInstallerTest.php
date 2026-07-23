@@ -389,6 +389,44 @@ class MarketplaceInstallerTest extends TestCase
         });
     }
 
+    public function test_rejects_zip_slip_archive_paths(): void
+    {
+        $zipPath = $this->tempPath.'/zip-slip-'.uniqid('', true).'.zip';
+        $zip = new ZipArchive;
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString(
+            'SlipModule/module.json',
+            json_encode([
+                'name' => 'slip_module',
+                'version' => '1.0.0',
+                'capabilities' => ['other'],
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL,
+        );
+        $zip->addFromString('../evil.txt', 'pwned');
+        $zip->close();
+
+        $zipContents = (string) file_get_contents($zipPath);
+
+        $this->fakeMarketplacePackage(
+            slug: 'zip-slip',
+            productType: 'module',
+            sku: 'MOD_ZIP_SLIP',
+            free: true,
+            version: '1.0.0',
+            zipContents: $zipContents,
+        );
+
+        $this->expectException(MarketplaceInstallException::class);
+        $this->expectExceptionMessage('zip slip');
+
+        try {
+            app(MarketplaceInstaller::class)->install('zip-slip');
+        } finally {
+            $this->assertFileDoesNotExist(dirname($this->modulesPath).'/evil.txt');
+            $this->assertDirectoryDoesNotExist($this->modulesPath.'/SlipModule');
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $manifest
      */

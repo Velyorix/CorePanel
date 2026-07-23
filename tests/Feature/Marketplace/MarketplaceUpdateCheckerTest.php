@@ -214,6 +214,15 @@ class MarketplaceUpdateCheckerTest extends TestCase
         $this->assertNull(app(MarketplaceUpdateChecker::class)->latestResult());
     }
 
+    public function test_check_marketplace_updates_job_is_scheduled_daily_by_default(): void
+    {
+        \Illuminate\Support\Facades\Artisan::call('schedule:list');
+        $output = \Illuminate\Support\Facades\Artisan::output();
+
+        $this->assertStringContainsString(CheckMarketplaceUpdatesJob::class, $output);
+        $this->assertMatchesRegularExpression('/0\s+0\s+\*\s+\*\s+\*.*CheckMarketplaceUpdatesJob/s', $output);
+    }
+
     private function installTrackedModule(string $key, string $version, string $slug, string $sku): void
     {
         $directory = str_replace(' ', '', ucwords(str_replace('_', ' ', $key)));

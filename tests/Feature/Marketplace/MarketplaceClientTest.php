@@ -343,4 +343,37 @@ class MarketplaceClientTest extends TestCase
         $this->assertSame(str_repeat('c', 64), $descriptor->signatureHmacSha256);
         $this->assertSame(2048, $descriptor->sizeBytes);
     }
+
+    public function test_request_download_uses_redirect_location_as_descriptor(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products/demo/versions/1.0.0/download' => Http::response(
+                null,
+                302,
+                ['Location' => 'https://cdn.corepanel.test/packages/demo-1.0.0.zip?sig=xyz'],
+            ),
+        ]);
+
+        $descriptor = app(MarketplaceClient::class)->requestDownload('demo', '1.0.0');
+
+        $this->assertSame('https://cdn.corepanel.test/packages/demo-1.0.0.zip?sig=xyz', $descriptor->downloadUrl);
+        $this->assertSame('demo-1.0.0.zip', $descriptor->filename);
+        $this->assertNull($descriptor->checksumSha256);
+        $this->assertNull($descriptor->signatureHmacSha256);
+    }
+
+    public function test_request_download_redirect_without_location_throws(): void
+    {
+        Http::fake([
+            'https://corepanel.org/api/v1/marketplace/products/demo/versions/1.0.0/download' => Http::response(
+                null,
+                302,
+            ),
+        ]);
+
+        $this->expectException(MarketplaceApiException::class);
+        $this->expectExceptionMessage('Download redirect is missing a Location header.');
+
+        app(MarketplaceClient::class)->requestDownload('demo', '1.0.0');
+    }
 }

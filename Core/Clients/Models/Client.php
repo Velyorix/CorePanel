@@ -8,6 +8,7 @@ use Core\Billing\Models\Quote;
 use Core\Clients\Enums\ClientStatus;
 use Core\Orders\Models\Cart;
 use Core\Orders\Models\Order;
+use Core\Tickets\Models\Ticket;
 use Database\Factories\ClientFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -121,6 +122,14 @@ class Client extends Model
     public function creditTransactions(): HasMany
     {
         return $this->hasMany(ClientCreditTransaction::class)->orderByDesc('id');
+    }
+
+    /**
+     * @return HasMany<Ticket, $this>
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class)->latest();
     }
 
     public function creditBalance(): string

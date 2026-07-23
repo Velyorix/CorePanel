@@ -99,6 +99,21 @@ return [
             'schedule' => env('COREPANEL_MARKETPLACE_UPDATES_SCHEDULE', 'daily'),
             'cache_ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_UPDATES_CACHE_TTL', 86400),
         ],
+        'integrity' => [
+            'enforce_checksum' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_ENFORCE_CHECKSUM', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'verify_signature' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_VERIFY_SIGNATURE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'enforce_signature' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_ENFORCE_SIGNATURE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'signature_secret' => env('COREPANEL_MARKETPLACE_INTEGRITY_SIGNATURE_SECRET'),
+        ],
         'install' => [
             'temp_path' => env('COREPANEL_MARKETPLACE_TEMP_PATH', storage_path('app/marketplace/tmp')),
             'download_timeout_seconds' => (int) env('COREPANEL_MARKETPLACE_DOWNLOAD_TIMEOUT', 120),

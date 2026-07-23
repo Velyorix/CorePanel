@@ -14,8 +14,15 @@ use Throwable;
  */
 class MarketplacePackageDownloader
 {
+    public function __construct(
+        private readonly MarketplacePackageIntegrityGuard $integrity,
+    ) {
+    }
+
     public function download(MarketplaceDownloadDescriptor $descriptor, ?string $destinationDirectory = null): string
     {
+        $this->integrity->assertDescriptor($descriptor);
+
         $directory = $destinationDirectory
             ?? (string) config('corepanel.marketplace.install.temp_path', storage_path('app/marketplace/tmp'));
 
@@ -57,17 +64,12 @@ class MarketplacePackageDownloader
             throw MarketplaceInstallException::downloadFailed('Downloaded marketplace archive is empty.');
         }
 
-        if (is_string($descriptor->checksumSha256) && $descriptor->checksumSha256 !== '') {
-            $actual = hash_file('sha256', $destination);
+        try {
+            $this->integrity->assertArchive($destination, $descriptor);
+        } catch (MarketplaceInstallException $exception) {
+            $this->deleteIfExists($destination);
 
-            if (! is_string($actual) || ! hash_equals($descriptor->checksumSha256, strtolower($actual))) {
-                $this->deleteIfExists($destination);
-
-                throw MarketplaceInstallException::checksumMismatch(
-                    $descriptor->checksumSha256,
-                    is_string($actual) ? strtolower($actual) : 'unreadable',
-                );
-            }
+            throw $exception;
         }
 
         return $destination;

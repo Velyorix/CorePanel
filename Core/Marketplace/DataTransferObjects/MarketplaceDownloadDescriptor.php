@@ -11,6 +11,7 @@ final readonly class MarketplaceDownloadDescriptor
         public string $downloadUrl,
         public ?string $filename,
         public ?string $checksumSha256,
+        public ?string $signatureHmacSha256,
         public ?int $sizeBytes,
         public ?string $expiresAt,
         public array $raw = [],
@@ -32,6 +33,9 @@ final readonly class MarketplaceDownloadDescriptor
             downloadUrl: $url,
             filename: isset($payload['filename']) ? (string) $payload['filename'] : null,
             checksumSha256: isset($payload['checksum_sha256']) ? strtolower((string) $payload['checksum_sha256']) : null,
+            signatureHmacSha256: isset($payload['signature_hmac_sha256'])
+                ? strtolower((string) $payload['signature_hmac_sha256'])
+                : null,
             sizeBytes: isset($payload['size_bytes']) && is_numeric($payload['size_bytes'])
                 ? (int) $payload['size_bytes']
                 : null,

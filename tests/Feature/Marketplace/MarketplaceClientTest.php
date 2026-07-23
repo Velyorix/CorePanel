@@ -328,6 +328,7 @@ class MarketplaceClientTest extends TestCase
                     'download_url' => 'https://cdn.corepanel.test/demo-1.0.0.zip?token=abc',
                     'filename' => 'demo-1.0.0.zip',
                     'checksum_sha256' => str_repeat('b', 64),
+                    'signature_hmac_sha256' => str_repeat('c', 64),
                     'size_bytes' => 2048,
                     'expires_at' => '2026-07-23T12:00:00+00:00',
                 ],
@@ -339,6 +340,7 @@ class MarketplaceClientTest extends TestCase
         $this->assertSame('https://cdn.corepanel.test/demo-1.0.0.zip?token=abc', $descriptor->downloadUrl);
         $this->assertSame('demo-1.0.0.zip', $descriptor->filename);
         $this->assertSame(str_repeat('b', 64), $descriptor->checksumSha256);
+        $this->assertSame(str_repeat('c', 64), $descriptor->signatureHmacSha256);
         $this->assertSame(2048, $descriptor->sizeBytes);
     }
 }

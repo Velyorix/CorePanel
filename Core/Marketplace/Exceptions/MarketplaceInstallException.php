@@ -22,6 +22,26 @@ class MarketplaceInstallException extends RuntimeException
         return new self("Marketplace package checksum mismatch. Expected [{$expected}], got [{$actual}].");
     }
 
+    public static function checksumRequired(): self
+    {
+        return new self('Marketplace download descriptor is missing a required SHA-256 checksum.');
+    }
+
+    public static function signatureMismatch(): self
+    {
+        return new self('Marketplace download descriptor signature is invalid.');
+    }
+
+    public static function signatureRequired(): self
+    {
+        return new self('Marketplace download descriptor is missing a required HMAC signature.');
+    }
+
+    public static function sizeMismatch(int $expected, int $actual): self
+    {
+        return new self("Marketplace package size mismatch. Expected [{$expected}] bytes, got [{$actual}].");
+    }
+
     public static function invalidArchive(string $path, string $reason): self
     {
         return new self("Marketplace archive [{$path}] is invalid: {$reason}");

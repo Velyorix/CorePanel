@@ -13,6 +13,7 @@ use Core\Marketplace\Services\MarketplaceClient;
 use Core\Marketplace\Services\MarketplaceCompatibilityGuard;
 use Core\Marketplace\Services\MarketplaceEntitlementGuard;
 use Core\Marketplace\Services\MarketplaceInstaller;
+use Core\Marketplace\Services\MarketplacePackageIntegrityGuard;
 use Core\Marketplace\Services\MarketplacePackageOriginStore;
 use Core\Modules\Models\InstalledModule;
 use Core\Modules\Services\InstalledModuleRepository;
@@ -39,6 +40,8 @@ use ZipArchive;
 class MarketplaceInstallerTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const INTEGRITY_SECRET = 'test-marketplace-secret';
 
     protected bool $configureValidLicenseByDefault = false;
 
@@ -78,6 +81,10 @@ class MarketplaceInstallerTest extends TestCase
             'corepanel.marketplace.entitlements.enforce' => true,
             'corepanel.marketplace.entitlements.allow_free_without_entitlement' => true,
             'corepanel.marketplace.compatibility.enforce' => true,
+            'corepanel.marketplace.integrity.enforce_checksum' => true,
+            'corepanel.marketplace.integrity.verify_signature' => true,
+            'corepanel.marketplace.integrity.enforce_signature' => true,
+            'corepanel.marketplace.integrity.signature_secret' => self::INTEGRITY_SECRET,
             'corepanel.marketplace.install.temp_path' => $this->tempPath,
             'corepanel.version' => '1.2.0',
         ]);
@@ -237,6 +244,79 @@ class MarketplaceInstallerTest extends TestCase
         app(MarketplaceInstaller::class)->install('bad-checksum');
     }
 
+    public function test_rejects_invalid_download_signature(): void
+    {
+        $zipContents = $this->makeModuleZip('BadSignature', [
+            'name' => 'bad_signature',
+            'version' => '1.0.0',
+            'capabilities' => ['other'],
+        ]);
+
+        $this->fakeMarketplacePackage(
+            slug: 'bad-signature',
+            productType: 'module',
+            sku: 'MOD_BAD_SIG',
+            free: true,
+            version: '1.0.0',
+            zipContents: $zipContents,
+            signature: str_repeat('f', 64),
+        );
+
+        $this->expectException(MarketplaceInstallException::class);
+        $this->expectExceptionMessage('signature is invalid');
+
+        app(MarketplaceInstaller::class)->install('bad-signature');
+    }
+
+    public function test_rejects_missing_checksum_when_enforced(): void
+    {
+        $zipContents = $this->makeModuleZip('MissingChecksum', [
+            'name' => 'missing_checksum',
+            'version' => '1.0.0',
+            'capabilities' => ['other'],
+        ]);
+
+        $this->fakeMarketplacePackage(
+            slug: 'missing-checksum',
+            productType: 'module',
+            sku: 'MOD_MISSING_CHECKSUM',
+            free: true,
+            version: '1.0.0',
+            zipContents: $zipContents,
+            withChecksum: false,
+            withSignature: false,
+        );
+
+        $this->expectException(MarketplaceInstallException::class);
+        $this->expectExceptionMessage('missing a required SHA-256 checksum');
+
+        app(MarketplaceInstaller::class)->install('missing-checksum');
+    }
+
+    public function test_rejects_size_mismatch(): void
+    {
+        $zipContents = $this->makeModuleZip('SizeMismatch', [
+            'name' => 'size_mismatch',
+            'version' => '1.0.0',
+            'capabilities' => ['other'],
+        ]);
+
+        $this->fakeMarketplacePackage(
+            slug: 'size-mismatch',
+            productType: 'module',
+            sku: 'MOD_SIZE',
+            free: true,
+            version: '1.0.0',
+            zipContents: $zipContents,
+            sizeBytes: strlen($zipContents) + 512,
+        );
+
+        $this->expectException(MarketplaceInstallException::class);
+        $this->expectExceptionMessage('size mismatch');
+
+        app(MarketplaceInstaller::class)->install('size-mismatch');
+    }
+
     public function test_rejects_when_destination_already_exists(): void
     {
         File::ensureDirectoryExists($this->modulesPath.'/ExistingModule');
@@ -360,9 +440,33 @@ class MarketplaceInstallerTest extends TestCase
         string $version,
         string $zipContents,
         ?string $checksum = null,
+        ?string $signature = null,
+        bool $withChecksum = true,
+        bool $withSignature = true,
+        ?int $sizeBytes = null,
     ): void {
         $checksum ??= hash('sha256', $zipContents);
+        $sizeBytes ??= strlen($zipContents);
+
+        if ($withSignature) {
+            $signature ??= $this->signDownloadChecksum($checksum);
+        }
+
         $cdnUrl = 'https://cdn.corepanel.test/packages/'.$slug.'-'.$version.'.zip';
+        $downloadPayload = [
+            'download_url' => $cdnUrl,
+            'filename' => $slug.'-'.$version.'.zip',
+            'size_bytes' => $sizeBytes,
+            'expires_at' => now()->addMinutes(15)->toIso8601String(),
+        ];
+
+        if ($withChecksum) {
+            $downloadPayload['checksum_sha256'] = $checksum;
+        }
+
+        if ($withSignature && $signature !== null) {
+            $downloadPayload['signature_hmac_sha256'] = $signature;
+        }
 
         Http::fake([
             'https://corepanel.org/api/v1/marketplace/products/'.$slug => Http::response([
@@ -392,18 +496,17 @@ class MarketplaceInstallerTest extends TestCase
                 ]],
             ], 200),
             'https://corepanel.org/api/v1/marketplace/products/'.$slug.'/versions/'.$version.'/download' => Http::response([
-                'data' => [
-                    'download_url' => $cdnUrl,
-                    'filename' => $slug.'-'.$version.'.zip',
-                    'checksum_sha256' => $checksum,
-                    'size_bytes' => strlen($zipContents),
-                    'expires_at' => now()->addMinutes(15)->toIso8601String(),
-                ],
+                'data' => $downloadPayload,
             ], 200),
             $cdnUrl => Http::response($zipContents, 200, [
                 'Content-Type' => 'application/zip',
             ]),
         ]);
+    }
+
+    private function signDownloadChecksum(string $checksum): string
+    {
+        return hash_hmac('sha256', strtolower($checksum), self::INTEGRITY_SECRET);
     }
 
     /**
@@ -441,6 +544,7 @@ class MarketplaceInstallerTest extends TestCase
         $this->app->forgetInstance(MarketplaceClient::class);
         $this->app->forgetInstance(MarketplaceEntitlementGuard::class);
         $this->app->forgetInstance(MarketplaceCompatibilityGuard::class);
+        $this->app->forgetInstance(MarketplacePackageIntegrityGuard::class);
         $this->app->forgetInstance(MarketplacePackageOriginStore::class);
         $this->app->forgetInstance(MarketplaceInstaller::class);
 

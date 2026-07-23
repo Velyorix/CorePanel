@@ -49,6 +49,12 @@ return [
         'health_url' => env('COREPANEL_ORG_HEALTH_URL', 'https://corepanel.org/up'),
         'timeout_seconds' => (int) env('COREPANEL_ORG_TIMEOUT_SECONDS', 10),
         /*
+        | Optional override for the built-in marketplace catalogue Bearer token.
+        | Leave empty in production — MarketplaceClient falls back to the shipped
+        | marketplace:read token (see MarketplaceCatalogCredentials).
+        */
+        'api_token' => env('COREPANEL_ORG_API_TOKEN'),
+        /*
         | SSL verification for outbound calls to CorePanel.org.
         | Defaults to false in local (common Windows CA bundle issue) and true elsewhere.
         | Prefer setting COREPANEL_ORG_CA_BUNDLE to a cacert.pem path in production.
@@ -58,6 +64,20 @@ return [
             FILTER_VALIDATE_BOOL,
         ),
         'ca_bundle' => env('COREPANEL_ORG_CA_BUNDLE'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Marketplace
+    |--------------------------------------------------------------------------
+    |
+    | Catalogue / versions are fetched via MarketplaceClient against corepanel.org.
+    | Caching and install flows are layered on top of this client.
+    |
+    */
+
+    'marketplace' => [
+        'enabled' => filter_var(env('COREPANEL_MARKETPLACE_ENABLED', true), FILTER_VALIDATE_BOOL),
     ],
 
     /*

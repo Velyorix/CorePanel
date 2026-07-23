@@ -136,6 +136,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'themes.view', 'module' => 'themes', 'description' => 'View discovered themes'],
             ['name' => 'themes.manage', 'module' => 'themes', 'description' => 'Activate and preview themes'],
 
+            ['name' => 'marketplace.view', 'module' => 'marketplace', 'description' => 'Browse marketplace catalogue and available updates'],
+            ['name' => 'marketplace.manage', 'module' => 'marketplace', 'description' => 'Install marketplace packages and run update checks'],
+
             ['name' => 'tickets.view', 'module' => 'tickets', 'description' => 'View support tickets'],
             ['name' => 'tickets.reply', 'module' => 'tickets', 'description' => 'Reply to support tickets'],
             ['name' => 'tickets.assign', 'module' => 'tickets', 'description' => 'Assign support tickets'],
@@ -147,6 +150,7 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'client.invoices.pay', 'module' => 'core', 'description' => 'Pay own invoices'],
             ['name' => 'client.quotes.view', 'module' => 'core', 'description' => 'View own quotes'],
             ['name' => 'client.orders.view', 'module' => 'core', 'description' => 'View own orders'],
+            ['name' => 'client.marketplace.view', 'module' => 'marketplace', 'description' => 'Browse marketplace catalogue and purchases'],
             ['name' => 'client.tickets.view', 'module' => 'core', 'description' => 'View own tickets'],
             ['name' => 'client.tickets.create', 'module' => 'core', 'description' => 'Create support tickets'],
             ['name' => 'client.tickets.reply', 'module' => 'core', 'description' => 'Reply to own tickets'],
@@ -186,6 +190,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'nodes.*',
                     'modules.*',
                     'themes.*',
+                    'marketplace.*',
                     'tickets.*',
                 ],
             ],

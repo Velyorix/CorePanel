@@ -218,6 +218,12 @@ class AdminNavigation
                         'routeIs' => ['admin.themes.*'],
                         'permission' => 'themes.view',
                     ],
+                    [
+                        'label' => __('Marketplace'),
+                        'route' => 'admin.marketplace.index',
+                        'routeIs' => ['admin.marketplace.*'],
+                        'permission' => 'marketplace.view',
+                    ],
                 ],
             ],
             [
@@ -276,11 +282,6 @@ class AdminNavigation
                 'items' => [
                     [
                         'label' => __('System Health'),
-                        'route' => null,
-                        'permission' => null,
-                    ],
-                    [
-                        'label' => __('Marketplace'),
                         'route' => null,
                         'permission' => null,
                     ],

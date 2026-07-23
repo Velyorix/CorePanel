@@ -47,7 +47,14 @@ return [
     'org' => [
         'api_url' => env('COREPANEL_ORG_API_URL', 'https://corepanel.org/api/v1'),
         'health_url' => env('COREPANEL_ORG_HEALTH_URL', 'https://corepanel.org/up'),
+        'store_url' => env('COREPANEL_ORG_STORE_URL', 'https://corepanel.org'),
         'timeout_seconds' => (int) env('COREPANEL_ORG_TIMEOUT_SECONDS', 10),
+        /*
+        | Optional override for the built-in marketplace catalogue Bearer token.
+        | Leave empty in production — MarketplaceClient falls back to the shipped
+        | marketplace:read token (see MarketplaceCatalogCredentials).
+        */
+        'api_token' => env('COREPANEL_ORG_API_TOKEN'),
         /*
         | SSL verification for outbound calls to CorePanel.org.
         | Defaults to false in local (common Windows CA bundle issue) and true elsewhere.
@@ -58,6 +65,60 @@ return [
             FILTER_VALIDATE_BOOL,
         ),
         'ca_bundle' => env('COREPANEL_ORG_CA_BUNDLE'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Marketplace
+    |--------------------------------------------------------------------------
+    |
+    | Catalogue / versions are fetched via MarketplaceClient against corepanel.org.
+    | Caching and install flows are layered on top of this client.
+    |
+    */
+
+    'marketplace' => [
+        'enabled' => filter_var(env('COREPANEL_MARKETPLACE_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'cache' => [
+            'enabled' => filter_var(env('COREPANEL_MARKETPLACE_CACHE_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'store' => env('COREPANEL_MARKETPLACE_CACHE_STORE', 'redis'),
+            'prefix' => env('COREPANEL_MARKETPLACE_CACHE_PREFIX', 'corepanel.marketplace'),
+            'ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_CACHE_TTL', 3600),
+        ],
+        'entitlements' => [
+            'enforce' => filter_var(env('COREPANEL_MARKETPLACE_ENTITLEMENTS_ENFORCE', true), FILTER_VALIDATE_BOOL),
+            'allow_free_without_entitlement' => filter_var(
+                env('COREPANEL_MARKETPLACE_ALLOW_FREE_WITHOUT_ENTITLEMENT', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+        'compatibility' => [
+            'enforce' => filter_var(env('COREPANEL_MARKETPLACE_COMPATIBILITY_ENFORCE', true), FILTER_VALIDATE_BOOL),
+        ],
+        'updates' => [
+            'enabled' => filter_var(env('COREPANEL_MARKETPLACE_UPDATES_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'schedule' => env('COREPANEL_MARKETPLACE_UPDATES_SCHEDULE', 'daily'),
+            'cache_ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_UPDATES_CACHE_TTL', 86400),
+        ],
+        'integrity' => [
+            'enforce_checksum' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_ENFORCE_CHECKSUM', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'verify_signature' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_VERIFY_SIGNATURE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'enforce_signature' => filter_var(
+                env('COREPANEL_MARKETPLACE_INTEGRITY_ENFORCE_SIGNATURE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'signature_secret' => env('COREPANEL_MARKETPLACE_INTEGRITY_SIGNATURE_SECRET'),
+        ],
+        'install' => [
+            'temp_path' => env('COREPANEL_MARKETPLACE_TEMP_PATH', storage_path('app/marketplace/tmp')),
+            'download_timeout_seconds' => (int) env('COREPANEL_MARKETPLACE_DOWNLOAD_TIMEOUT', 120),
+        ],
     ],
 
     /*

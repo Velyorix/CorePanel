@@ -39,6 +39,16 @@ use Core\License\Services\EntitlementService;
 use Core\License\Services\LicenseSettings;
 use Core\License\Services\CorePanelOrgClient;
 use Core\License\Services\LicenseValidationService;
+use Core\Marketplace\Services\MarketplaceCatalogCache;
+use Core\Marketplace\Services\MarketplaceClient;
+use Core\Marketplace\Services\MarketplaceCompatibilityGuard;
+use Core\Marketplace\Services\MarketplaceEntitlementGuard;
+use Core\Marketplace\Services\MarketplaceInstaller;
+use Core\Marketplace\Services\MarketplacePackageDownloader;
+use Core\Marketplace\Services\MarketplacePackageExtractor;
+use Core\Marketplace\Services\MarketplacePackageIntegrityGuard;
+use Core\Marketplace\Services\MarketplacePackageOriginStore;
+use Core\Marketplace\Services\MarketplaceUpdateChecker;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
 use Core\Nodes\Services\NodeLoadBalancingService;
 use Core\Nodes\Services\NodeOverloadService;
@@ -228,6 +238,16 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ThemeGenerator::class);
         $this->app->singleton(ThemeManager::class);
         $this->app->singleton(CorePanelOrgClient::class);
+        $this->app->singleton(MarketplaceCatalogCache::class);
+        $this->app->singleton(MarketplaceClient::class);
+        $this->app->singleton(MarketplaceEntitlementGuard::class);
+        $this->app->singleton(MarketplaceCompatibilityGuard::class);
+        $this->app->singleton(MarketplacePackageDownloader::class);
+        $this->app->singleton(MarketplacePackageExtractor::class);
+        $this->app->singleton(MarketplacePackageIntegrityGuard::class);
+        $this->app->singleton(MarketplacePackageOriginStore::class);
+        $this->app->singleton(MarketplaceInstaller::class);
+        $this->app->singleton(MarketplaceUpdateChecker::class);
 
         $this->commands([
             ThemeMakeCommand::class,

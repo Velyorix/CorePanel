@@ -6,6 +6,7 @@ use App\Http\Controllers\Client\CheckoutController;
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\InvoiceController;
 use App\Http\Controllers\Client\InvoicePaymentController;
+use App\Http\Controllers\Client\MarketplaceController;
 use App\Http\Controllers\Client\OrderController;
 use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\ProfileController;
@@ -36,6 +37,10 @@ Route::middleware('client')
         Route::post('catalog/products/{product}/configure', [CatalogController::class, 'store'])->name('catalog.products.configure.store');
         Route::post('catalog/products/{product}/configure/preview', [CatalogController::class, 'preview'])->name('catalog.products.configure.preview');
         Route::get('catalog/products/{product}', [CatalogController::class, 'show'])->name('catalog.products.show');
+
+        Route::get('marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
+        Route::get('marketplace/purchases', [MarketplaceController::class, 'purchases'])->name('marketplace.purchases');
+        Route::get('marketplace/{product}', [MarketplaceController::class, 'show'])->name('marketplace.show');
 
         Route::get('cart', [CartController::class, 'index'])->name('cart.index');
         Route::patch('cart/items/{item}', [CartController::class, 'updateQuantity'])->name('cart.items.update');

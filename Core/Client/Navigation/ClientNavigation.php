@@ -137,13 +137,23 @@ class ClientNavigation
                 'items' => [
                     [
                         'label' => __('Modules'),
-                        'route' => null,
-                        'permission' => null,
+                        'route' => 'client.marketplace.index',
+                        'routeParams' => ['product_type' => 'module'],
+                        'routeIs' => ['client.marketplace.*'],
+                        'permission' => 'client.marketplace.view',
                     ],
                     [
                         'label' => __('Themes'),
-                        'route' => null,
-                        'permission' => null,
+                        'route' => 'client.marketplace.index',
+                        'routeParams' => ['product_type' => 'theme'],
+                        'routeIs' => ['client.marketplace.*'],
+                        'permission' => 'client.marketplace.view',
+                    ],
+                    [
+                        'label' => __('Purchases'),
+                        'route' => 'client.marketplace.purchases',
+                        'routeIs' => ['client.marketplace.purchases'],
+                        'permission' => 'client.marketplace.view',
                     ],
                 ],
             ],
@@ -197,16 +207,25 @@ class ClientNavigation
             ->all();
 
         $routeName = $item['route'] ?? null;
+        $routeParams = is_array($item['routeParams'] ?? null) ? $item['routeParams'] : [];
         $url = filled($routeName) && Route::has($routeName)
-            ? route($routeName)
+            ? route($routeName, $routeParams)
             : null;
 
         $routeIs = $item['routeIs'] ?? (filled($routeName) ? [$routeName] : []);
 
+        $active = $routeParams !== []
+            ? filled($routeName)
+                && request()->routeIs($routeName)
+                && collect($routeParams)->every(
+                    static fn (mixed $value, string|int $key): bool => (string) request()->query((string) $key) === (string) $value,
+                )
+            : $this->isActive($routeIs);
+
         return [
             'label' => $item['label'],
             'url' => $url,
-            'active' => $this->isActive($routeIs),
+            'active' => $active,
             'placeholder' => $url === null,
             'children' => $children,
         ];

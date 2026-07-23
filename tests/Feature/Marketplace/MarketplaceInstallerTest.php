@@ -13,6 +13,7 @@ use Core\Marketplace\Services\MarketplaceClient;
 use Core\Marketplace\Services\MarketplaceCompatibilityGuard;
 use Core\Marketplace\Services\MarketplaceEntitlementGuard;
 use Core\Marketplace\Services\MarketplaceInstaller;
+use Core\Marketplace\Services\MarketplacePackageOriginStore;
 use Core\Modules\Models\InstalledModule;
 use Core\Modules\Services\InstalledModuleRepository;
 use Core\Modules\Services\ModuleFactory;
@@ -124,6 +125,13 @@ class MarketplaceInstallerTest extends TestCase
             'enabled' => true,
         ]);
         $this->assertTrue(app(ModuleManager::class)->isLoaded('marketplace_demo'));
+
+        $origins = app(MarketplacePackageOriginStore::class)->all();
+        $this->assertCount(1, $origins);
+        $this->assertSame('module', $origins[0]['product_type']);
+        $this->assertSame('marketplace_demo', $origins[0]['package_key']);
+        $this->assertSame('marketplace-demo', $origins[0]['slug']);
+        $this->assertSame('MOD_MARKETPLACE_DEMO', $origins[0]['sku']);
     }
 
     public function test_installs_paid_module_when_entitled(): void
@@ -433,6 +441,7 @@ class MarketplaceInstallerTest extends TestCase
         $this->app->forgetInstance(MarketplaceClient::class);
         $this->app->forgetInstance(MarketplaceEntitlementGuard::class);
         $this->app->forgetInstance(MarketplaceCompatibilityGuard::class);
+        $this->app->forgetInstance(MarketplacePackageOriginStore::class);
         $this->app->forgetInstance(MarketplaceInstaller::class);
 
         $this->app->singleton(ModuleManager::class, fn (): ModuleManager => new ModuleManager(

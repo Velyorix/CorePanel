@@ -46,6 +46,8 @@ use Core\Marketplace\Services\MarketplaceEntitlementGuard;
 use Core\Marketplace\Services\MarketplaceInstaller;
 use Core\Marketplace\Services\MarketplacePackageDownloader;
 use Core\Marketplace\Services\MarketplacePackageExtractor;
+use Core\Marketplace\Services\MarketplacePackageOriginStore;
+use Core\Marketplace\Services\MarketplaceUpdateChecker;
 use Core\Nodes\Services\NodeAllocationAlgorithm;
 use Core\Nodes\Services\NodeLoadBalancingService;
 use Core\Nodes\Services\NodeOverloadService;
@@ -241,7 +243,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(MarketplaceCompatibilityGuard::class);
         $this->app->singleton(MarketplacePackageDownloader::class);
         $this->app->singleton(MarketplacePackageExtractor::class);
+        $this->app->singleton(MarketplacePackageOriginStore::class);
         $this->app->singleton(MarketplaceInstaller::class);
+        $this->app->singleton(MarketplaceUpdateChecker::class);
 
         $this->commands([
             ThemeMakeCommand::class,

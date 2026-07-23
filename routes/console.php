@@ -4,6 +4,7 @@ use App\Jobs\ValidateLicenseJob;
 use App\Jobs\GenerateRenewalInvoices;
 use App\Jobs\ProcessOverdueSuspensions;
 use App\Jobs\SendInvoiceReminders;
+use Core\Marketplace\Jobs\CheckMarketplaceUpdatesJob;
 use Core\Nodes\Jobs\CollectNodeMetricsJob;
 use Core\Nodes\Jobs\RunNodeHealthChecksJob;
 use Core\Sync\Jobs\NodeSyncJob;
@@ -22,6 +23,16 @@ Artisan::command('inspire', function () {
 Schedule::job(new ValidateLicenseJob)
     ->everySixHours()
     ->withoutOverlapping();
+
+$marketplaceUpdatesSchedule = (string) config('corepanel.marketplace.updates.schedule', 'daily');
+
+$marketplaceUpdates = Schedule::job(new CheckMarketplaceUpdatesJob)->withoutOverlapping();
+
+match ($marketplaceUpdatesSchedule) {
+    'hourly' => $marketplaceUpdates->hourly(),
+    'everySixHours' => $marketplaceUpdates->everySixHours(),
+    default => $marketplaceUpdates->daily(),
+};
 
 $renewalSchedule = (string) config('corepanel.billing.renewal.schedule', 'daily');
 

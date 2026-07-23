@@ -22,6 +22,7 @@ class MarketplaceInstaller
         private readonly MarketplaceCompatibilityGuard $compatibility,
         private readonly MarketplacePackageDownloader $downloader,
         private readonly MarketplacePackageExtractor $extractor,
+        private readonly MarketplacePackageOriginStore $origins,
         private readonly ModuleManager $modules,
         private readonly ThemeManager $themes,
     ) {
@@ -84,6 +85,12 @@ class MarketplaceInstaller
             }
 
             $this->marketplace->forgetProductCache($product->slug);
+            $this->origins->remember(
+                productType: $product->productType,
+                packageKey: $result->packageKey,
+                slug: $product->slug,
+                sku: $product->sku !== '' ? $product->sku : null,
+            );
 
             return $result;
         } finally {

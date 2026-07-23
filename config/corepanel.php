@@ -94,6 +94,11 @@ return [
         'compatibility' => [
             'enforce' => filter_var(env('COREPANEL_MARKETPLACE_COMPATIBILITY_ENFORCE', true), FILTER_VALIDATE_BOOL),
         ],
+        'updates' => [
+            'enabled' => filter_var(env('COREPANEL_MARKETPLACE_UPDATES_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'schedule' => env('COREPANEL_MARKETPLACE_UPDATES_SCHEDULE', 'daily'),
+            'cache_ttl_seconds' => (int) env('COREPANEL_MARKETPLACE_UPDATES_CACHE_TTL', 86400),
+        ],
         'install' => [
             'temp_path' => env('COREPANEL_MARKETPLACE_TEMP_PATH', storage_path('app/marketplace/tmp')),
             'download_timeout_seconds' => (int) env('COREPANEL_MARKETPLACE_DOWNLOAD_TIMEOUT', 120),

@@ -198,6 +198,8 @@ use Core\Services\Services\ServiceUpgradeService;
 use Core\Tickets\Services\TicketAttachmentService;
 use Core\Tickets\Services\TicketNumberService;
 use Core\Tickets\Services\TicketService;
+use Core\KnowledgeBase\Services\KbCategoryService;
+use Core\KnowledgeBase\Services\KnowledgeBaseService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -323,6 +325,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(TicketNumberService::class);
         $this->app->singleton(TicketAttachmentService::class);
         $this->app->singleton(TicketService::class);
+        $this->app->singleton(KbCategoryService::class);
+        $this->app->singleton(KnowledgeBaseService::class);
         $this->app->singleton(ProviderRegistry::class);
         $this->app->singleton(ModulePermissionRegistrar::class);
         $this->app->singleton(ProviderResourceMappingService::class);

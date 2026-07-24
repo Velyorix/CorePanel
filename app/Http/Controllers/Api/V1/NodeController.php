@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\IndexNodeRequest;
 use Core\API\Http\Presenters\V1\ApiResourcePresenter;
 use Core\API\Support\ApiPaginationMeta;
+use Core\API\Support\ApiResourceListQuery;
 use Core\API\Support\ApiResponse;
 use Core\Auth\Models\User;
 use Core\Nodes\Models\Node;
@@ -20,13 +22,17 @@ class NodeController extends Controller
     ) {
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexNodeRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
         Gate::forUser($user)->authorize('viewAny', Node::class);
 
-        $paginator = $this->nodes->paginateForAdmin([], 20);
+        $filters = $request->filters();
+        $paginator = $this->nodes->paginateForAdmin(
+            ApiResourceListQuery::nodeServiceFilters($filters),
+            $request->perPage(),
+        );
 
         return ApiResponse::success(
             collect($paginator->items())
@@ -34,7 +40,7 @@ class NodeController extends Controller
                 ->values()
                 ->all(),
             $request,
-            ApiPaginationMeta::fromPaginator($paginator),
+            ApiPaginationMeta::fromPaginator($paginator, $filters),
         );
     }
 

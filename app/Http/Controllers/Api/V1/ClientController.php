@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\IndexClientRequest;
 use Core\API\Http\Presenters\V1\ApiResourcePresenter;
 use Core\API\Services\ApiClientAccessService;
 use Core\API\Support\ApiPaginationMeta;
+use Core\API\Support\ApiResourceListQuery;
 use Core\API\Support\ApiResponse;
 use Core\Auth\Models\User;
 use Core\Clients\Models\Client;
@@ -19,14 +21,17 @@ class ClientController extends Controller
     ) {
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexClientRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
+        $filters = $request->filters();
+        $ids = $this->access->accessibleClientIds($user);
 
-        $paginator = $this->access
-            ->accessibleClientsQuery($user)
-            ->paginate(20);
+        $query = Client::query()->whereIn('id', $ids === [] ? [0] : $ids);
+        ApiResourceListQuery::applyClients($query, $filters);
+
+        $paginator = $query->paginate($request->perPage());
 
         return ApiResponse::success(
             collect($paginator->items())
@@ -34,7 +39,7 @@ class ClientController extends Controller
                 ->values()
                 ->all(),
             $request,
-            ApiPaginationMeta::fromPaginator($paginator),
+            ApiPaginationMeta::fromPaginator($paginator, $filters),
         );
     }
 

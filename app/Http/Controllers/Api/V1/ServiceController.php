@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\IndexServiceRequest;
 use Core\API\Http\Presenters\V1\ApiResourcePresenter;
 use Core\API\Services\ApiClientAccessService;
 use Core\API\Support\ApiPaginationMeta;
+use Core\API\Support\ApiResourceListQuery;
 use Core\API\Support\ApiResponse;
 use Core\Auth\Models\User;
+use Core\Clients\Models\Client;
 use Core\Services\Models\Service;
 use Core\Services\Services\ServiceControlService;
 use Illuminate\Http\JsonResponse;
@@ -22,17 +25,23 @@ class ServiceController extends Controller
     ) {
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexServiceRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
-        $ids = $this->access->accessibleClientIds($user);
+        $filters = $request->filters();
+        $ids = $this->resolveAccessibleClientIds($user, $filters['client_id'] ?? null);
 
-        $paginator = Service::query()
+        $query = Service::query()
             ->with('product')
-            ->whereIn('client_id', $ids === [] ? [0] : $ids)
-            ->orderByDesc('id')
-            ->paginate(20);
+            ->whereIn('client_id', $ids === [] ? [0] : $ids);
+
+        ApiResourceListQuery::applyServices($query, [
+            ...$filters,
+            'client_id' => null,
+        ]);
+
+        $paginator = $query->paginate($request->perPage());
 
         return ApiResponse::success(
             collect($paginator->items())
@@ -40,7 +49,7 @@ class ServiceController extends Controller
                 ->values()
                 ->all(),
             $request,
-            ApiPaginationMeta::fromPaginator($paginator),
+            ApiPaginationMeta::fromPaginator($paginator, $filters),
         );
     }
 
@@ -87,5 +96,26 @@ class ServiceController extends Controller
         $service->loadMissing('product');
 
         return ApiResponse::success(ApiResourcePresenter::service($service), $request);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function resolveAccessibleClientIds(User $user, ?int $clientId): array
+    {
+        $ids = $this->access->accessibleClientIds($user);
+
+        if ($clientId === null) {
+            return $ids;
+        }
+
+        $client = Client::query()->find($clientId);
+        if ($client === null) {
+            abort(404, __('Resource not found.'));
+        }
+
+        $this->access->assertCanAccessClient($user, $client);
+
+        return [$clientId];
     }
 }

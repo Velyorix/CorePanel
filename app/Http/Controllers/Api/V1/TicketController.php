@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\IndexTicketRequest;
 use App\Http\Requests\Api\V1\ReplyTicketRequest;
 use App\Http\Requests\Api\V1\StoreTicketRequest;
 use Core\API\Http\Presenters\V1\ApiResourcePresenter;
 use Core\API\Services\ApiClientAccessService;
 use Core\API\Support\ApiPaginationMeta;
+use Core\API\Support\ApiResourceListQuery;
 use Core\API\Support\ApiResponse;
 use Core\Auth\Models\User;
 use Core\Clients\Models\Client;
@@ -26,16 +28,22 @@ class TicketController extends Controller
     ) {
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexTicketRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
-        $ids = $this->access->accessibleClientIds($user);
+        $filters = $request->filters();
+        $ids = $this->resolveAccessibleClientIds($user, $filters['client_id'] ?? null);
 
-        $paginator = Ticket::query()
-            ->whereIn('client_id', $ids === [] ? [0] : $ids)
-            ->orderByDesc('id')
-            ->paginate(20);
+        $query = Ticket::query()
+            ->whereIn('client_id', $ids === [] ? [0] : $ids);
+
+        ApiResourceListQuery::applyTickets($query, [
+            ...$filters,
+            'client_id' => null,
+        ]);
+
+        $paginator = $query->paginate($request->perPage());
 
         return ApiResponse::success(
             collect($paginator->items())
@@ -43,7 +51,7 @@ class TicketController extends Controller
                 ->values()
                 ->all(),
             $request,
-            ApiPaginationMeta::fromPaginator($paginator),
+            ApiPaginationMeta::fromPaginator($paginator, $filters),
         );
     }
 
@@ -97,5 +105,26 @@ class TicketController extends Controller
         $message->loadMissing('author');
 
         return ApiResponse::success(ApiResourcePresenter::ticketMessage($message), $request, status: 201);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function resolveAccessibleClientIds(User $user, ?int $clientId): array
+    {
+        $ids = $this->access->accessibleClientIds($user);
+
+        if ($clientId === null) {
+            return $ids;
+        }
+
+        $client = Client::query()->find($clientId);
+        if ($client === null) {
+            abort(404, __('Resource not found.'));
+        }
+
+        $this->access->assertCanAccessClient($user, $client);
+
+        return [$clientId];
     }
 }

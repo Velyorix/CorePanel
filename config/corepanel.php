@@ -1090,9 +1090,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Versioned routes live under /api/{prefix}. Auth, scopes, the JSON
-    | response envelope ({ data, meta } / { error }), and optional global
-    | rate limiting (X-RateLimit-* headers) are applied on /api/v1.
-    | CRUD endpoints are layered in later increments.
+    | response envelope ({ data, meta } / { error }), optional global
+    | rate limiting (X-RateLimit-* headers), and list pagination/filters
+    | (page, per_page, q, status, sort, dir, …) are applied on /api/v1.
     |
     */
 
@@ -1127,6 +1127,10 @@ return [
             ),
             'max_attempts' => (int) env('COREPANEL_API_RATE_LIMIT_MAX', 60),
             'decay_seconds' => (int) env('COREPANEL_API_RATE_LIMIT_DECAY', 60),
+        ],
+        'pagination' => [
+            'default_per_page' => (int) env('COREPANEL_API_DEFAULT_PER_PAGE', 20),
+            'max_per_page' => (int) env('COREPANEL_API_MAX_PER_PAGE', 100),
         ],
     ],
 

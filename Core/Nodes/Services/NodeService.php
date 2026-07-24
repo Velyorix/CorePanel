@@ -51,7 +51,7 @@ class NodeService
         $sort = $filters['sort'] ?? 'sort_order';
         $dir = ($filters['dir'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
 
-        if (! in_array($sort, ['name', 'hostname', 'type', 'status', 'module', 'sort_order', 'created_at'], true)) {
+        if (! in_array($sort, ['id', 'name', 'hostname', 'type', 'status', 'module', 'sort_order', 'created_at'], true)) {
             $sort = 'sort_order';
         }
 

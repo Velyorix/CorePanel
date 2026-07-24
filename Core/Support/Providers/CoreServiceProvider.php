@@ -11,6 +11,10 @@ use Core\API\Services\ApiRateLimiter;
 use Core\API\Services\ApiScopeRegistry;
 use Core\API\Services\ApiTokenScopeChecker;
 use Core\API\Services\ApiTokenService;
+use Core\Webhooks\Listeners\DispatchOutgoingWebhooks;
+use Core\Webhooks\Services\WebhookDeliveryService;
+use Core\Webhooks\Services\WebhookDispatcher;
+use Core\Webhooks\Services\WebhookService;
 use Core\Notifications\Services\NotificationPreferenceService;
 use Core\Notifications\Services\NotificationService;
 use Core\Client\Navigation\ClientNavigation;
@@ -242,6 +246,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ApiTokenService::class);
         $this->app->singleton(ApiRateLimiter::class);
         $this->app->singleton(ApiClientAccessService::class);
+        $this->app->singleton(WebhookService::class);
+        $this->app->singleton(WebhookDispatcher::class);
+        $this->app->singleton(WebhookDeliveryService::class);
         $this->app->singleton(NotificationPreferenceService::class);
         $this->app->singleton(NotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);
@@ -462,5 +469,6 @@ class CoreServiceProvider extends ServiceProvider
         Event::listen(OrderPaid::class, CreateServicesOnOrderPaid::class);
         Event::listen(TicketCreated::class, NotifyStaffOnTicketCreated::class);
         Event::listen(TicketReplied::class, NotifyParticipantsOnTicketReplied::class);
+        Event::subscribe(DispatchOutgoingWebhooks::class);
     }
 }

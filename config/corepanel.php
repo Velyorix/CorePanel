@@ -1119,6 +1119,9 @@ return [
             'api.ticket.*',
             'api.node.read',
             'api.node.*',
+            'api.webhook.read',
+            'api.webhook.write',
+            'api.webhook.*',
         ],
         'rate_limit' => [
             'enabled' => filter_var(
@@ -1131,6 +1134,24 @@ return [
         'pagination' => [
             'default_per_page' => (int) env('COREPANEL_API_DEFAULT_PER_PAGE', 20),
             'max_per_page' => (int) env('COREPANEL_API_MAX_PER_PAGE', 100),
+        ],
+        'webhooks' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_WEBHOOKS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'timeout_seconds' => (int) env('COREPANEL_API_WEBHOOKS_TIMEOUT', 10),
+            'max_attempts' => (int) env('COREPANEL_API_WEBHOOKS_MAX_ATTEMPTS', 5),
+            'backoff_seconds' => array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) env('COREPANEL_API_WEBHOOKS_BACKOFF', '60,300,900,3600,21600')),
+            ), static fn (int $value): bool => $value > 0)),
+            'secret_prefix' => env('COREPANEL_API_WEBHOOKS_SECRET_PREFIX', 'cwhsec_'),
+            'signature_header' => env('COREPANEL_API_WEBHOOKS_SIGNATURE_HEADER', 'X-CorePanel-Signature'),
+            'timestamp_header' => env('COREPANEL_API_WEBHOOKS_TIMESTAMP_HEADER', 'X-CorePanel-Timestamp'),
+            'event_header' => env('COREPANEL_API_WEBHOOKS_EVENT_HEADER', 'X-CorePanel-Event'),
+            'delivery_header' => env('COREPANEL_API_WEBHOOKS_DELIVERY_HEADER', 'X-CorePanel-Delivery'),
+            'response_body_max_bytes' => (int) env('COREPANEL_API_WEBHOOKS_RESPONSE_MAX', 2048),
         ],
     ],
 

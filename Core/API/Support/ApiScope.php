@@ -27,6 +27,10 @@ final class ApiScope
 
     public const NODE_READ = 'api.node.read';
 
+    public const WEBHOOK_READ = 'api.webhook.read';
+
+    public const WEBHOOK_WRITE = 'api.webhook.write';
+
     /**
      * @return list<string>
      */
@@ -48,6 +52,9 @@ final class ApiScope
             'api.ticket.*',
             self::NODE_READ,
             'api.node.*',
+            self::WEBHOOK_READ,
+            self::WEBHOOK_WRITE,
+            'api.webhook.*',
         ];
     }
 }

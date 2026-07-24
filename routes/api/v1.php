@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\NodeController;
 use App\Http\Controllers\Api\V1\PingController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\TicketController;
+use App\Http\Controllers\Api\V1\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -74,4 +75,29 @@ Route::middleware('api.auth')->group(function (): void {
     Route::get('nodes/{node}', [NodeController::class, 'show'])
         ->middleware('api.scope:api.node.read')
         ->name('nodes.show');
+
+    Route::get('webhooks/events', [WebhookController::class, 'events'])
+        ->middleware('api.scope:api.webhook.read')
+        ->name('webhooks.events');
+    Route::get('webhooks', [WebhookController::class, 'index'])
+        ->middleware('api.scope:api.webhook.read')
+        ->name('webhooks.index');
+    Route::post('webhooks', [WebhookController::class, 'store'])
+        ->middleware('api.scope:api.webhook.write')
+        ->name('webhooks.store');
+    Route::get('webhooks/{webhook}', [WebhookController::class, 'show'])
+        ->middleware('api.scope:api.webhook.read')
+        ->name('webhooks.show');
+    Route::patch('webhooks/{webhook}', [WebhookController::class, 'update'])
+        ->middleware('api.scope:api.webhook.write')
+        ->name('webhooks.update');
+    Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])
+        ->middleware('api.scope:api.webhook.write')
+        ->name('webhooks.destroy');
+    Route::post('webhooks/{webhook}/rotate-secret', [WebhookController::class, 'rotateSecret'])
+        ->middleware('api.scope:api.webhook.write')
+        ->name('webhooks.rotate-secret');
+    Route::get('webhooks/{webhook}/deliveries', [WebhookController::class, 'deliveries'])
+        ->middleware('api.scope:api.webhook.read')
+        ->name('webhooks.deliveries');
 });

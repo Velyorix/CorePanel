@@ -4,6 +4,7 @@ namespace App\Http\Middleware\Api;
 
 use Closure;
 use Core\API\Services\ApiTokenService;
+use Core\API\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -61,11 +62,6 @@ class AuthenticateApiToken
 
     private function unauthenticated(string $message): Response
     {
-        return response()->json([
-            'error' => [
-                'code' => 'unauthenticated',
-                'message' => $message,
-            ],
-        ], 401);
+        return ApiResponse::error('unauthenticated', $message, 401);
     }
 }

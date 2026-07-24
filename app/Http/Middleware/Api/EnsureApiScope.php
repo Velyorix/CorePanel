@@ -5,6 +5,7 @@ namespace App\Http\Middleware\Api;
 use Closure;
 use Core\API\Models\ApiToken;
 use Core\API\Services\ApiTokenScopeChecker;
+use Core\API\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -35,24 +36,16 @@ class EnsureApiScope
         $token = $request->attributes->get('api_token');
 
         if (! $token instanceof ApiToken) {
-            return response()->json([
-                'error' => [
-                    'code' => 'unauthenticated',
-                    'message' => __('API token missing.'),
-                ],
-            ], 401);
+            return ApiResponse::error('unauthenticated', __('API token missing.'), 401);
         }
 
         if (! $this->scopes->allows($token, $required)) {
-            return response()->json([
-                'error' => [
-                    'code' => 'insufficient_scope',
-                    'message' => __('This API token does not have the required scope for this endpoint.'),
-                    'details' => [
-                        'required_scopes' => $required,
-                    ],
-                ],
-            ], 403);
+            return ApiResponse::error(
+                'insufficient_scope',
+                __('This API token does not have the required scope for this endpoint.'),
+                403,
+                ['required_scopes' => $required],
+            );
         }
 
         return $next($request);

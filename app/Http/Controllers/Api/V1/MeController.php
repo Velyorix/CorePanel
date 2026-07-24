@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Core\API\Models\ApiToken;
+use Core\API\Support\ApiResponse;
 use Core\API\Support\ApiScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,11 +24,11 @@ class MeController extends Controller
                 : array_values($token->permissions ?? []);
         }
 
-        return response()->json([
+        return ApiResponse::success([
             'id' => $user?->id,
             'name' => $user?->name,
             'email' => $user?->email,
             'scopes' => $scopes,
-        ]);
+        ], $request);
     }
 }

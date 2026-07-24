@@ -3,6 +3,7 @@
 namespace App\Http\Middleware\Api;
 
 use Closure;
+use Core\API\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,12 +20,11 @@ class ForceJsonResponse
         $request->headers->set('Accept', 'application/json');
 
         if ($this->requiresJsonBody($request) && ! $this->hasJsonContentType($request)) {
-            return response()->json([
-                'error' => [
-                    'code' => 'unsupported_media_type',
-                    'message' => __('Content-Type must be application/json.'),
-                ],
-            ], 415);
+            return ApiResponse::error(
+                'unsupported_media_type',
+                __('Content-Type must be application/json.'),
+                415,
+            );
         }
 
         $response = $next($request);

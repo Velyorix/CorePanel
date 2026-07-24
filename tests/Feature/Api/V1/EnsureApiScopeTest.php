@@ -39,8 +39,8 @@ class EnsureApiScopeTest extends TestCase
         $this->withToken($issued['plain_text'])
             ->getJson(route('v1.me'))
             ->assertOk()
-            ->assertJsonPath('id', $user->id)
-            ->assertJsonPath('scopes.0', ApiScope::ALL);
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.scopes.0', ApiScope::ALL);
     }
 
     public function test_wildcard_token_can_access_me(): void
@@ -51,7 +51,7 @@ class EnsureApiScopeTest extends TestCase
         $this->withToken($issued['plain_text'])
             ->getJson(route('v1.me'))
             ->assertOk()
-            ->assertJsonPath('scopes.0', ApiScope::ALL);
+            ->assertJsonPath('data.scopes.0', ApiScope::ALL);
     }
 
     public function test_token_with_api_me_scope_can_access_me(): void
@@ -62,7 +62,7 @@ class EnsureApiScopeTest extends TestCase
         $this->withToken($issued['plain_text'])
             ->getJson(route('v1.me'))
             ->assertOk()
-            ->assertJsonPath('scopes.0', ApiScope::ME);
+            ->assertJsonPath('data.scopes.0', ApiScope::ME);
     }
 
     public function test_token_without_api_me_is_forbidden(): void
@@ -93,7 +93,7 @@ class EnsureApiScopeTest extends TestCase
     {
         $this->getJson(route('v1.ping'))
             ->assertOk()
-            ->assertJsonPath('ok', true);
+            ->assertJsonPath('data.status', 'ok');
     }
 
     public function test_and_scopes_require_all_listed_scopes(): void

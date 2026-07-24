@@ -21,9 +21,11 @@ class ApiMiddlewareStackTest extends TestCase
         $response
             ->assertOk()
             ->assertJson([
-                'ok' => true,
-                'message' => 'pong',
-                'api_version' => 'v1',
+                'data' => [
+                    'status' => 'ok',
+                    'message' => 'pong',
+                    'api_version' => 'v1',
+                ],
             ])
             ->assertHeader('X-Api-Version', 'v1')
             ->assertHeader('Content-Type', 'application/json');
@@ -31,7 +33,7 @@ class ApiMiddlewareStackTest extends TestCase
         $this->assertNotEmpty($response->headers->get('X-Request-Id'));
         $this->assertSame(
             $response->headers->get('X-Request-Id'),
-            $response->json('request_id'),
+            $response->json('meta.request_id'),
         );
     }
 
@@ -44,7 +46,7 @@ class ApiMiddlewareStackTest extends TestCase
         $response
             ->assertOk()
             ->assertHeader('X-Request-Id', 'test-request-id-123')
-            ->assertJsonPath('request_id', 'test-request-id-123');
+            ->assertJsonPath('meta.request_id', 'test-request-id-123');
     }
 
     public function test_v1_rejects_non_json_body_on_post(): void

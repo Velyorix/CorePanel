@@ -29,7 +29,7 @@ class AuthenticateApiTokenTest extends TestCase
     {
         $this->getJson(route('v1.ping'))
             ->assertOk()
-            ->assertJsonPath('ok', true);
+            ->assertJsonPath('data.status', 'ok');
     }
 
     public function test_me_requires_bearer_token(): void
@@ -80,9 +80,11 @@ class AuthenticateApiTokenTest extends TestCase
             ->getJson(route('v1.me'))
             ->assertOk()
             ->assertJson([
-                'id' => $user->id,
-                'name' => 'API User',
-                'email' => 'api@example.test',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => 'API User',
+                    'email' => 'api@example.test',
+                ],
             ])
             ->assertHeader('X-Api-Version', 'v1');
     }

@@ -16,6 +16,7 @@ use App\Http\Middleware\Api\ForceJsonResponse;
 use App\Http\Middleware\Api\SetApiVersion;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAuthenticatedSession;
+use Core\API\Http\ApiExceptionRenderer;
 use Core\Themes\Http\Middleware\ApplyEffectiveTheme;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -94,4 +95,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            return app(ApiExceptionRenderer::class)->render($e, $request);
+        });
     })->create();

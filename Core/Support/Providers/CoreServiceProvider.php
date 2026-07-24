@@ -6,6 +6,7 @@ use App\Models\User;
 use Core\Admin\Navigation\AdminNavigation;
 use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Admin\Services\AdminNotificationService;
+use Core\API\Services\ApiClientAccessService;
 use Core\API\Services\ApiRateLimiter;
 use Core\API\Services\ApiScopeRegistry;
 use Core\API\Services\ApiTokenScopeChecker;
@@ -240,6 +241,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ApiTokenScopeChecker::class);
         $this->app->singleton(ApiTokenService::class);
         $this->app->singleton(ApiRateLimiter::class);
+        $this->app->singleton(ApiClientAccessService::class);
         $this->app->singleton(NotificationPreferenceService::class);
         $this->app->singleton(NotificationService::class);
         $this->app->singleton(AdminNotificationFeed::class);

@@ -3,6 +3,7 @@
 namespace Core\API\Http;
 
 use Core\API\Support\ApiResponse;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +51,14 @@ final class ApiExceptionRenderer
                 'unauthenticated',
                 __('Unauthenticated.'),
                 401,
+            );
+        }
+
+        if ($e instanceof AuthorizationException) {
+            return ApiResponse::error(
+                'forbidden',
+                $e->getMessage() !== '' ? $e->getMessage() : __('Forbidden.'),
+                403,
             );
         }
 

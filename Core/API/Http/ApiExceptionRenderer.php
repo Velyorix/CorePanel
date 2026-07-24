@@ -55,11 +55,20 @@ final class ApiExceptionRenderer
 
         if ($e instanceof HttpExceptionInterface) {
             $status = $e->getStatusCode();
+            $details = [];
+
+            if ($status === 429) {
+                $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 0);
+                if ($retryAfter > 0) {
+                    $details['retry_after'] = $retryAfter;
+                }
+            }
 
             return ApiResponse::error(
                 $this->codeForStatus($status),
                 $e->getMessage() !== '' ? $e->getMessage() : $this->defaultMessageForStatus($status),
                 $status,
+                $details,
             );
         }
 

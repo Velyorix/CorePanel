@@ -1089,9 +1089,10 @@ return [
     | Public REST API
     |--------------------------------------------------------------------------
     |
-    | Versioned routes live under /api/{prefix}. Auth, scopes and the JSON
-    | response envelope ({ data, meta } / { error }) are applied on /api/v1.
-    | Rate-limit headers and CRUD endpoints are layered in later increments.
+    | Versioned routes live under /api/{prefix}. Auth, scopes, the JSON
+    | response envelope ({ data, meta } / { error }), and optional global
+    | rate limiting (X-RateLimit-* headers) are applied on /api/v1.
+    | CRUD endpoints are layered in later increments.
     |
     */
 

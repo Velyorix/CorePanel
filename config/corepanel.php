@@ -1223,6 +1223,21 @@ return [
                 explode(',', (string) env('COREPANEL_AUTOMATION_BACKOFF', '0,300,1800,3600')),
             ), static fn (int $value): bool => $value >= 0)),
         ],
+        'scheduler' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_SCHEDULER_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'invoices_due' => env('COREPANEL_AUTOMATION_SCHEDULE_INVOICES_DUE', 'everyMinute'),
+            'evaluate_rules' => env('COREPANEL_AUTOMATION_SCHEDULE_EVALUATE_RULES', 'everyMinute'),
+            'retry_failed' => env('COREPANEL_AUTOMATION_SCHEDULE_RETRY_FAILED', 'everyFiveMinutes'),
+            'cleanup_logs' => env('COREPANEL_AUTOMATION_SCHEDULE_CLEANUP_LOGS', 'hourly'),
+            'billing_report' => env('COREPANEL_AUTOMATION_SCHEDULE_BILLING_REPORT', 'daily'),
+            'system_health_report' => env('COREPANEL_AUTOMATION_SCHEDULE_SYSTEM_HEALTH', 'daily'),
+            'log_retention_days' => (int) env('COREPANEL_AUTOMATION_LOG_RETENTION_DAYS', 30),
+            'retry_limit' => (int) env('COREPANEL_AUTOMATION_RETRY_LIMIT', 25),
+            'retry_job_classes' => null,
+        ],
     ],
 
 ];

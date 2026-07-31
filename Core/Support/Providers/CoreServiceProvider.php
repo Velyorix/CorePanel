@@ -16,6 +16,8 @@ use Core\API\Services\InternalApiAuthenticator;
 use Core\Automation\Services\AutomationEventBridge;
 use Core\Automation\Services\AutomationEventBus;
 use Core\Automation\Services\AutomationEventPayloadFactory;
+use Core\Automation\Services\RuleActionRegistry;
+use Core\Automation\Services\RulesEngine;
 use Core\Automation\Services\WorkflowActionRegistry;
 use Core\Automation\Services\WorkflowConditionEvaluator;
 use Core\Automation\Services\WorkflowEngine;
@@ -267,6 +269,13 @@ class CoreServiceProvider extends ServiceProvider
             return $registry;
         });
         $this->app->singleton(WorkflowEngine::class);
+        $this->app->singleton(RuleActionRegistry::class, function (): RuleActionRegistry {
+            $registry = new RuleActionRegistry;
+            $registry->registerDefaults();
+
+            return $registry;
+        });
+        $this->app->singleton(RulesEngine::class);
         $this->app->singleton(WebhookService::class);
         $this->app->singleton(WebhookDispatcher::class);
         $this->app->singleton(WebhookDeliveryService::class);
@@ -493,5 +502,6 @@ class CoreServiceProvider extends ServiceProvider
         Event::subscribe(DispatchOutgoingWebhooks::class);
         $this->app->make(AutomationEventBridge::class)->register();
         $this->app->make(WorkflowEngine::class)->register();
+        $this->app->make(RulesEngine::class)->register();
     }
 }

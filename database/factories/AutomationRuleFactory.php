@@ -39,4 +39,20 @@ class AutomationRuleFactory extends Factory
             'is_active' => false,
         ]);
     }
+
+    public function forEvent(string $event): static
+    {
+        return $this->state(function (array $attributes) use ($event): array {
+            $conditions = is_array($attributes['condition_json'] ?? null)
+                ? $attributes['condition_json']
+                : [];
+
+            return [
+                'condition_json' => [
+                    'event' => $event,
+                    ...$conditions,
+                ],
+            ];
+        });
+    }
 }

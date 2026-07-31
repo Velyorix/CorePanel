@@ -1,0 +1,363 @@
+<?php
+
+namespace Core\Admin\Navigation;
+
+use Core\Auth\Models\User;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
+
+class AdminNavigation
+{
+    /**
+     * Menu tree for the authenticated user (filtered by permissions).
+     *
+     * @return list<array{label: string|null, items: list<array<string, mixed>>}>
+     */
+    public function forUser(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        return collect($this->definition())
+            ->map(function (array $section) use ($user): ?array {
+                $items = collect($section['items'] ?? [])
+                    ->map(fn (array $item): ?array => $this->resolveItem($item, $user))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($items === []) {
+                    return null;
+                }
+
+                return [
+                    'label' => $section['label'] ?? null,
+                    'items' => $items,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{label: string|null, items: list<array<string, mixed>>}>
+     */
+    public function definition(): array
+    {
+        return [
+            [
+                'label' => null,
+                'items' => [
+                    [
+                        'label' => __('Dashboard'),
+                        'route' => 'admin.dashboard',
+                        'routeIs' => ['admin.dashboard'],
+                        'permission' => 'admin.access',
+                    ],
+                    [
+                        'label' => __('Clients'),
+                        'route' => 'admin.clients.index',
+                        'routeIs' => ['admin.clients.*'],
+                        'permission' => 'clients.view',
+                    ],
+                    [
+                        'label' => __('Users'),
+                        'route' => null,
+                        'permission' => 'users.view',
+                        'children' => [
+                            [
+                                'label' => __('Roles'),
+                                'route' => 'admin.roles.index',
+                                'routeIs' => ['admin.roles.*'],
+                                'permission' => 'roles.view',
+                            ],
+                            [
+                                'label' => __('Permissions'),
+                                'route' => 'admin.permissions.index',
+                                'routeIs' => ['admin.permissions.*'],
+                                'permission' => 'roles.view',
+                            ],
+                        ],
+                    ],
+                    [
+                        'label' => __('Products'),
+                        'route' => null,
+                        'permission' => 'products.view',
+                        'children' => [
+                            [
+                                'label' => __('Catalog'),
+                                'route' => 'admin.products.index',
+                                'routeIs' => ['admin.products.*'],
+                                'permission' => 'products.view',
+                            ],
+                            [
+                                'label' => __('Categories'),
+                                'route' => 'admin.product-categories.index',
+                                'routeIs' => ['admin.product-categories.*'],
+                                'permission' => 'products.view',
+                            ],
+                        ],
+                    ],
+                    [
+                        'label' => __('Services'),
+                        'route' => 'admin.services.index',
+                        'routeIs' => ['admin.services.*'],
+                        'permission' => 'services.view',
+                    ],
+                    [
+                        'label' => __('Provisioning failures'),
+                        'route' => 'admin.provisioning-dead-letters.index',
+                        'routeIs' => ['admin.provisioning-dead-letters.*'],
+                        'permission' => 'services.view',
+                    ],
+                    [
+                        'label' => __('Sync history'),
+                        'route' => 'admin.sync-logs.index',
+                        'routeIs' => ['admin.sync-logs.*', 'admin.sync.*'],
+                        'permission' => 'services.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => __('Billing'),
+                'items' => [
+                    [
+                        'label' => __('Invoices'),
+                        'route' => 'admin.invoices.index',
+                        'routeIs' => ['admin.invoices.*'],
+                        'permission' => 'billing.invoices.view',
+                    ],
+                    [
+                        'label' => __('Quotes'),
+                        'route' => 'admin.quotes.index',
+                        'routeIs' => ['admin.quotes.*'],
+                        'permission' => 'billing.quotes.view',
+                    ],
+                    [
+                        'label' => __('Payments'),
+                        'route' => 'admin.payments.index',
+                        'routeIs' => ['admin.payments.*'],
+                        'permission' => 'billing.payments.view',
+                    ],
+                    [
+                        'label' => __('Credits'),
+                        'route' => null,
+                        'permission' => 'billing.invoices.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => __('Support'),
+                'items' => [
+                    [
+                        'label' => __('Tickets'),
+                        'route' => 'admin.tickets.index',
+                        'routeIs' => ['admin.tickets.*'],
+                        'permission' => 'tickets.view',
+                    ],
+                    [
+                        'label' => __('Knowledge base'),
+                        'route' => 'admin.kb-articles.index',
+                        'routeIs' => ['admin.kb-articles.*', 'admin.kb-categories.*'],
+                        'permission' => 'kb.view',
+                    ],
+                    [
+                        'label' => __('Departments'),
+                        'route' => null,
+                        'permission' => 'tickets.view',
+                    ],
+                    [
+                        'label' => __('SLA'),
+                        'route' => null,
+                        'permission' => 'tickets.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => __('Infrastructure'),
+                'items' => [
+                    [
+                        'label' => __('Nodes'),
+                        'route' => 'admin.nodes.index',
+                        'routeIs' => ['admin.nodes.*'],
+                        'permission' => 'nodes.view',
+                    ],
+                    [
+                        'label' => __('Groups'),
+                        'route' => 'admin.node-groups.index',
+                        'routeIs' => ['admin.node-groups.*'],
+                        'permission' => 'nodes.view',
+                    ],
+                    [
+                        'label' => __('Clusters'),
+                        'route' => 'admin.node-clusters.index',
+                        'routeIs' => ['admin.node-clusters.*'],
+                        'permission' => 'nodes.view',
+                    ],
+                    [
+                        'label' => __('Metrics'),
+                        'route' => 'admin.nodes.monitoring',
+                        'routeIs' => ['admin.nodes.monitoring'],
+                        'permission' => 'nodes.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => null,
+                'items' => [
+                    [
+                        'label' => __('Orders'),
+                        'route' => 'admin.orders.index',
+                        'routeIs' => ['admin.orders.*'],
+                        'permission' => 'orders.view',
+                    ],
+                    [
+                        'label' => __('Modules'),
+                        'route' => 'admin.modules.index',
+                        'routeIs' => ['admin.modules.*'],
+                        'permission' => 'modules.view',
+                    ],
+                    [
+                        'label' => __('Themes'),
+                        'route' => 'admin.themes.index',
+                        'routeIs' => ['admin.themes.*'],
+                        'permission' => 'themes.view',
+                    ],
+                    [
+                        'label' => __('Marketplace'),
+                        'route' => 'admin.marketplace.index',
+                        'routeIs' => ['admin.marketplace.*'],
+                        'permission' => 'marketplace.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => __('Settings'),
+                'items' => [
+                    [
+                        'label' => __('General'),
+                        'route' => 'admin.settings.general',
+                        'routeIs' => ['admin.settings.general*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('Billing'),
+                        'route' => 'admin.settings.billing',
+                        'routeIs' => ['admin.settings.billing*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('License'),
+                        'route' => 'admin.license.show',
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('Security'),
+                        'route' => 'admin.settings.security',
+                        'routeIs' => ['admin.settings.security*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('Payment gateways'),
+                        'route' => 'admin.gateways.index',
+                        'routeIs' => ['admin.gateways.*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('Mail'),
+                        'route' => 'admin.settings.mail',
+                        'routeIs' => ['admin.settings.mail*'],
+                        'permission' => 'settings.view',
+                    ],
+                    [
+                        'label' => __('API'),
+                        'route' => null,
+                        'permission' => 'settings.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => __('Logs'),
+                'items' => [
+                    [
+                        'label' => __('Activity Logs'),
+                        'route' => null,
+                        'permission' => 'audit.view',
+                    ],
+                    [
+                        'label' => __('Audit Logs'),
+                        'route' => null,
+                        'permission' => 'audit.view',
+                    ],
+                ],
+            ],
+            [
+                'label' => null,
+                'items' => [
+                    [
+                        'label' => __('System Health'),
+                        'route' => null,
+                        'permission' => null,
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>|null
+     */
+    private function resolveItem(array $item, User $user): ?array
+    {
+        if (! $this->userCan($user, $item['permission'] ?? null)) {
+            return null;
+        }
+
+        $children = collect($item['children'] ?? [])
+            ->map(fn (array $child): ?array => $this->resolveItem($child, $user))
+            ->filter()
+            ->values()
+            ->all();
+
+        $routeName = $item['route'] ?? null;
+        $url = filled($routeName) && Route::has($routeName)
+            ? route($routeName)
+            : null;
+
+        $routeIs = $item['routeIs'] ?? (filled($routeName) ? [$routeName] : []);
+
+        return [
+            'label' => $item['label'],
+            'url' => $url,
+            'active' => $this->isActive($routeIs),
+            'placeholder' => $url === null,
+            'children' => $children,
+        ];
+    }
+
+    /**
+     * @param  list<string>|string  $routeIs
+     */
+    private function isActive(array|string $routeIs): bool
+    {
+        $patterns = is_array($routeIs) ? $routeIs : [$routeIs];
+
+        if ($patterns === []) {
+            return false;
+        }
+
+        return request()->routeIs(...$patterns);
+    }
+
+    private function userCan(User $user, ?string $permission): bool
+    {
+        if ($permission === null) {
+            return true;
+        }
+
+        return Gate::forUser($user)->allows($permission);
+    }
+}

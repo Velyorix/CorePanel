@@ -2,14 +2,18 @@
 
 namespace Core\Webhooks\Jobs;
 
+use Core\Automation\Concerns\IdempotentUniqueJob;
+use Core\Automation\Services\AutomationIdempotencyKey;
 use Core\Webhooks\Enums\WebhookDeliveryStatus;
 use Core\Webhooks\Models\WebhookDelivery;
 use Core\Webhooks\Services\WebhookDeliveryService;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class DeliverWebhookJob implements ShouldQueue
+class DeliverWebhookJob implements ShouldBeUnique, ShouldQueue
 {
+    use IdempotentUniqueJob;
     use Queueable;
 
     public int $tries = 1;
@@ -17,6 +21,14 @@ class DeliverWebhookJob implements ShouldQueue
     public function __construct(
         public readonly int $deliveryId,
     ) {
+        $this->configureUniqueFor();
+    }
+
+    public function idempotencyKey(): string
+    {
+        return app(AutomationIdempotencyKey::class)->forJob(self::class, [
+            'delivery_id' => $this->deliveryId,
+        ]);
     }
 
     public function handle(WebhookDeliveryService $deliveries): void

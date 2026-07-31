@@ -121,6 +121,8 @@ class AutomationFailureHandler
             'result' => $partial,
         ])->save();
 
+        app(AutomationIdempotencyGuard::class)->releaseAfterFailure($log);
+
         return $log->fresh() ?? $log;
     }
 
@@ -176,6 +178,8 @@ class AutomationFailureHandler
             'primary' => $primary->getMessage(),
             'fallback' => $fallbackError->getMessage(),
         ]);
+
+        app(AutomationIdempotencyGuard::class)->releaseAfterFailure($log);
 
         return $log->fresh() ?? $log;
     }

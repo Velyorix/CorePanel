@@ -8,7 +8,6 @@ use Core\Automation\Enums\AutomationLogStatus;
 use Core\Automation\Models\AutomationLog;
 use Core\Automation\Models\AutomationRule;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -29,6 +28,7 @@ class RulesEngine
         private readonly WorkflowConditionEvaluator $conditions,
         private readonly RuleActionRegistry $actions,
         private readonly AutomationFailureHandler $failures,
+        private readonly AutomationIdempotencyGuard $idempotency,
     ) {
     }
 
@@ -124,22 +124,29 @@ class RulesEngine
         ?AutomationEventContext $context = null,
     ): AutomationLog {
         $trigger = $event ?? $context?->event ?? 'rule.evaluate';
+        $key = $this->idempotency->keys()->forRule($rule->id, $trigger, $data);
 
-        $log = AutomationLog::query()->create([
-            'automation_rule_id' => $rule->id,
-            'trigger_event' => $trigger,
-            'status' => AutomationLogStatus::Running,
-            'attempt' => 1,
-            'payload' => [
-                'event' => $trigger,
-                'data' => $data,
-                'rule' => $rule->name,
-            ],
-            'idempotency_key' => (string) Str::uuid(),
-            'started_at' => now(),
-        ]);
+        $claim = $this->idempotency->claimOrExisting($key, function () use ($rule, $data, $trigger, $key): AutomationLog {
+            return AutomationLog::query()->create([
+                'automation_rule_id' => $rule->id,
+                'trigger_event' => $trigger,
+                'status' => AutomationLogStatus::Running,
+                'attempt' => 1,
+                'payload' => [
+                    'event' => $trigger,
+                    'data' => $data,
+                    'rule' => $rule->name,
+                ],
+                'idempotency_key' => $key,
+                'started_at' => now(),
+            ]);
+        });
 
-        return $this->execute($log, $rule, $data, $event, $context);
+        if (! $claim->isNew) {
+            return $claim->log;
+        }
+
+        return $this->execute($claim->log, $rule, $data, $event, $context);
     }
 
     public function retry(AutomationLog $log): AutomationLog

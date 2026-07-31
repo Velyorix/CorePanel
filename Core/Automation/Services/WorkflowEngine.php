@@ -8,7 +8,6 @@ use Core\Automation\Enums\AutomationLogStatus;
 use Core\Automation\Models\AutomationLog;
 use Core\Automation\Models\Workflow;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -25,6 +24,7 @@ class WorkflowEngine
         private readonly WorkflowConditionEvaluator $conditions,
         private readonly WorkflowActionRegistry $actions,
         private readonly AutomationFailureHandler $failures,
+        private readonly AutomationIdempotencyGuard $idempotency,
     ) {
     }
 
@@ -94,21 +94,29 @@ class WorkflowEngine
 
     public function run(Workflow $workflow, AutomationEventContext $context): AutomationLog
     {
-        $log = AutomationLog::query()->create([
-            'workflow_id' => $workflow->id,
-            'trigger_event' => $context->event,
-            'status' => AutomationLogStatus::Running,
-            'attempt' => 1,
-            'payload' => [
-                'event' => $context->event,
-                'data' => $context->data,
-                'workflow' => $workflow->slug,
-            ],
-            'idempotency_key' => (string) Str::uuid(),
-            'started_at' => now(),
-        ]);
+        $key = $this->idempotency->keys()->forWorkflow($workflow->id, $context->event, $context->data);
 
-        return $this->execute($log, $workflow, $context);
+        $claim = $this->idempotency->claimOrExisting($key, function () use ($workflow, $context, $key): AutomationLog {
+            return AutomationLog::query()->create([
+                'workflow_id' => $workflow->id,
+                'trigger_event' => $context->event,
+                'status' => AutomationLogStatus::Running,
+                'attempt' => 1,
+                'payload' => [
+                    'event' => $context->event,
+                    'data' => $context->data,
+                    'workflow' => $workflow->slug,
+                ],
+                'idempotency_key' => $key,
+                'started_at' => now(),
+            ]);
+        });
+
+        if (! $claim->isNew) {
+            return $claim->log;
+        }
+
+        return $this->execute($claim->log, $workflow, $context);
     }
 
     public function retry(AutomationLog $log): AutomationLog

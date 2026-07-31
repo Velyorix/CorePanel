@@ -18,6 +18,8 @@ use Core\Automation\Services\AutomationEventBridge;
 use Core\Automation\Services\AutomationEventBus;
 use Core\Automation\Services\AutomationEventPayloadFactory;
 use Core\Automation\Services\AutomationFailureHandler;
+use Core\Automation\Services\AutomationIdempotencyGuard;
+use Core\Automation\Services\AutomationIdempotencyKey;
 use Core\Automation\Services\AutomationLogCleanupService;
 use Core\Automation\Services\AutomationRetryService;
 use Core\Automation\Services\BillingReportService;
@@ -284,6 +286,8 @@ class CoreServiceProvider extends ServiceProvider
         });
         $this->app->singleton(RulesEngine::class);
         $this->app->singleton(AutomationFailureHandler::class);
+        $this->app->singleton(AutomationIdempotencyKey::class);
+        $this->app->singleton(AutomationIdempotencyGuard::class);
         $this->app->singleton(AutomationRetryService::class);
         $this->app->singleton(AutomationScheduleRegistrar::class);
         $this->app->singleton(AutomationLogCleanupService::class);

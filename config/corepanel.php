@@ -1223,6 +1223,22 @@ return [
                 explode(',', (string) env('COREPANEL_AUTOMATION_BACKOFF', '0,300,1800,3600')),
             ), static fn (int $value): bool => $value >= 0)),
         ],
+        'idempotency' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_IDEMPOTENCY_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'lock_seconds' => (int) env('COREPANEL_AUTOMATION_IDEMPOTENCY_LOCK', 30),
+            'unique_for_seconds' => (int) env('COREPANEL_AUTOMATION_JOB_UNIQUE_FOR', 3600),
+            'fingerprint_keys' => [
+                'invoice_id',
+                'service_id',
+                'ticket_id',
+                'node_id',
+                'client_id',
+                'order_id',
+            ],
+        ],
         'scheduler' => [
             'enabled' => filter_var(
                 env('COREPANEL_AUTOMATION_SCHEDULER_ENABLED', true),

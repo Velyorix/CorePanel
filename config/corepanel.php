@@ -1190,4 +1190,28 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automation engine
+    |--------------------------------------------------------------------------
+    |
+    | Event-driven workflows, conditional rules, retries and execution logs.
+    | Engine wiring lands in later increments; schema is ready now.
+    |
+    */
+
+    'automation' => [
+        'enabled' => filter_var(
+            env('COREPANEL_AUTOMATION_ENABLED', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'retry' => [
+            'max_attempts' => (int) env('COREPANEL_AUTOMATION_MAX_ATTEMPTS', 4),
+            'backoff_seconds' => array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) env('COREPANEL_AUTOMATION_BACKOFF', '0,300,1800,3600')),
+            ), static fn (int $value): bool => $value >= 0)),
+        ],
+    ],
+
 ];

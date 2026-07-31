@@ -8,6 +8,7 @@ use Core\Admin\Notifications\AdminNotificationFeed;
 use Core\Admin\Services\AdminNotificationService;
 use Core\API\Services\ApiClientAccessService;
 use Core\API\Services\ApiRateLimiter;
+use Core\API\Services\ApiRequestLogger;
 use Core\API\Services\ApiScopeRegistry;
 use Core\API\Services\ApiTokenScopeChecker;
 use Core\API\Services\ApiTokenService;
@@ -246,6 +247,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ApiTokenService::class);
         $this->app->singleton(ApiRateLimiter::class);
         $this->app->singleton(ApiClientAccessService::class);
+        $this->app->singleton(ApiRequestLogger::class);
         $this->app->singleton(WebhookService::class);
         $this->app->singleton(WebhookDispatcher::class);
         $this->app->singleton(WebhookDeliveryService::class);

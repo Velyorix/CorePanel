@@ -14,6 +14,7 @@ use App\Http\Middleware\Api\AuthenticateApiToken;
 use App\Http\Middleware\Api\EnsureApiRateLimit;
 use App\Http\Middleware\Api\EnsureApiScope;
 use App\Http\Middleware\Api\ForceJsonResponse;
+use App\Http\Middleware\Api\LogApiRequest;
 use App\Http\Middleware\Api\SetApiVersion;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAuthenticatedSession;
@@ -73,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.auth' => AuthenticateApiToken::class,
             'api.scope' => EnsureApiScope::class,
             'api.ratelimit' => EnsureApiRateLimit::class,
+            'api.log' => LogApiRequest::class,
         ]);
 
         $middleware->group('admin', [
@@ -88,6 +90,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->group('api.v1', [
+            LogApiRequest::class,
             ForceJsonResponse::class,
             AssignRequestId::class,
             SetApiVersion::class,

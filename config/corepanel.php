@@ -1091,8 +1091,9 @@ return [
     |
     | Versioned routes live under /api/{prefix}. Auth, scopes, the JSON
     | response envelope ({ data, meta } / { error }), optional global
-    | rate limiting (X-RateLimit-* headers), and list pagination/filters
-    | (page, per_page, q, status, sort, dir, …) are applied on /api/v1.
+    | rate limiting (X-RateLimit-* headers), list pagination/filters
+    | (page, per_page, q, status, sort, dir, …), outgoing webhooks, and
+    | request logging are applied on /api/v1.
     |
     */
 
@@ -1134,6 +1135,12 @@ return [
         'pagination' => [
             'default_per_page' => (int) env('COREPANEL_API_DEFAULT_PER_PAGE', 20),
             'max_per_page' => (int) env('COREPANEL_API_MAX_PER_PAGE', 100),
+        ],
+        'request_log' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_REQUEST_LOG_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
         ],
         'webhooks' => [
             'enabled' => filter_var(

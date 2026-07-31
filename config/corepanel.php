@@ -1196,7 +1196,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Event-driven workflows, conditional rules, retries and execution logs.
-    | Engine wiring lands in later increments; schema is ready now.
+    | Domain events listed under "events" are forwarded to the automation bus.
     |
     */
 
@@ -1205,6 +1205,17 @@ return [
             env('COREPANEL_AUTOMATION_ENABLED', true),
             FILTER_VALIDATE_BOOL,
         ),
+        'events' => [
+            'service.created' => \Core\Services\Events\ServiceCreated::class,
+            'service.suspended' => \Core\Services\Events\ServiceSuspended::class,
+            'service.terminated' => \Core\Services\Events\ServiceTerminated::class,
+            'invoice.paid' => \Core\Billing\Events\InvoicePaid::class,
+            'invoice.overdue' => \Core\Billing\Events\InvoiceOverdue::class,
+            'ticket.created' => \Core\Tickets\Events\TicketCreated::class,
+            'ticket.replied' => \Core\Tickets\Events\TicketReplied::class,
+            'node.offline' => \Core\Nodes\Events\NodeWentOffline::class,
+            'node.online' => \Core\Nodes\Events\NodeCameOnline::class,
+        ],
         'retry' => [
             'max_attempts' => (int) env('COREPANEL_AUTOMATION_MAX_ATTEMPTS', 4),
             'backoff_seconds' => array_values(array_filter(array_map(

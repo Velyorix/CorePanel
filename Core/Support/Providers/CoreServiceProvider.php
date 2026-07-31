@@ -16,6 +16,9 @@ use Core\API\Services\InternalApiAuthenticator;
 use Core\Automation\Services\AutomationEventBridge;
 use Core\Automation\Services\AutomationEventBus;
 use Core\Automation\Services\AutomationEventPayloadFactory;
+use Core\Automation\Services\WorkflowActionRegistry;
+use Core\Automation\Services\WorkflowConditionEvaluator;
+use Core\Automation\Services\WorkflowEngine;
 use Core\Webhooks\Listeners\DispatchOutgoingWebhooks;
 use Core\Webhooks\Services\WebhookDeliveryService;
 use Core\Webhooks\Services\WebhookDispatcher;
@@ -256,6 +259,14 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(AutomationEventBus::class);
         $this->app->singleton(AutomationEventPayloadFactory::class);
         $this->app->singleton(AutomationEventBridge::class);
+        $this->app->singleton(WorkflowConditionEvaluator::class);
+        $this->app->singleton(WorkflowActionRegistry::class, function (): WorkflowActionRegistry {
+            $registry = new WorkflowActionRegistry;
+            $registry->registerDefaults();
+
+            return $registry;
+        });
+        $this->app->singleton(WorkflowEngine::class);
         $this->app->singleton(WebhookService::class);
         $this->app->singleton(WebhookDispatcher::class);
         $this->app->singleton(WebhookDeliveryService::class);
@@ -481,5 +492,6 @@ class CoreServiceProvider extends ServiceProvider
         Event::listen(TicketReplied::class, NotifyParticipantsOnTicketReplied::class);
         Event::subscribe(DispatchOutgoingWebhooks::class);
         $this->app->make(AutomationEventBridge::class)->register();
+        $this->app->make(WorkflowEngine::class)->register();
     }
 }

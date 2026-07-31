@@ -99,5 +99,15 @@ class WorkflowActionRegistry
                 'value' => $step['value'] ?? null,
             ];
         });
+
+        $this->register('manual_intervention', function (array $step, WorkflowRunContext $context): array {
+            $message = (string) ($step['message'] ?? 'Manual intervention required.');
+            $context->set('_manual_intervention', $message);
+
+            return [
+                'manual_intervention' => true,
+                'message' => $message,
+            ];
+        });
     }
 }

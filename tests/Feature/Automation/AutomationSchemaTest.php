@@ -22,6 +22,8 @@ class AutomationSchemaTest extends TestCase
                 "Expected table [{$table}] to exist.",
             );
         }
+
+        $this->assertTrue(Schema::hasColumn('workflows', 'fallback'));
     }
 
     public function test_workflow_factory_persists_trigger_conditions_and_steps(): void

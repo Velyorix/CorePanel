@@ -28,6 +28,7 @@ class RulesEngine
         private readonly AutomationEventBus $bus,
         private readonly WorkflowConditionEvaluator $conditions,
         private readonly RuleActionRegistry $actions,
+        private readonly AutomationFailureHandler $failures,
     ) {
     }
 
@@ -138,6 +139,43 @@ class RulesEngine
             'started_at' => now(),
         ]);
 
+        return $this->execute($log, $rule, $data, $event, $context);
+    }
+
+    public function retry(AutomationLog $log): AutomationLog
+    {
+        $rule = $log->automationRule ?? AutomationRule::query()->find($log->automation_rule_id);
+
+        if ($rule === null) {
+            throw new RuntimeException("Rule for automation log [{$log->id}] was not found.");
+        }
+
+        $payload = is_array($log->payload) ? $log->payload : [];
+        $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        $event = isset($payload['event']) && is_string($payload['event']) ? $payload['event'] : $log->trigger_event;
+
+        $log->forceFill([
+            'status' => AutomationLogStatus::Running,
+            'attempt' => $log->attempt + 1,
+            'next_retry_at' => null,
+            'error_message' => null,
+            'started_at' => now(),
+            'finished_at' => null,
+        ])->save();
+
+        return $this->execute($log->fresh() ?? $log, $rule, $data, $event, null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function execute(
+        AutomationLog $log,
+        AutomationRule $rule,
+        array $data,
+        ?string $event = null,
+        ?AutomationEventContext $context = null,
+    ): AutomationLog {
         $run = new RuleRunContext($rule, $context, $data);
 
         try {
@@ -155,21 +193,81 @@ class RulesEngine
                     'bag' => $run->bag,
                 ],
                 'error_message' => null,
+                'next_retry_at' => null,
                 'finished_at' => now(),
             ])->save();
+
+            return $log->fresh() ?? $log;
         } catch (Throwable $exception) {
-            $log->forceFill([
-                'status' => AutomationLogStatus::Failed,
-                'result' => [
-                    'action' => $run->actionResult,
-                    'bag' => $run->bag,
-                ],
-                'error_message' => $exception->getMessage(),
-                'finished_at' => now(),
-            ])->save();
+            $partial = [
+                'action' => $run->actionResult,
+                'bag' => $run->bag,
+            ];
+
+            $log->forceFill(['result' => $partial])->save();
+
+            $fallback = $this->resolveFallback($rule);
+            $log = $this->failures->handle($log->fresh() ?? $log, $exception, $fallback);
+
+            if ($log->status === AutomationLogStatus::Fallback && ($log->result['fallback_pending'] ?? false)) {
+                return $this->runFallback($log, $rule, $data, $context, $exception, $run);
+            }
+
+            return $log;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function runFallback(
+        AutomationLog $log,
+        AutomationRule $rule,
+        array $data,
+        ?AutomationEventContext $context,
+        Throwable $primary,
+        RuleRunContext $failedRun,
+    ): AutomationLog {
+        $fallback = $this->resolveFallback($rule);
+
+        if ($fallback === null) {
+            return $this->failures->markFallbackFailed($log, $primary, new RuntimeException('Fallback is missing.'), [
+                'action' => $failedRun->actionResult,
+                'bag' => $failedRun->bag,
+            ]);
         }
 
-        return $log->fresh() ?? $log;
+        try {
+            $fallbackRun = new RuleRunContext($rule, $context, $data);
+            $fallbackRun->bag = $failedRun->bag;
+            $result = $this->actions->run($fallback, $fallbackRun);
+
+            return $this->failures->markFallbackSucceeded($log, [
+                'type' => $fallback['type'] ?? null,
+                'result' => $result,
+                'bag' => $fallbackRun->bag,
+            ], $primary);
+        } catch (Throwable $fallbackError) {
+            return $this->failures->markFallbackFailed($log, $primary, $fallbackError, [
+                'action' => $failedRun->actionResult,
+                'bag' => $failedRun->bag,
+            ]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveFallback(AutomationRule $rule): ?array
+    {
+        $action = is_array($rule->action_json) ? $rule->action_json : [];
+        $fallback = $action['fallback'] ?? null;
+
+        if (! is_array($fallback) || $fallback === [] || ! isset($fallback['type'])) {
+            return null;
+        }
+
+        return $fallback;
     }
 
     private function appliesToEvent(AutomationRule $rule, ?string $event): bool
@@ -215,7 +313,10 @@ class RulesEngine
         }
 
         if (isset($actionJson['type']) && is_string($actionJson['type'])) {
-            return $actionJson;
+            $action = $actionJson;
+            unset($action['fallback']);
+
+            return $action;
         }
 
         if (isset($actionJson['actions']) && is_array($actionJson['actions'])) {

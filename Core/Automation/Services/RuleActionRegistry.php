@@ -121,5 +121,15 @@ class RuleActionRegistry
                 'status' => $service->status?->value ?? $service->status,
             ];
         });
+
+        $this->register('manual_intervention', function (array $action, RuleRunContext $context): array {
+            $message = (string) ($action['message'] ?? 'Manual intervention required.');
+            $context->set('_manual_intervention', $message);
+
+            return [
+                'manual_intervention' => true,
+                'message' => $message,
+            ];
+        });
     }
 }

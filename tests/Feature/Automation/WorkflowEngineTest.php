@@ -114,7 +114,7 @@ class WorkflowEngineTest extends TestCase
         $this->assertCount(0, $logs);
     }
 
-    public function test_unknown_action_marks_log_as_failed(): void
+    public function test_unknown_action_schedules_retry_by_default(): void
     {
         Workflow::factory()->create([
             'trigger_event' => AutomationEvent::TICKET_CREATED,
@@ -130,9 +130,30 @@ class WorkflowEngineTest extends TestCase
         ));
 
         $this->assertCount(1, $logs);
-        $this->assertSame(AutomationLogStatus::Failed, $logs->first()->status);
+        $this->assertSame(AutomationLogStatus::Retrying, $logs->first()->status);
         $this->assertStringContainsString('does_not_exist', (string) $logs->first()->error_message);
+        $this->assertNotNull($logs->first()->next_retry_at);
         $this->assertCount(1, $logs->first()->result['steps'] ?? []);
+    }
+
+    public function test_unknown_action_marks_failed_when_retries_exhausted(): void
+    {
+        config(['corepanel.automation.retry.max_attempts' => 1]);
+
+        Workflow::factory()->create([
+            'trigger_event' => AutomationEvent::TICKET_CREATED,
+            'steps' => [
+                ['type' => 'does_not_exist'],
+            ],
+        ]);
+
+        $logs = $this->engine->handle(AutomationEventContext::make(
+            AutomationEvent::TICKET_CREATED,
+            ['ticket_id' => 3],
+        ));
+
+        $this->assertSame(AutomationLogStatus::Failed, $logs->first()->status);
+        $this->assertNull($logs->first()->next_retry_at);
     }
 
     public function test_custom_action_can_be_registered_dynamically(): void

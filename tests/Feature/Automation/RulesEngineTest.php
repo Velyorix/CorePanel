@@ -275,7 +275,7 @@ class RulesEngineTest extends TestCase
         $this->assertSame(['first', 'second'], $seen);
     }
 
-    public function test_failed_action_marks_log_failed(): void
+    public function test_failed_action_schedules_retry_by_default(): void
     {
         AutomationRule::factory()->create([
             'condition_json' => [],
@@ -284,7 +284,23 @@ class RulesEngineTest extends TestCase
 
         $logs = $this->engine->evaluate(['x' => 1]);
 
-        $this->assertSame(AutomationLogStatus::Failed, $logs->first()->status);
+        $this->assertSame(AutomationLogStatus::Retrying, $logs->first()->status);
         $this->assertStringContainsString('does_not_exist', (string) $logs->first()->error_message);
+        $this->assertNotNull($logs->first()->next_retry_at);
+    }
+
+    public function test_failed_action_marks_failed_when_retries_exhausted(): void
+    {
+        config(['corepanel.automation.retry.max_attempts' => 1]);
+
+        AutomationRule::factory()->create([
+            'condition_json' => [],
+            'action_json' => ['type' => 'does_not_exist'],
+        ]);
+
+        $logs = $this->engine->evaluate(['x' => 1]);
+
+        $this->assertSame(AutomationLogStatus::Failed, $logs->first()->status);
+        $this->assertNull($logs->first()->next_retry_at);
     }
 }

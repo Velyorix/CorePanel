@@ -22,6 +22,7 @@ class Workflow extends Model
         'trigger_event',
         'conditions',
         'steps',
+        'fallback',
         'priority',
         'is_active',
     ];
@@ -34,6 +35,7 @@ class Workflow extends Model
         return [
             'conditions' => 'array',
             'steps' => 'array',
+            'fallback' => 'array',
             'priority' => 'integer',
             'is_active' => 'boolean',
         ];

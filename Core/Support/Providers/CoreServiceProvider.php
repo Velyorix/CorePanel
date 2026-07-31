@@ -17,7 +17,9 @@ use Core\Automation\Scheduling\AutomationScheduleRegistrar;
 use Core\Automation\Services\AutomationEventBridge;
 use Core\Automation\Services\AutomationEventBus;
 use Core\Automation\Services\AutomationEventPayloadFactory;
+use Core\Automation\Services\AutomationFailureHandler;
 use Core\Automation\Services\AutomationLogCleanupService;
+use Core\Automation\Services\AutomationRetryService;
 use Core\Automation\Services\BillingReportService;
 use Core\Automation\Services\FailedSystemJobRetryService;
 use Core\Automation\Services\RuleActionRegistry;
@@ -281,6 +283,8 @@ class CoreServiceProvider extends ServiceProvider
             return $registry;
         });
         $this->app->singleton(RulesEngine::class);
+        $this->app->singleton(AutomationFailureHandler::class);
+        $this->app->singleton(AutomationRetryService::class);
         $this->app->singleton(AutomationScheduleRegistrar::class);
         $this->app->singleton(AutomationLogCleanupService::class);
         $this->app->singleton(FailedSystemJobRetryService::class);

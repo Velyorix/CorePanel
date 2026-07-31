@@ -11,6 +11,18 @@ enum AutomationLogStatus: string
     case Retrying = 'retrying';
     case Fallback = 'fallback';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::Pending => __('Pending'),
+            self::Running => __('Running'),
+            self::Succeeded => __('Succeeded'),
+            self::Failed => __('Failed'),
+            self::Retrying => __('Retrying'),
+            self::Fallback => __('Fallback'),
+        };
+    }
+
     /**
      * @return list<string>
      */

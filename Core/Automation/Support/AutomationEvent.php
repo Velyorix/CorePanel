@@ -42,4 +42,20 @@ final class AutomationEvent
             self::NODE_ONLINE,
         ];
     }
+
+    public static function label(string $event): string
+    {
+        return match ($event) {
+            self::SERVICE_CREATED => __('Service created'),
+            self::SERVICE_SUSPENDED => __('Service suspended'),
+            self::SERVICE_TERMINATED => __('Service terminated'),
+            self::INVOICE_PAID => __('Invoice paid'),
+            self::INVOICE_OVERDUE => __('Invoice overdue'),
+            self::TICKET_CREATED => __('Ticket created'),
+            self::TICKET_REPLIED => __('Ticket replied'),
+            self::NODE_OFFLINE => __('Node offline'),
+            self::NODE_ONLINE => __('Node online'),
+            default => $event,
+        };
+    }
 }

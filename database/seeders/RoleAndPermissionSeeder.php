@@ -130,6 +130,9 @@ class RoleAndPermissionSeeder extends Seeder
             ['name' => 'nodes.view', 'module' => 'nodes', 'description' => 'View infrastructure nodes'],
             ['name' => 'nodes.manage', 'module' => 'nodes', 'description' => 'Manage infrastructure nodes'],
 
+            ['name' => 'automation.view', 'module' => 'automation', 'description' => 'View automation workflows, rules, and logs'],
+            ['name' => 'automation.manage', 'module' => 'automation', 'description' => 'Manage automation workflows and rules'],
+
             ['name' => 'modules.view', 'module' => 'modules', 'description' => 'View installed and discovered modules'],
             ['name' => 'modules.manage', 'module' => 'modules', 'description' => 'Install, enable, disable, and configure modules'],
 
@@ -192,6 +195,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'billing.*',
                     'services.*',
                     'nodes.*',
+                    'automation.*',
                     'modules.*',
                     'themes.*',
                     'marketplace.*',

@@ -13,7 +13,16 @@ use Core\API\Services\ApiScopeRegistry;
 use Core\API\Services\ApiTokenScopeChecker;
 use Core\API\Services\ApiTokenService;
 use Core\API\Services\InternalApiAuthenticator;
+use Core\Automation\Models\AutomationLog;
+use Core\Automation\Models\AutomationRule;
+use Core\Automation\Models\Workflow;
 use Core\Automation\Scheduling\AutomationScheduleRegistrar;
+use Core\Automation\Services\AutomationLogQueryService;
+use Core\Automation\Services\AutomationRuleAdminService;
+use Core\Automation\Services\WorkflowAdminService;
+use Core\Permissions\Policies\AutomationLogPolicy;
+use Core\Permissions\Policies\AutomationRulePolicy;
+use Core\Permissions\Policies\WorkflowPolicy;
 use Core\Automation\Services\AutomationEventBridge;
 use Core\Automation\Services\AutomationEventBus;
 use Core\Automation\Services\AutomationEventPayloadFactory;
@@ -294,6 +303,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(FailedSystemJobRetryService::class);
         $this->app->singleton(BillingReportService::class);
         $this->app->singleton(SystemHealthReportService::class);
+        $this->app->singleton(WorkflowAdminService::class);
+        $this->app->singleton(AutomationRuleAdminService::class);
+        $this->app->singleton(AutomationLogQueryService::class);
         $this->app->singleton(WebhookService::class);
         $this->app->singleton(WebhookDispatcher::class);
         $this->app->singleton(WebhookDeliveryService::class);
@@ -482,6 +494,9 @@ class CoreServiceProvider extends ServiceProvider
         Gate::policy(KbCategory::class, KbCategoryPolicy::class);
         Gate::policy(Quote::class, QuotePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Workflow::class, WorkflowPolicy::class);
+        Gate::policy(AutomationRule::class, AutomationRulePolicy::class);
+        Gate::policy(AutomationLog::class, AutomationLogPolicy::class);
 
         $this->app->make(GateRegistrar::class)->register();
         BladeAuthorizationDirectives::register();

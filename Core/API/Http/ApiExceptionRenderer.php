@@ -20,7 +20,7 @@ final class ApiExceptionRenderer
 {
     public function shouldRender(Request $request): bool
     {
-        return $request->is('api/v1', 'api/v1/*');
+        return $request->is('api/v1', 'api/v1/*', 'api/internal', 'api/internal/*');
     }
 
     public function render(Throwable $e, Request $request): ?JsonResponse

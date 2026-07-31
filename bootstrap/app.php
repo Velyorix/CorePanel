@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnforceMaintenanceMode;
 use App\Http\Middleware\Api\AssignRequestId;
 use App\Http\Middleware\Api\AuthenticateApiToken;
+use App\Http\Middleware\Api\AuthenticateInternalModule;
 use App\Http\Middleware\Api\EnsureApiRateLimit;
 use App\Http\Middleware\Api\EnsureApiScope;
 use App\Http\Middleware\Api\ForceJsonResponse;
@@ -75,6 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.scope' => EnsureApiScope::class,
             'api.ratelimit' => EnsureApiRateLimit::class,
             'api.log' => LogApiRequest::class,
+            'api.internal.auth' => AuthenticateInternalModule::class,
         ]);
 
         $middleware->group('admin', [
@@ -95,6 +97,12 @@ return Application::configure(basePath: dirname(__DIR__))
             AssignRequestId::class,
             SetApiVersion::class,
             EnsureApiRateLimit::class,
+        ]);
+
+        $middleware->group('api.internal', [
+            ForceJsonResponse::class,
+            AssignRequestId::class,
+            AuthenticateInternalModule::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

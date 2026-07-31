@@ -1092,8 +1092,8 @@ return [
     | Versioned routes live under /api/{prefix}. Auth, scopes, the JSON
     | response envelope ({ data, meta } / { error }), optional global
     | rate limiting (X-RateLimit-* headers), list pagination/filters
-    | (page, per_page, q, status, sort, dir, …), outgoing webhooks, and
-    | request logging are applied on /api/v1.
+    | (page, per_page, q, status, sort, dir, …), outgoing webhooks,
+    | request logging, and /api/internal module routes are applied here.
     |
     */
 
@@ -1141,6 +1141,34 @@ return [
                 env('COREPANEL_API_REQUEST_LOG_ENABLED', true),
                 FILTER_VALIDATE_BOOL,
             ),
+        ],
+        'internal' => [
+            'enabled' => filter_var(
+                env('COREPANEL_INTERNAL_API_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'token' => env('COREPANEL_INTERNAL_API_TOKEN', ''),
+            'hmac_secret' => env('COREPANEL_INTERNAL_API_HMAC_SECRET', ''),
+            'module_header' => env('COREPANEL_INTERNAL_API_MODULE_HEADER', 'X-CorePanel-Module'),
+            'token_header' => env('COREPANEL_INTERNAL_API_TOKEN_HEADER', 'X-CorePanel-Module-Token'),
+            'signature_header' => env('COREPANEL_INTERNAL_API_SIGNATURE_HEADER', 'X-CorePanel-Signature'),
+            'timestamp_header' => env('COREPANEL_INTERNAL_API_TIMESTAMP_HEADER', 'X-CorePanel-Timestamp'),
+            'nonce_header' => env('COREPANEL_INTERNAL_API_NONCE_HEADER', 'X-CorePanel-Nonce'),
+            'max_skew_seconds' => (int) env('COREPANEL_INTERNAL_API_MAX_SKEW', 300),
+            'require_enabled_module' => filter_var(
+                env('COREPANEL_INTERNAL_API_REQUIRE_ENABLED_MODULE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'ip_whitelist' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_INTERNAL_API_IP_WHITELIST_ENABLED', false),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'allowed' => array_values(array_filter(array_map(
+                    'trim',
+                    explode(',', (string) env('COREPANEL_INTERNAL_API_IP_WHITELIST', '')),
+                ), static fn (string $value): bool => $value !== '')),
+            ],
         ],
         'webhooks' => [
             'enabled' => filter_var(

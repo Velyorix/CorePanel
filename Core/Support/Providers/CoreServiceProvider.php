@@ -12,6 +12,7 @@ use Core\API\Services\ApiRequestLogger;
 use Core\API\Services\ApiScopeRegistry;
 use Core\API\Services\ApiTokenScopeChecker;
 use Core\API\Services\ApiTokenService;
+use Core\API\Services\InternalApiAuthenticator;
 use Core\Webhooks\Listeners\DispatchOutgoingWebhooks;
 use Core\Webhooks\Services\WebhookDeliveryService;
 use Core\Webhooks\Services\WebhookDispatcher;
@@ -248,6 +249,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->singleton(ApiRateLimiter::class);
         $this->app->singleton(ApiClientAccessService::class);
         $this->app->singleton(ApiRequestLogger::class);
+        $this->app->singleton(InternalApiAuthenticator::class);
         $this->app->singleton(WebhookService::class);
         $this->app->singleton(WebhookDispatcher::class);
         $this->app->singleton(WebhookDeliveryService::class);

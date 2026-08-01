@@ -6,6 +6,8 @@ use Core\Nodes\DataTransferObjects\NodeHealthCheckBatchResult;
 use Core\Nodes\Enums\NodeHealthState;
 use Core\Nodes\Enums\NodeLogStatus;
 use Core\Nodes\Enums\NodeStatus;
+use Core\Nodes\Events\NodeCameOnline;
+use Core\Nodes\Events\NodeWentOffline;
 use Core\Nodes\Models\Node;
 use Core\Nodes\Models\NodeHealthCheck;
 use Core\Providers\DataTransferObjects\NodeOperationResponse;
@@ -239,8 +241,10 @@ class NodeHealthCheckService
         $node->forceFill($attributes)->save();
 
         if ($nextStatus !== null && $nextStatus !== $previousStatus) {
+            $fresh = $node->fresh() ?? $node;
+
             $this->nodeLogs->record(
-                node: $node->fresh() ?? $node,
+                node: $fresh,
                 action: 'node.health.status_changed',
                 status: NodeLogStatus::Success,
                 response: [
@@ -251,7 +255,12 @@ class NodeHealthCheckService
             );
 
             if ($nextStatus === NodeStatus::Offline) {
-                app(NodeFailoverService::class)->dispatchForNode($node->fresh() ?? $node);
+                event(new NodeWentOffline($fresh));
+                app(NodeFailoverService::class)->dispatchForNode($fresh);
+            }
+
+            if ($nextStatus === NodeStatus::Active && $previousStatus === NodeStatus::Offline) {
+                event(new NodeCameOnline($fresh));
             }
         }
     }

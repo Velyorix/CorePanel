@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\AutomationLogController;
+use App\Http\Controllers\Admin\AutomationRuleController;
+use App\Http\Controllers\Admin\AutomationWorkflowController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientMemberController;
 use App\Http\Controllers\Admin\ClientInvitationController;
@@ -173,6 +176,28 @@ Route::middleware('admin')
         Route::get('sync-logs', [SyncLogController::class, 'index'])->name('sync-logs.index');
         Route::get('sync-logs/{syncLog}', [SyncLogController::class, 'show'])->name('sync-logs.show');
         Route::post('sync/run', [SyncActionController::class, 'runAll'])->name('sync.run');
+
+        Route::prefix('automation')->name('automation.')->group(function (): void {
+            Route::get('workflows', [AutomationWorkflowController::class, 'index'])->name('workflows.index');
+            Route::get('workflows/create', [AutomationWorkflowController::class, 'create'])->name('workflows.create');
+            Route::post('workflows', [AutomationWorkflowController::class, 'store'])->name('workflows.store');
+            Route::get('workflows/{workflow}', [AutomationWorkflowController::class, 'show'])->name('workflows.show');
+            Route::get('workflows/{workflow}/edit', [AutomationWorkflowController::class, 'edit'])->name('workflows.edit');
+            Route::put('workflows/{workflow}', [AutomationWorkflowController::class, 'update'])->name('workflows.update');
+            Route::delete('workflows/{workflow}', [AutomationWorkflowController::class, 'destroy'])->name('workflows.destroy');
+
+            Route::get('rules', [AutomationRuleController::class, 'index'])->name('rules.index');
+            Route::get('rules/create', [AutomationRuleController::class, 'create'])->name('rules.create');
+            Route::post('rules', [AutomationRuleController::class, 'store'])->name('rules.store');
+            Route::get('rules/{automationRule}', [AutomationRuleController::class, 'show'])->name('rules.show');
+            Route::get('rules/{automationRule}/edit', [AutomationRuleController::class, 'edit'])->name('rules.edit');
+            Route::put('rules/{automationRule}', [AutomationRuleController::class, 'update'])->name('rules.update');
+            Route::delete('rules/{automationRule}', [AutomationRuleController::class, 'destroy'])->name('rules.destroy');
+
+            Route::get('logs', [AutomationLogController::class, 'index'])->name('logs.index');
+            Route::get('logs/{automationLog}', [AutomationLogController::class, 'show'])->name('logs.show');
+            Route::post('logs/{automationLog}/retry', [AutomationLogController::class, 'retry'])->name('logs.retry');
+        });
 
         Route::get('provisioning-dead-letters', [ProvisioningDeadLetterController::class, 'index'])->name('provisioning-dead-letters.index');
         Route::get('provisioning-dead-letters/{provisioningDeadLetter}', [ProvisioningDeadLetterController::class, 'show'])->name('provisioning-dead-letters.show');

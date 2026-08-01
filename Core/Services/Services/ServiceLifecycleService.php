@@ -3,6 +3,8 @@
 namespace Core\Services\Services;
 
 use Core\Services\Enums\ServiceStatus;
+use Core\Services\Events\ServiceSuspended;
+use Core\Services\Events\ServiceTerminated;
 use Core\Services\Models\Service;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -145,7 +147,15 @@ class ServiceLifecycleService
                 ...$extra,
             ])->save();
 
-            return $service->fresh(['client', 'product']) ?? $service;
+            $fresh = $service->fresh(['client', 'product']) ?? $service;
+
+            match ($target) {
+                ServiceStatus::Suspended => event(new ServiceSuspended($fresh)),
+                ServiceStatus::Terminated => event(new ServiceTerminated($fresh)),
+                default => null,
+            };
+
+            return $fresh;
         });
     }
 }

@@ -6,6 +6,7 @@ use Core\Orders\Enums\OrderStatus;
 use Core\Orders\Models\Order;
 use Core\Orders\Models\OrderItem;
 use Core\Services\Enums\ServiceStatus;
+use Core\Services\Events\ServiceCreated;
 use Core\Services\Models\Service;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +63,11 @@ class ServiceCreationService
 
         $service->save();
 
-        return $service->fresh(['client', 'product', 'order', 'orderItem']) ?? $service;
+        $service = $service->fresh(['client', 'product', 'order', 'orderItem']) ?? $service;
+
+        event(new ServiceCreated($service));
+
+        return $service;
     }
 
     /**

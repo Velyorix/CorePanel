@@ -1084,4 +1084,176 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public REST API
+    |--------------------------------------------------------------------------
+    |
+    | Versioned routes live under /api/{prefix}. Auth, scopes, the JSON
+    | response envelope ({ data, meta } / { error }), optional global
+    | rate limiting (X-RateLimit-* headers), list pagination/filters
+    | (page, per_page, q, status, sort, dir, …), outgoing webhooks,
+    | request logging, and /api/internal module routes are applied here.
+    |
+    */
+
+    'api' => [
+        'version' => env('COREPANEL_API_VERSION', 'v1'),
+        'prefix' => env('COREPANEL_API_PREFIX', 'v1'),
+        'request_id_header' => env('COREPANEL_API_REQUEST_ID_HEADER', 'X-Request-Id'),
+        'version_header' => env('COREPANEL_API_VERSION_HEADER', 'X-Api-Version'),
+        'token_prefix' => env('COREPANEL_API_TOKEN_PREFIX', 'cpat_'),
+        'token_entropy_length' => (int) env('COREPANEL_API_TOKEN_ENTROPY_LENGTH', 40),
+        'scopes' => [
+            '*',
+            'api.me',
+            'api.client.read',
+            'api.client.*',
+            'api.service.read',
+            'api.service.write',
+            'api.service.*',
+            'api.invoice.read',
+            'api.invoice.write',
+            'api.invoice.*',
+            'api.ticket.read',
+            'api.ticket.write',
+            'api.ticket.*',
+            'api.node.read',
+            'api.node.*',
+            'api.webhook.read',
+            'api.webhook.write',
+            'api.webhook.*',
+        ],
+        'rate_limit' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_RATE_LIMIT_ENABLED', false),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'max_attempts' => (int) env('COREPANEL_API_RATE_LIMIT_MAX', 60),
+            'decay_seconds' => (int) env('COREPANEL_API_RATE_LIMIT_DECAY', 60),
+        ],
+        'pagination' => [
+            'default_per_page' => (int) env('COREPANEL_API_DEFAULT_PER_PAGE', 20),
+            'max_per_page' => (int) env('COREPANEL_API_MAX_PER_PAGE', 100),
+        ],
+        'request_log' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_REQUEST_LOG_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+        ],
+        'internal' => [
+            'enabled' => filter_var(
+                env('COREPANEL_INTERNAL_API_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'token' => env('COREPANEL_INTERNAL_API_TOKEN', ''),
+            'hmac_secret' => env('COREPANEL_INTERNAL_API_HMAC_SECRET', ''),
+            'module_header' => env('COREPANEL_INTERNAL_API_MODULE_HEADER', 'X-CorePanel-Module'),
+            'token_header' => env('COREPANEL_INTERNAL_API_TOKEN_HEADER', 'X-CorePanel-Module-Token'),
+            'signature_header' => env('COREPANEL_INTERNAL_API_SIGNATURE_HEADER', 'X-CorePanel-Signature'),
+            'timestamp_header' => env('COREPANEL_INTERNAL_API_TIMESTAMP_HEADER', 'X-CorePanel-Timestamp'),
+            'nonce_header' => env('COREPANEL_INTERNAL_API_NONCE_HEADER', 'X-CorePanel-Nonce'),
+            'max_skew_seconds' => (int) env('COREPANEL_INTERNAL_API_MAX_SKEW', 300),
+            'require_enabled_module' => filter_var(
+                env('COREPANEL_INTERNAL_API_REQUIRE_ENABLED_MODULE', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'ip_whitelist' => [
+                'enabled' => filter_var(
+                    env('COREPANEL_INTERNAL_API_IP_WHITELIST_ENABLED', false),
+                    FILTER_VALIDATE_BOOL,
+                ),
+                'allowed' => array_values(array_filter(array_map(
+                    'trim',
+                    explode(',', (string) env('COREPANEL_INTERNAL_API_IP_WHITELIST', '')),
+                ), static fn (string $value): bool => $value !== '')),
+            ],
+        ],
+        'webhooks' => [
+            'enabled' => filter_var(
+                env('COREPANEL_API_WEBHOOKS_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'timeout_seconds' => (int) env('COREPANEL_API_WEBHOOKS_TIMEOUT', 10),
+            'max_attempts' => (int) env('COREPANEL_API_WEBHOOKS_MAX_ATTEMPTS', 5),
+            'backoff_seconds' => array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) env('COREPANEL_API_WEBHOOKS_BACKOFF', '60,300,900,3600,21600')),
+            ), static fn (int $value): bool => $value > 0)),
+            'secret_prefix' => env('COREPANEL_API_WEBHOOKS_SECRET_PREFIX', 'cwhsec_'),
+            'signature_header' => env('COREPANEL_API_WEBHOOKS_SIGNATURE_HEADER', 'X-CorePanel-Signature'),
+            'timestamp_header' => env('COREPANEL_API_WEBHOOKS_TIMESTAMP_HEADER', 'X-CorePanel-Timestamp'),
+            'event_header' => env('COREPANEL_API_WEBHOOKS_EVENT_HEADER', 'X-CorePanel-Event'),
+            'delivery_header' => env('COREPANEL_API_WEBHOOKS_DELIVERY_HEADER', 'X-CorePanel-Delivery'),
+            'response_body_max_bytes' => (int) env('COREPANEL_API_WEBHOOKS_RESPONSE_MAX', 2048),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automation engine
+    |--------------------------------------------------------------------------
+    |
+    | Event-driven workflows, conditional rules, retries and execution logs.
+    | Domain events listed under "events" are forwarded to the automation bus.
+    |
+    */
+
+    'automation' => [
+        'enabled' => filter_var(
+            env('COREPANEL_AUTOMATION_ENABLED', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'events' => [
+            'service.created' => \Core\Services\Events\ServiceCreated::class,
+            'service.suspended' => \Core\Services\Events\ServiceSuspended::class,
+            'service.terminated' => \Core\Services\Events\ServiceTerminated::class,
+            'invoice.paid' => \Core\Billing\Events\InvoicePaid::class,
+            'invoice.overdue' => \Core\Billing\Events\InvoiceOverdue::class,
+            'ticket.created' => \Core\Tickets\Events\TicketCreated::class,
+            'ticket.replied' => \Core\Tickets\Events\TicketReplied::class,
+            'node.offline' => \Core\Nodes\Events\NodeWentOffline::class,
+            'node.online' => \Core\Nodes\Events\NodeCameOnline::class,
+        ],
+        'retry' => [
+            'max_attempts' => (int) env('COREPANEL_AUTOMATION_MAX_ATTEMPTS', 4),
+            'backoff_seconds' => array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) env('COREPANEL_AUTOMATION_BACKOFF', '0,300,1800,3600')),
+            ), static fn (int $value): bool => $value >= 0)),
+        ],
+        'idempotency' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_IDEMPOTENCY_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'lock_seconds' => (int) env('COREPANEL_AUTOMATION_IDEMPOTENCY_LOCK', 30),
+            'unique_for_seconds' => (int) env('COREPANEL_AUTOMATION_JOB_UNIQUE_FOR', 3600),
+            'fingerprint_keys' => [
+                'invoice_id',
+                'service_id',
+                'ticket_id',
+                'node_id',
+                'client_id',
+                'order_id',
+            ],
+        ],
+        'scheduler' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_SCHEDULER_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'invoices_due' => env('COREPANEL_AUTOMATION_SCHEDULE_INVOICES_DUE', 'everyMinute'),
+            'evaluate_rules' => env('COREPANEL_AUTOMATION_SCHEDULE_EVALUATE_RULES', 'everyMinute'),
+            'retry_failed' => env('COREPANEL_AUTOMATION_SCHEDULE_RETRY_FAILED', 'everyFiveMinutes'),
+            'cleanup_logs' => env('COREPANEL_AUTOMATION_SCHEDULE_CLEANUP_LOGS', 'hourly'),
+            'billing_report' => env('COREPANEL_AUTOMATION_SCHEDULE_BILLING_REPORT', 'daily'),
+            'system_health_report' => env('COREPANEL_AUTOMATION_SCHEDULE_SYSTEM_HEALTH', 'daily'),
+            'log_retention_days' => (int) env('COREPANEL_AUTOMATION_LOG_RETENTION_DAYS', 30),
+            'retry_limit' => (int) env('COREPANEL_AUTOMATION_RETRY_LIMIT', 25),
+            'retry_job_classes' => null,
+        ],
+    ],
+
 ];

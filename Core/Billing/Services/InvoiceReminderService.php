@@ -7,6 +7,7 @@ use Carbon\CarbonInterface;
 use Core\Billing\DataTransferObjects\ReminderProcessingResult;
 use Core\Billing\Enums\InvoiceReminderLevel;
 use Core\Billing\Enums\InvoiceStatus;
+use Core\Billing\Events\InvoiceOverdue;
 use Core\Billing\Models\Invoice;
 use Core\Billing\Notifications\InvoiceReminderNotification;
 use Core\Notifications\Services\NotificationPreferenceService;
@@ -121,11 +122,22 @@ class InvoiceReminderService
 
     public function markOverdue(CarbonInterface $asOf): int
     {
-        return Invoice::query()
+        $invoices = Invoice::query()
             ->where('status', InvoiceStatus::Unpaid)
             ->whereNotNull('due_at')
             ->where('due_at', '<', $asOf->copy()->startOfDay())
-            ->update(['status' => InvoiceStatus::Overdue]);
+            ->orderBy('id')
+            ->get();
+
+        $count = 0;
+
+        foreach ($invoices as $invoice) {
+            $invoice->forceFill(['status' => InvoiceStatus::Overdue])->save();
+            event(new InvoiceOverdue($invoice->fresh() ?? $invoice));
+            $count++;
+        }
+
+        return $count;
     }
 
     /**

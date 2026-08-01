@@ -4,6 +4,7 @@ namespace Core\Auth\Models;
 
 use Core\Auth\Notifications\ResetPasswordNotification;
 use Core\Auth\Notifications\VerifyEmailNotification;
+use Core\API\Models\ApiToken;
 use Core\Clients\Models\Client;
 use Core\Clients\Models\ClientUser;
 use Core\Permissions\Models\Permission;
@@ -56,6 +57,14 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
             'password' => 'hashed',
             'notification_preferences' => 'array',
         ];
+    }
+
+    /**
+     * @return HasMany<ApiToken, $this>
+     */
+    public function apiTokens(): HasMany
+    {
+        return $this->hasMany(ApiToken::class);
     }
 
     /**

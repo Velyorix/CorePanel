@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Core\API\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -24,12 +25,7 @@ class EnforceMaintenanceMode
         $message = (string) config('corepanel.maintenance.message');
 
         if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json([
-                'error' => [
-                    'code' => 'maintenance_mode',
-                    'message' => $message,
-                ],
-            ], 503);
+            return ApiResponse::error('maintenance_mode', $message, 503);
         }
 
         return response($message, 503);

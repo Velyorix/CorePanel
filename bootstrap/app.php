@@ -9,8 +9,17 @@ use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnforceMaintenanceMode;
+use App\Http\Middleware\Api\AssignRequestId;
+use App\Http\Middleware\Api\AuthenticateApiToken;
+use App\Http\Middleware\Api\AuthenticateInternalModule;
+use App\Http\Middleware\Api\EnsureApiRateLimit;
+use App\Http\Middleware\Api\EnsureApiScope;
+use App\Http\Middleware\Api\ForceJsonResponse;
+use App\Http\Middleware\Api\LogApiRequest;
+use App\Http\Middleware\Api\SetApiVersion;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAuthenticatedSession;
+use Core\API\Http\ApiExceptionRenderer;
 use Core\Themes\Http\Middleware\ApplyEffectiveTheme;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -60,6 +69,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'client' => EnsureClient::class,
             'license.valid' => EnsureValidLicense::class,
+            'api.forceJson' => ForceJsonResponse::class,
+            'api.requestId' => AssignRequestId::class,
+            'api.version' => SetApiVersion::class,
+            'api.auth' => AuthenticateApiToken::class,
+            'api.scope' => EnsureApiScope::class,
+            'api.ratelimit' => EnsureApiRateLimit::class,
+            'api.log' => LogApiRequest::class,
+            'api.internal.auth' => AuthenticateInternalModule::class,
         ]);
 
         $middleware->group('admin', [
@@ -73,9 +90,27 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureClient::class,
             EnsureValidLicense::class,
         ]);
+
+        $middleware->group('api.v1', [
+            LogApiRequest::class,
+            ForceJsonResponse::class,
+            AssignRequestId::class,
+            SetApiVersion::class,
+            EnsureApiRateLimit::class,
+        ]);
+
+        $middleware->group('api.internal', [
+            ForceJsonResponse::class,
+            AssignRequestId::class,
+            AuthenticateInternalModule::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            return app(ApiExceptionRenderer::class)->render($e, $request);
+        });
     })->create();

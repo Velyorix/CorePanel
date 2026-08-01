@@ -1190,4 +1190,70 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automation engine
+    |--------------------------------------------------------------------------
+    |
+    | Event-driven workflows, conditional rules, retries and execution logs.
+    | Domain events listed under "events" are forwarded to the automation bus.
+    |
+    */
+
+    'automation' => [
+        'enabled' => filter_var(
+            env('COREPANEL_AUTOMATION_ENABLED', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'events' => [
+            'service.created' => \Core\Services\Events\ServiceCreated::class,
+            'service.suspended' => \Core\Services\Events\ServiceSuspended::class,
+            'service.terminated' => \Core\Services\Events\ServiceTerminated::class,
+            'invoice.paid' => \Core\Billing\Events\InvoicePaid::class,
+            'invoice.overdue' => \Core\Billing\Events\InvoiceOverdue::class,
+            'ticket.created' => \Core\Tickets\Events\TicketCreated::class,
+            'ticket.replied' => \Core\Tickets\Events\TicketReplied::class,
+            'node.offline' => \Core\Nodes\Events\NodeWentOffline::class,
+            'node.online' => \Core\Nodes\Events\NodeCameOnline::class,
+        ],
+        'retry' => [
+            'max_attempts' => (int) env('COREPANEL_AUTOMATION_MAX_ATTEMPTS', 4),
+            'backoff_seconds' => array_values(array_filter(array_map(
+                'intval',
+                explode(',', (string) env('COREPANEL_AUTOMATION_BACKOFF', '0,300,1800,3600')),
+            ), static fn (int $value): bool => $value >= 0)),
+        ],
+        'idempotency' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_IDEMPOTENCY_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'lock_seconds' => (int) env('COREPANEL_AUTOMATION_IDEMPOTENCY_LOCK', 30),
+            'unique_for_seconds' => (int) env('COREPANEL_AUTOMATION_JOB_UNIQUE_FOR', 3600),
+            'fingerprint_keys' => [
+                'invoice_id',
+                'service_id',
+                'ticket_id',
+                'node_id',
+                'client_id',
+                'order_id',
+            ],
+        ],
+        'scheduler' => [
+            'enabled' => filter_var(
+                env('COREPANEL_AUTOMATION_SCHEDULER_ENABLED', true),
+                FILTER_VALIDATE_BOOL,
+            ),
+            'invoices_due' => env('COREPANEL_AUTOMATION_SCHEDULE_INVOICES_DUE', 'everyMinute'),
+            'evaluate_rules' => env('COREPANEL_AUTOMATION_SCHEDULE_EVALUATE_RULES', 'everyMinute'),
+            'retry_failed' => env('COREPANEL_AUTOMATION_SCHEDULE_RETRY_FAILED', 'everyFiveMinutes'),
+            'cleanup_logs' => env('COREPANEL_AUTOMATION_SCHEDULE_CLEANUP_LOGS', 'hourly'),
+            'billing_report' => env('COREPANEL_AUTOMATION_SCHEDULE_BILLING_REPORT', 'daily'),
+            'system_health_report' => env('COREPANEL_AUTOMATION_SCHEDULE_SYSTEM_HEALTH', 'daily'),
+            'log_retention_days' => (int) env('COREPANEL_AUTOMATION_LOG_RETENTION_DAYS', 30),
+            'retry_limit' => (int) env('COREPANEL_AUTOMATION_RETRY_LIMIT', 25),
+            'retry_job_classes' => null,
+        ],
+    ],
+
 ];

@@ -176,6 +176,29 @@ class AdminNavigation
                 ],
             ],
             [
+                'label' => __('Automation'),
+                'items' => [
+                    [
+                        'label' => __('Workflows'),
+                        'route' => 'admin.automation.workflows.index',
+                        'routeIs' => ['admin.automation.workflows.*'],
+                        'permission' => 'automation.view',
+                    ],
+                    [
+                        'label' => __('Rules'),
+                        'route' => 'admin.automation.rules.index',
+                        'routeIs' => ['admin.automation.rules.*'],
+                        'permission' => 'automation.view',
+                    ],
+                    [
+                        'label' => __('Run logs'),
+                        'route' => 'admin.automation.logs.index',
+                        'routeIs' => ['admin.automation.logs.*'],
+                        'permission' => 'automation.view',
+                    ],
+                ],
+            ],
+            [
                 'label' => __('Infrastructure'),
                 'items' => [
                     [
